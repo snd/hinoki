@@ -6,7 +6,7 @@ crafted with great care.
 
 ### definitions
 
-**service** -
+**service** - a thing: piece of data, function Or api that. An Interface, contract
 
 **id** - a string that uniquely identifies a service
 
@@ -123,4 +123,14 @@ factories.async = function() {
 };
 ```
 
-# license: MIT
+if hinoki encounters a service somewhere in its dependencies then there is a loop
+
+### api
+
+returns the ids of the dependencies of a factory function
+
+```javascript
+hinoki.parseDependencies(function(a, b, c) {});     // -> ['a', 'b', 'c']
+```
+
+### license: MIT
