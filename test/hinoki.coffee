@@ -2,34 +2,34 @@ hinoki = require '../src/hinoki'
 
 module.exports =
 
-    'parseDependencies':
+    'parseFunctionArguments':
 
         'not a function': (test) ->
             test.throws ->
-                hinoki.parseDependencies 0
+                hinoki.parseFunctionArguments 0
             test.throws ->
-                hinoki.parseDependencies {}
+                hinoki.parseFunctionArguments {}
             test.throws ->
-                hinoki.parseDependencies 'a'
+                hinoki.parseFunctionArguments 'a'
             test.done()
 
         '0 dependencies': (test) ->
-            test.deepEqual [], hinoki.parseDependencies ->
+            test.deepEqual [], hinoki.parseFunctionArguments ->
             test.done()
 
         '1 dependency': (test) ->
             test.deepEqual ['first'],
-                hinoki.parseDependencies (first) ->
+                hinoki.parseFunctionArguments (first) ->
             test.done()
 
         '2 dependencies': (test) ->
             test.deepEqual ['first', 'second'],
-                hinoki.parseDependencies (first, second) ->
+                hinoki.parseFunctionArguments (first, second) ->
             test.done()
 
         '3 dependencies': (test) ->
             test.deepEqual ['first', 'second', 'third'],
-                hinoki.parseDependencies (first, second, third) ->
+                hinoki.parseFunctionArguments (first, second, third) ->
             test.done()
 
     'inject':
