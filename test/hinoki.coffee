@@ -31,3 +31,14 @@ module.exports =
             test.deepEqual ['first', 'second', 'third'],
                 hinoki.parseDependencies (first, second, third) ->
             test.done()
+
+    'inject':
+
+        'single factory': (test) ->
+            container =
+                factories:
+                    a: -> 5
+
+            hinoki.inject container, (a) ->
+                test.equals a, 5
+                test.done()

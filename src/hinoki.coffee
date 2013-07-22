@@ -11,3 +11,6 @@ module.exports =
         dependencies = argumentPart.split(/,\s/)
 
         return if dependencies[0] is '' then [] else dependencies
+
+    inject: (container, fun) ->
+        fun()
