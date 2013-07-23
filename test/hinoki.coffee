@@ -60,3 +60,16 @@ module.exports =
 
             test.throws block, Error, "missing factory for service 'a'"
             test.done()
+
+        'three dependencies': (test) ->
+            container =
+                factories:
+                    a: -> 1
+                    b: (a) -> a + 1
+                    c: (a, b) -> a + b + 1
+
+            hinoki.inject container, (a, b, c) ->
+                test.equals a, 1
+                test.equals b, 2
+                test.equals c, 4
+                test.done()
