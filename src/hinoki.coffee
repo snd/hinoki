@@ -25,5 +25,8 @@ module.exports =
     resolve: (container, dependencyIds, cb) ->
         dependencyIds.forEach (id) ->
             unless container.scope[id]?
-                container.scope[id] = module.exports.inject container, container.factories[id]
+                factory = container.factories?[id]
+                unless factory?
+                    throw new Error "missing factory for service '#{id}'"
+                container.scope[id] = module.exports.inject container, factory
         cb()
