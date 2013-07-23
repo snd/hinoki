@@ -22,7 +22,7 @@
         "url": "git://github.com/snd/hinoki/LICENSE"
     },
     "engines": {
-        "node": ">=0.8.5"
+        "node": ">=0.8.0"
     },
     "dependencies": {
     },
