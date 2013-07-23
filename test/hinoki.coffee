@@ -37,11 +37,11 @@ module.exports =
         'missing factory': (test) ->
             container = {}
 
-            block = ->
+            try
                 hinoki.inject container, (a) ->
-
-            test.throws block, Error, "missing factory for service 'a'"
-            test.done()
+            catch error
+                test.equals error.message, "missing factory for service 'a'"
+                test.done()
 
         'one factory': (test) ->
             container =
@@ -91,11 +91,28 @@ module.exports =
         'circular dependency': (test) ->
             container =
                 factories:
-                    a: (c) -> 1
-                    b: (a) -> a + 1
-                    c: (a, b) -> a + b + 1
+                    a: (c) ->
+                    b: (a) ->
+                    c: (a, b) ->
 
-            block = ->
+            try
                 hinoki.inject container, (a) ->
-            test.throws block, Error, "circular dependency a <- c <- a"
-            test.done()
+            catch error
+                test.equals error.message, "circular dependency a <- c <- a"
+                test.done()
+
+        'long circular dependency': (test) ->
+            container =
+                factories:
+                    a: (b) ->
+                    b: (c) ->
+                    c: (d) ->
+                    d: (e) ->
+                    e: (f) ->
+                    f: (a) ->
+
+            try
+                hinoki.inject container, (a) ->
+            catch error
+                test.equals error.message, "circular dependency a <- b <- c <- d <- e <- f <- a"
+                test.done()
