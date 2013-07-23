@@ -55,6 +55,8 @@ module.exports =
         'missing factory': (test) ->
             container = {}
 
-            test.throws ->
+            block = ->
                 hinoki.inject container, (a) ->
+
+            test.throws block, Error, "missing factory for service 'a'"
             test.done()
