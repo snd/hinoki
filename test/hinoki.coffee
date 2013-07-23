@@ -51,3 +51,10 @@ module.exports =
             hinoki.inject container, (a) ->
                 test.equals a, 5
                 test.done()
+
+        'missing factory': (test) ->
+            container = {}
+
+            test.throws ->
+                hinoki.inject container, (a) ->
+            test.done()
