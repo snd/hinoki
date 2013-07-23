@@ -34,24 +34,6 @@ module.exports =
 
     'inject':
 
-        'single factory': (test) ->
-            container =
-                factories:
-                    a: -> 5
-
-            hinoki.inject container, (a) ->
-                test.equals a, 5
-                test.done()
-
-        'no factory but in scope': (test) ->
-            container =
-                scope:
-                    a: 5
-
-            hinoki.inject container, (a) ->
-                test.equals a, 5
-                test.done()
-
         'missing factory': (test) ->
             container = {}
 
@@ -61,11 +43,43 @@ module.exports =
             test.throws block, Error, "missing factory for service 'a'"
             test.done()
 
+        'one factory': (test) ->
+            container =
+                factories:
+                    a: -> 5
+
+            hinoki.inject container, (a) ->
+                test.equals a, 5
+                test.done()
+
+        'one seed': (test) ->
+            container =
+                scope:
+                    a: 5
+
+            hinoki.inject container, (a) ->
+                test.equals a, 5
+                test.done()
+
         'three dependencies': (test) ->
             container =
                 factories:
                     a: -> 1
                     b: (a) -> a + 1
+                    c: (a, b) -> a + b + 1
+
+            hinoki.inject container, (a, b, c) ->
+                test.equals a, 1
+                test.equals b, 2
+                test.equals c, 4
+                test.done()
+
+        'one factory and two seeds': (test) ->
+            container =
+                scope:
+                    a: 1
+                    b: 2
+                factories:
                     c: (a, b) -> a + b + 1
 
             hinoki.inject container, (a, b, c) ->
