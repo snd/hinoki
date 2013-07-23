@@ -13,4 +13,17 @@ module.exports =
         return if dependencies[0] is '' then [] else dependencies
 
     inject: (container, fun) ->
-        fun()
+        unless container.scope?
+            container.scope = {}
+
+        dependencyIds = module.exports.parseFunctionArguments fun
+
+        module.exports.resolve container, dependencyIds, (err) ->
+
+            fun.apply null, dependencyIds.map (id) -> container.scope[id]
+
+    resolve: (container, dependencyIds, cb) ->
+        dependencyIds.forEach (id) ->
+            unless container.scope[id]?
+                container.scope[id] = module.exports.inject container, container.factories[id]
+        cb()
