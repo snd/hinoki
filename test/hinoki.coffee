@@ -87,3 +87,15 @@ module.exports =
                 test.equals b, 2
                 test.equals c, 4
                 test.done()
+
+        'chain': (test) ->
+            container =
+                factories:
+                    a: (c) -> 1
+                    b: (a) -> a + 1
+                    c: (a, b) -> a + b + 1
+
+            block = ->
+                hinoki.inject container, (a) ->
+            test.throws block, Error, "circular dependency a <- c <- a"
+            test.done()

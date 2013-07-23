@@ -12,21 +12,20 @@ module.exports =
 
         return if dependencies[0] is '' then [] else dependencies
 
-    inject: (container, fun) ->
+    inject: (container, fun, chain = []) ->
         unless container.scope?
             container.scope = {}
 
         dependencyIds = module.exports.parseFunctionArguments fun
 
-        module.exports.resolve container, dependencyIds, (err) ->
-
-            fun.apply null, dependencyIds.map (id) -> container.scope[id]
-
-    resolve: (container, dependencyIds, cb) ->
         dependencyIds.forEach (id) ->
             unless container.scope[id]?
+                newChain = chain.concat([id])
+                if id in chain
+                    throw new Error "circular dependency #{newChain.join(' <- ')}"
                 factory = container.factories?[id]
                 unless factory?
                     throw new Error "missing factory for service '#{id}'"
-                container.scope[id] = module.exports.inject container, factory
-        cb()
+                container.scope[id] = module.exports.inject container, factory, newChain
+
+        fun.apply null, dependencyIds.map (id) -> container.scope[id]
