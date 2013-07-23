@@ -26,6 +26,7 @@ module.exports =
                 factory = container.factories?[id]
                 unless factory?
                     throw new Error "missing factory for service '#{id}'"
-                container.scope[id] = module.exports.inject container, factory, newChain
+                container.scope[id] =
+                    module.exports.inject container, factory, newChain
 
         fun.apply null, dependencyIds.map (id) -> container.scope[id]
