@@ -88,7 +88,7 @@ module.exports =
                 test.equals c, 4
                 test.done()
 
-        'chain': (test) ->
+        'circular dependency': (test) ->
             container =
                 factories:
                     a: (c) -> 1
