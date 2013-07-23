@@ -101,6 +101,17 @@ module.exports =
                 test.equals error.message, "circular dependency a <- c <- a"
                 test.done()
 
+        'self dependency': (test) ->
+            container =
+                factories:
+                    a: (a) ->
+
+            try
+                hinoki.inject container, (a) ->
+            catch error
+                test.equals error.message, "circular dependency a <- a"
+                test.done()
+
         'long circular dependency': (test) ->
             container =
                 factories:
