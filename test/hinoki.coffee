@@ -42,3 +42,12 @@ module.exports =
             hinoki.inject container, (a) ->
                 test.equals a, 5
                 test.done()
+
+        'no factory but in scope': (test) ->
+            container =
+                scope:
+                    a: 5
+
+            hinoki.inject container, (a) ->
+                test.equals a, 5
+                test.done()
