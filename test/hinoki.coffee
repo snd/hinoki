@@ -1,3 +1,5 @@
+q = require 'q'
+
 hinoki = require '../src/hinoki'
 
 module.exports =
@@ -126,4 +128,17 @@ module.exports =
                 hinoki.inject container, (a) ->
             catch error
                 test.equals error.message, "circular dependency a <- b <- c <- d <- e <- f <- a"
+                test.done()
+
+        'one async dependency': (test) ->
+            container =
+                factories:
+                    a: ->
+                        deferred = q.defer()
+                        q.nextTick ->
+                            deferred.resolve 5
+                        return deferred.promise
+
+            hinoki.inject container, (a) ->
+                test.equals a, 5
                 test.done()
