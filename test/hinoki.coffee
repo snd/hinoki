@@ -54,6 +54,18 @@ module.exports =
                 test.equals a, 5
                 test.done()
 
+        'exception in factory': (test) ->
+            container =
+                factories:
+                    a: ->
+                        throw new Error 'b'
+
+            try
+                hinoki.inject container, (a) ->
+            catch error
+                test.equals error.message, "exception in factory 'a': Error: b"
+                test.done()
+
         'one seed': (test) ->
             container =
                 scope:
