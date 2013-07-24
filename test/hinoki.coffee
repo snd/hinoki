@@ -169,3 +169,25 @@ module.exports =
                         return deferred.promise
 
             hinoki.inject container, (a) ->
+
+        '3 async dependencies': (test) ->
+            container =
+                factories:
+                    a: ->
+                        deferred = q.defer()
+                        q.nextTick -> deferred.resolve 1
+                        return deferred.promise
+                    b: (a) ->
+                        deferred = q.defer()
+                        q.nextTick -> deferred.resolve a + 1
+                        return deferred.promise
+                    c: (a, b) ->
+                        deferred = q.defer()
+                        q.nextTick -> deferred.resolve a + b + 1
+                        return deferred.promise
+
+            hinoki.inject container, (a, b, c) ->
+                test.equals a, 1
+                test.equals b, 2
+                test.equals c, 4
+                test.done()
