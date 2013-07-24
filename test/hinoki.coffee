@@ -171,7 +171,7 @@ module.exports =
 
             test.done()
 
-    'inject':
+    'inject with one container':
 
         'missing factory': (test) ->
             container = {}
@@ -231,7 +231,7 @@ module.exports =
                     c: 4
                 test.done()
 
-        'one factory and two seeds': (test) ->
+        '1 factory and 2 seeds': (test) ->
             container =
                 scope:
                     a: 1
@@ -349,7 +349,9 @@ module.exports =
                     c: 4
                 test.done()
 
-        'two containers': (test) ->
+    'inject with 3 containers':
+
+        '3 async dependencies': (test) ->
             container1 =
                 factories:
                     c: (a, b) ->
@@ -359,22 +361,26 @@ module.exports =
 
             container2 =
                 factories:
-                    a: ->
-                        deferred = q.defer()
-                        q.nextTick -> deferred.resolve 1
-                        return deferred.promise
                     b: (a) ->
                         deferred = q.defer()
                         q.nextTick -> deferred.resolve a + 1
                         return deferred.promise
 
-            hinoki.inject [container1, container2], (a, b, c) ->
+            container3 =
+                factories:
+                    a: ->
+                        deferred = q.defer()
+                        q.nextTick -> deferred.resolve 1
+                        return deferred.promise
+
+            hinoki.inject [container1, container2, container3], (a, b, c) ->
                 test.equals a, 1
                 test.equals b, 2
                 test.equals c, 4
                 test.deepEqual container1.scope,
                     c: 4
                 test.deepEqual container2.scope,
-                    a: 1
                     b: 2
+                test.deepEqual container3.scope,
+                    a: 1
                 test.done()
