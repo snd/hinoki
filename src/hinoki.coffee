@@ -62,8 +62,7 @@ module.exports =
             if hasErrorOccured
                 return
             if Object.keys(resolved).length is dependencyIds.length
-                dependencies = dependencyIds.map (id) -> resolved[id]
-                cb.apply null, dependencies
+                cb.apply null, dependencyIds.map (id) -> resolved[id]
 
         dependencyIds.forEach (id) ->
             result = module.exports.find containers, id
