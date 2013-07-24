@@ -14,13 +14,44 @@ module.exports =
 
         return if dependencies[0] is '' then [] else dependencies
 
-    inject: (container, fun) ->
-        unless container.scope?
-            container.scope = {}
+    find: (containers, id) ->
+        len = containers.length
+        i = 0
+        while i < len
+            container = containers[i]
 
-        ids = module.exports.parseFunctionArguments fun
+            instance = container.scope?[id]
+            if instance?
+                return {
+                    instance: instance
+                    containers: containers.slice(i)
+                }
 
-        module.exports.resolve container, ids, [], ->
+            factory = container.factories?[id]
+            if factory?
+                return {
+                    factory: factory
+                    containers: containers.slice(i)
+                }
+
+            i++
+
+        return null
+
+    inject: (arg, fun) ->
+        containers = if Array.isArray arg then arg else [arg]
+
+        containers.forEach (c) ->
+            unless c? and 'object' is typeof c
+                throw new Error 'the first argument to inject must be an object or an array of objects'
+
+        containers.forEach (c) ->
+            unless c.scope?
+                c.scope = {}
+
+        dependencyIds = module.exports.parseFunctionArguments fun
+
+        module.exports.resolve containers, dependencyIds, [], ->
             fun.apply null, arguments
 
     resolve: (container, ids, chain, cb) ->

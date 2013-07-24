@@ -34,6 +34,143 @@ module.exports =
                 hinoki.parseFunctionArguments (first, second, third) ->
             test.done()
 
+    'find with single container':
+
+        'not found': (test) ->
+            result = hinoki.find [{}], 'id'
+            test.ok not result?
+            test.done()
+
+        'instance found': (test) ->
+            c =
+                scope:
+                    a: 5
+
+            result = hinoki.find [c], 'a'
+
+            test.equal result.instance, 5
+            test.equal result.containers.length, 1
+            test.equal result.containers[0], c
+
+            test.done()
+
+        'factory found': (test) ->
+            c =
+                scope: {}
+                factories:
+                    a: 5
+
+            result = hinoki.find [c], 'a'
+
+            test.equal result.factory, 5
+            test.equal result.containers.length, 1
+            test.equal result.containers[0], c
+
+            test.done()
+
+    'find with 3 containers':
+
+        'not found': (test) ->
+            result = hinoki.find [{}, {}, {}], 'id'
+            test.ok not result?
+            test.done()
+
+        'instance found in 1st container': (test) ->
+            c1 =
+                scope:
+                    a: 5
+            c2 = {}
+            c3 = {}
+
+            result = hinoki.find [c1, c2, c3], 'a'
+
+            test.equal result.instance, 5
+            test.equal result.containers.length, 3
+            test.equal result.containers[0], c1
+            test.equal result.containers[1], c2
+            test.equal result.containers[2], c3
+
+            test.done()
+
+        'instance found in 2nd container': (test) ->
+            c1 = {}
+            c2 =
+                scope:
+                    a: 5
+            c3 = {}
+
+            result = hinoki.find [c1, c2, c3], 'a'
+
+            test.equal result.instance, 5
+            test.equal result.containers.length, 2
+            test.equal result.containers[0], c2
+            test.equal result.containers[1], c3
+
+            test.done()
+
+        'instance found in 3rd container': (test) ->
+            c1 = {}
+            c2 = {}
+            c3 =
+                scope:
+                    a: 5
+
+            result = hinoki.find [c1, c2, c3], 'a'
+
+            test.equal result.instance, 5
+            test.equal result.containers.length, 1
+            test.equal result.containers[0], c3
+
+            test.done()
+
+        'factory found in 1st container': (test) ->
+            c1 =
+                factories:
+                    a: 5
+            c2 = {}
+            c3 = {}
+
+            result = hinoki.find [c1, c2, c3], 'a'
+
+            test.equal result.factory, 5
+            test.equal result.containers.length, 3
+            test.equal result.containers[0], c1
+            test.equal result.containers[1], c2
+            test.equal result.containers[2], c3
+
+            test.done()
+
+        'factory found in 2nd container': (test) ->
+            c1 = {}
+            c2 =
+                factories:
+                    a: 5
+            c3 = {}
+
+            result = hinoki.find [c1, c2, c3], 'a'
+
+            test.equal result.factory, 5
+            test.equal result.containers.length, 2
+            test.equal result.containers[0], c2
+            test.equal result.containers[1], c3
+
+            test.done()
+
+        'factory found in 3rd container': (test) ->
+            c1 = {}
+            c2 = {}
+            c3 =
+                factories:
+                    a: 5
+
+            result = hinoki.find [c1, c2, c3], 'a'
+
+            test.equal result.factory, 5
+            test.equal result.containers.length, 1
+            test.equal result.containers[0], c3
+
+            test.done()
+
     'inject':
 
         'missing factory': (test) ->
