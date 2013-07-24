@@ -67,6 +67,6 @@ module.exports =
                     onError = (err) ->
                         hasErrorOccured = true
                         throw new Error "error resolving promise returned from factory '#{id}'"
-                    instance.then onSuccess, onError
+                    instance.done(onSuccess, onError)
 
         maybeDone()
