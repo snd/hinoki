@@ -54,7 +54,7 @@ module.exports =
                     try
                         instance = factory.apply null, arguments
                     catch err
-                        throw new Error "exception in factory '#{id}' #{err}"
+                        throw new Error "exception in factory '#{id}': #{err}"
                     unless q.isPromise instance
                         container.scope[id] = instance
                         toBeResolved--
