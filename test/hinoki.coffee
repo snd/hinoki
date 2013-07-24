@@ -142,7 +142,7 @@ module.exports =
                 test.equals error.message, "circular dependency a <- b <- c <- d <- e <- f <- a"
                 test.done()
 
-        'one async dependency': (test) ->
+        'one async dependency with success': (test) ->
             container =
                 factories:
                     a: ->
@@ -154,3 +154,18 @@ module.exports =
             hinoki.inject container, (a) ->
                 test.equals a, 5
                 test.done()
+
+        'one async dependency with error': (test) ->
+            q.onerror = (err) ->
+                test.equals err.message, "error resolving promise returned from factory 'a'"
+                test.done()
+
+            container =
+                factories:
+                    a: ->
+                        deferred = q.defer()
+                        q.nextTick ->
+                            deferred.reject 5
+                        return deferred.promise
+
+            hinoki.inject container, (a) ->
