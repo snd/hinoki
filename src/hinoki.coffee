@@ -54,50 +54,54 @@ module.exports =
         module.exports.resolve containers, dependencyIds, [], ->
             fun.apply null, arguments
 
-    resolve: (container, ids, chain, cb) ->
+    resolve: (containers, dependencyIds, chain, cb) ->
         hasErrorOccured = false
-        toBeResolved = 0
+        resolved = {}
 
-        maybeDone = ->
+        maybeResolved = ->
             if hasErrorOccured
                 return
-            if toBeResolved is 0
-                dependencies = ids.map (id) -> container.scope[id]
+            if Object.keys(resolved).length is dependencyIds.length
+                dependencies = dependencyIds.map (id) -> resolved[id]
                 cb.apply null, dependencies
 
-        ids.forEach (id) ->
-            unless container.scope[id]?
-                newChain = chain.concat([id])
+        dependencyIds.forEach (id) ->
+            result = module.exports.find containers, id
 
-                if id in chain
-                    throw new Error "circular dependency #{newChain.join(' <- ')}"
+            unless result?
+                throw new Error "missing factory for service '#{id}'"
 
-                factory = container.factories?[id]
-                unless factory?
-                    throw new Error "missing factory for service '#{id}'"
-                unless 'function' is typeof factory
-                    throw new Error "factory is not a function '#{id}'"
+            if result.instance?
+                resolved[id] = result.instance
+                return
 
-                factoryIds = module.exports.parseFunctionArguments factory
+            newChain = chain.concat([id])
 
-                toBeResolved++
-                module.exports.resolve container, factoryIds, newChain, ->
-                    try
-                        instance = factory.apply null, arguments
-                    catch err
-                        throw new Error "exception in factory '#{id}': #{err}"
-                    unless q.isPromise instance
-                        container.scope[id] = instance
-                        toBeResolved--
-                        return
+            if id in chain
+                throw new Error "circular dependency #{newChain.join(' <- ')}"
 
-                    onSuccess = (value) ->
-                        container.scope[id] = value
-                        toBeResolved--
-                        maybeDone()
-                    onError = (err) ->
-                        hasErrorOccured = true
-                        throw new Error "error resolving promise returned from factory '#{id}'"
-                    instance.done(onSuccess, onError)
+            unless 'function' is typeof result.factory
+                throw new Error "factory is not a function '#{id}'"
 
-        maybeDone()
+            factoryDependencyIds = module.exports.parseFunctionArguments result.factory
+
+            module.exports.resolve result.containers, factoryDependencyIds, newChain, ->
+                try
+                    instance = result.factory.apply null, arguments
+                catch err
+                    throw new Error "exception in factory '#{id}': #{err}"
+                unless q.isPromise instance
+                    result.containers[0].scope[id] = instance
+                    resolved[id] = instance
+                    return
+
+                onSuccess = (value) ->
+                    result.containers[0].scope[id] = value
+                    resolved[id] = value
+                    maybeResolved()
+                onError = (err) ->
+                    hasErrorOccured = true
+                    throw new Error "error resolving promise returned from factory '#{id}'"
+                instance.done(onSuccess, onError)
+
+        maybeResolved()
