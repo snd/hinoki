@@ -211,3 +211,33 @@ module.exports =
                     b: 2
                     c: 4
                 test.done()
+
+        'two containers': (test) ->
+            container1 =
+                factories:
+                    a: ->
+                        deferred = q.defer()
+                        q.nextTick -> deferred.resolve 1
+                        return deferred.promise
+                    b: (a) ->
+                        deferred = q.defer()
+                        q.nextTick -> deferred.resolve a + 1
+                        return deferred.promise
+
+            container2 =
+                factories:
+                    c: (a, b) ->
+                        deferred = q.defer()
+                        q.nextTick -> deferred.resolve a + b + 1
+                        return deferred.promise
+
+            hinoki.inject [container1, container2], (a, b, c) ->
+                test.equals a, 1
+                test.equals b, 2
+                test.equals c, 4
+                test.deepEqual container1.scope,
+                    a: 1
+                    b: 2
+                test.deepEqual container2.scope,
+                    c: 4
+                test.done()
