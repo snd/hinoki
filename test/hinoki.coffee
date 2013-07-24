@@ -52,6 +52,8 @@ module.exports =
 
             hinoki.inject container, (a) ->
                 test.equals a, 5
+                test.deepEqual container.scope,
+                    a: 5
                 test.done()
 
         'exception in factory': (test) ->
@@ -86,6 +88,10 @@ module.exports =
                 test.equals a, 1
                 test.equals b, 2
                 test.equals c, 4
+                test.deepEqual container.scope,
+                    a: 1
+                    b: 2
+                    c: 4
                 test.done()
 
         'one factory and two seeds': (test) ->
@@ -100,6 +106,10 @@ module.exports =
                 test.equals a, 1
                 test.equals b, 2
                 test.equals c, 4
+                test.deepEqual container.scope,
+                    a: 1
+                    b: 2
+                    c: 4
                 test.done()
 
         'circular dependency': (test) ->
@@ -113,6 +123,7 @@ module.exports =
                 hinoki.inject container, (a) ->
             catch error
                 test.equals error.message, "circular dependency a <- c <- a"
+                test.deepEqual container.scope, {}
                 test.done()
 
         'self dependency': (test) ->
@@ -124,6 +135,7 @@ module.exports =
                 hinoki.inject container, (a) ->
             catch error
                 test.equals error.message, "circular dependency a <- a"
+                test.deepEqual container.scope, {}
                 test.done()
 
         'long circular dependency': (test) ->
@@ -140,6 +152,7 @@ module.exports =
                 hinoki.inject container, (a) ->
             catch error
                 test.equals error.message, "circular dependency a <- b <- c <- d <- e <- f <- a"
+                test.deepEqual container.scope, {}
                 test.done()
 
         'one async dependency with success': (test) ->
@@ -153,13 +166,11 @@ module.exports =
 
             hinoki.inject container, (a) ->
                 test.equals a, 5
+                test.deepEqual container.scope,
+                    a: 5
                 test.done()
 
         'one async dependency with error': (test) ->
-            q.onerror = (err) ->
-                test.equals err.message, "error resolving promise returned from factory 'a'"
-                test.done()
-
             container =
                 factories:
                     a: ->
@@ -167,6 +178,11 @@ module.exports =
                         q.nextTick ->
                             deferred.reject 5
                         return deferred.promise
+
+            q.onerror = (err) ->
+                test.equals err.message, "error resolving promise returned from factory 'a'"
+                test.deepEqual container.scope, {}
+                test.done()
 
             hinoki.inject container, (a) ->
 
@@ -190,4 +206,8 @@ module.exports =
                 test.equals a, 1
                 test.equals b, 2
                 test.equals c, 4
+                test.deepEqual container.scope,
+                    a: 1
+                    b: 2
+                    c: 4
                 test.done()
