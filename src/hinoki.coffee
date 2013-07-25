@@ -20,7 +20,7 @@ module.exports =
         while i < len
             container = containers[i]
 
-            instance = container.scope?[id]
+            instance = container.instances?[id]
             if instance?
                 return {
                     instance: instance
@@ -46,8 +46,8 @@ module.exports =
                 throw new Error 'the first argument to inject must be an object or an array of objects'
 
         containers.forEach (c) ->
-            unless c.scope?
-                c.scope = {}
+            unless c.instances?
+                c.instances = {}
 
         dependencyIds = module.exports.parseFunctionArguments fun
 
@@ -90,12 +90,12 @@ module.exports =
                 catch err
                     throw new Error "exception in factory '#{id}': #{err}"
                 unless q.isPromise instance
-                    result.containers[0].scope[id] = instance
+                    result.containers[0].instances[id] = instance
                     resolved[id] = instance
                     return
 
                 onSuccess = (value) ->
-                    result.containers[0].scope[id] = value
+                    result.containers[0].instances[id] = value
                     resolved[id] = value
                     maybeResolved()
                 onError = (err) ->

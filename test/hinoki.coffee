@@ -57,7 +57,7 @@ module.exports =
 
         'instance found': (test) ->
             c =
-                scope:
+                instances:
                     a: 5
 
             result = hinoki.find [c], 'a'
@@ -70,7 +70,7 @@ module.exports =
 
         'factory found': (test) ->
             c =
-                scope: {}
+                instances: {}
                 factories:
                     a: 5
 
@@ -91,7 +91,7 @@ module.exports =
 
         'instance found in 1st container': (test) ->
             c1 =
-                scope:
+                instances:
                     a: 5
             c2 = {}
             c3 = {}
@@ -109,7 +109,7 @@ module.exports =
         'instance found in 2nd container': (test) ->
             c1 = {}
             c2 =
-                scope:
+                instances:
                     a: 5
             c3 = {}
 
@@ -126,7 +126,7 @@ module.exports =
             c1 = {}
             c2 = {}
             c3 =
-                scope:
+                instances:
                     a: 5
 
             result = hinoki.find [c1, c2, c3], 'a'
@@ -201,7 +201,7 @@ module.exports =
 
             hinoki.inject container, (a) ->
                 test.equals a, 5
-                test.deepEqual container.scope,
+                test.deepEqual container.instances,
                     a: 5
                 test.done()
 
@@ -219,7 +219,7 @@ module.exports =
 
         '1 seed': (test) ->
             container =
-                scope:
+                instances:
                     a: 5
 
             hinoki.inject container, (a) ->
@@ -237,7 +237,7 @@ module.exports =
                 test.equals a, 1
                 test.equals b, 2
                 test.equals c, 4
-                test.deepEqual container.scope,
+                test.deepEqual container.instances,
                     a: 1
                     b: 2
                     c: 4
@@ -245,7 +245,7 @@ module.exports =
 
         '1 factory and 2 seeds': (test) ->
             container =
-                scope:
+                instances:
                     a: 1
                     b: 2
                 factories:
@@ -255,7 +255,7 @@ module.exports =
                 test.equals a, 1
                 test.equals b, 2
                 test.equals c, 4
-                test.deepEqual container.scope,
+                test.deepEqual container.instances,
                     a: 1
                     b: 2
                     c: 4
@@ -272,7 +272,7 @@ module.exports =
                 hinoki.inject container, (a) ->
             catch error
                 test.equals error.message, "circular dependency a <- c <- a"
-                test.deepEqual container.scope, {}
+                test.deepEqual container.instances, {}
                 test.done()
 
         'self dependency': (test) ->
@@ -284,7 +284,7 @@ module.exports =
                 hinoki.inject container, (a) ->
             catch error
                 test.equals error.message, "circular dependency a <- a"
-                test.deepEqual container.scope, {}
+                test.deepEqual container.instances, {}
                 test.done()
 
         'long circular dependency': (test) ->
@@ -301,7 +301,7 @@ module.exports =
                 hinoki.inject container, (a) ->
             catch error
                 test.equals error.message, "circular dependency a <- b <- c <- d <- e <- f <- a"
-                test.deepEqual container.scope, {}
+                test.deepEqual container.instances, {}
                 test.done()
 
         'one async dependency with success': (test) ->
@@ -315,7 +315,7 @@ module.exports =
 
             hinoki.inject container, (a) ->
                 test.equals a, 5
-                test.deepEqual container.scope,
+                test.deepEqual container.instances,
                     a: 5
                 test.done()
 
@@ -330,7 +330,7 @@ module.exports =
 
             q.onerror = (err) ->
                 test.equals err.message, "error resolving promise returned from factory 'a'"
-                test.deepEqual container.scope, {}
+                test.deepEqual container.instances, {}
                 test.done()
 
             hinoki.inject container, (a) ->
@@ -355,7 +355,7 @@ module.exports =
                 test.equals a, 1
                 test.equals b, 2
                 test.equals c, 4
-                test.deepEqual container.scope,
+                test.deepEqual container.instances,
                     a: 1
                     b: 2
                     c: 4
@@ -419,11 +419,11 @@ module.exports =
                 test.equals a, 1
                 test.equals b, 2
                 test.equals c, 4
-                test.deepEqual container1.scope,
+                test.deepEqual container1.instances,
                     c: 4
-                test.deepEqual container2.scope,
+                test.deepEqual container2.instances,
                     b: 2
-                test.deepEqual container3.scope,
+                test.deepEqual container3.instances,
                     a: 1
                 test.done()
 
@@ -432,12 +432,12 @@ module.exports =
         'computation - ask for count': (test) ->
             c =
                 factories: computationExampleFactories
-                scope:
+                instances:
                     xs: [1, 2, 3, 6]
 
             hinoki.inject c, (count) ->
                 test.equals count, 4
-                test.deepEqual c.scope,
+                test.deepEqual c.instances,
                     xs: [1, 2, 3, 6]
                     count: 4
                 test.done()
@@ -445,12 +445,12 @@ module.exports =
         'computation - ask for mean': (test) ->
             c =
                 factories: computationExampleFactories
-                scope:
+                instances:
                     xs: [1, 2, 3, 6]
 
             hinoki.inject c, (mean) ->
                 test.equals mean, 3
-                test.deepEqual c.scope,
+                test.deepEqual c.instances,
                     xs: [1, 2, 3, 6]
                     count: 4
                     mean: 3
@@ -459,12 +459,12 @@ module.exports =
         'computation - ask for meanOfSquares': (test) ->
             c =
                 factories: computationExampleFactories
-                scope:
+                instances:
                     xs: [1, 2, 3, 6]
 
             hinoki.inject c, (meanOfSquares) ->
                 test.equals meanOfSquares, 12.5
-                test.deepEqual c.scope,
+                test.deepEqual c.instances,
                     xs: [1, 2, 3, 6]
                     count: 4
                     meanOfSquares: 12.5
@@ -473,12 +473,12 @@ module.exports =
         'computation - ask for variance': (test) ->
             c =
                 factories: computationExampleFactories
-                scope:
+                instances:
                     xs: [1, 2, 3, 6]
 
             hinoki.inject c, (variance) ->
                 test.equals variance, 3.5
-                test.deepEqual c.scope,
+                test.deepEqual c.instances,
                     xs: [1, 2, 3, 6]
                     count: 4
                     mean: 3
