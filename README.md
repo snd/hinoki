@@ -178,10 +178,8 @@ var container = {
     }
 };
 
-hinoki.inject(container, function(a, b, c) {
-    console.log(a);     // -> 1
-    console.log(b);     // -> 2
-    console.log(c);     // -> 3
+hinoki.inject(container, function(mean) {
+    console.log(mean);  // -> 3
 });
 ```
 
