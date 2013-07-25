@@ -3,6 +3,9 @@ q = require 'q'
 onCircle = (chain) ->
     throw new Error "circular dependency #{chain.join(' <- ')}"
 
+onException = (id, err) ->
+    throw new Error "exception in factory '#{id}': #{err}"
+
 module.exports =
 
     parseFunctionArguments: (fun) ->
@@ -75,6 +78,8 @@ module.exports =
             unless result?
                 throw new Error "missing factory for service '#{id}'"
 
+            container = result.containers[0]
+
             if result.instance?
                 resolved[id] = result.instance
                 return
@@ -82,8 +87,7 @@ module.exports =
             newChain = chain.concat([id])
 
             if id in chain
-                f = if containers[0].onCircle? then containers[0].onCircle else onCircle
-                f newChain
+                (if container.onCircle? then container.onCircle else onCircle) newChain
 
             unless 'function' is typeof result.factory
                 throw new Error "factory is not a function '#{id}'"
@@ -94,7 +98,7 @@ module.exports =
                 try
                     instance = result.factory.apply null, arguments
                 catch err
-                    throw new Error "exception in factory '#{id}': #{err}"
+                    (if container.onException? then container.onException else onException) id, err
                 unless q.isPromise instance
                     result.containers[0].instances[id] = instance
                     resolved[id] = instance
