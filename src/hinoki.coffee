@@ -1,5 +1,8 @@
 q = require 'q'
 
+onCircle = (chain) ->
+    throw new Error "circular dependency #{chain.join(' <- ')}"
+
 module.exports =
 
     parseFunctionArguments: (fun) ->
@@ -79,7 +82,8 @@ module.exports =
             newChain = chain.concat([id])
 
             if id in chain
-                throw new Error "circular dependency #{newChain.join(' <- ')}"
+                f = if containers[0].onCircle? then containers[0].onCircle else onCircle
+                f newChain
 
             unless 'function' is typeof result.factory
                 throw new Error "factory is not a function '#{id}'"
