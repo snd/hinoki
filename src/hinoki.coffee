@@ -73,6 +73,7 @@ module.exports =
 
             unless result?
                 throw new Error "missing factory for service '#{id}'"
+                (if container.onNotFound? then container.onNotFound else hooks.onNotFound) id
 
             container = result.containers[0]
 

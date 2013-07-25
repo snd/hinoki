@@ -8,3 +8,6 @@ module.exports =
 
     onRejection: (id, err) ->
         throw new Error "promise returned from factory '#{id}' was rejected with: #{err}"
+
+    onNotFound: (id) ->
+        throw new Error "missing factory for service '#{id}'"
