@@ -1,10 +1,6 @@
 q = require 'q'
 
-onCircle = (chain) ->
-    throw new Error "circular dependency #{chain.join(' <- ')}"
-
-onException = (id, err) ->
-    throw new Error "exception in factory '#{id}': #{err}"
+hooks = require './hooks'
 
 module.exports =
 
@@ -87,7 +83,7 @@ module.exports =
             newChain = chain.concat([id])
 
             if id in chain
-                (if container.onCircle? then container.onCircle else onCircle) newChain
+                (if container.onCircle? then container.onCircle else hooks.onCircle) newChain
 
             unless 'function' is typeof result.factory
                 throw new Error "factory is not a function '#{id}'"
@@ -98,7 +94,8 @@ module.exports =
                 try
                     instance = result.factory.apply null, arguments
                 catch err
-                    (if container.onException? then container.onException else onException) id, err
+                    (if container.onException? then container.onException else hooks.onException) id, err
+
                 unless q.isPromise instance
                     result.containers[0].instances[id] = instance
                     resolved[id] = instance
@@ -110,7 +107,7 @@ module.exports =
                     maybeResolved()
                 onError = (err) ->
                     hasErrorOccured = true
-                    throw new Error "error resolving promise returned from factory '#{id}'"
+                    (if container.onRejection? then container.onRejection else hooks.onRejection) id, err
                 instance.done(onSuccess, onError)
 
         maybeResolved()

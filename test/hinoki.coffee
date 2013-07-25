@@ -324,7 +324,7 @@ module.exports['inject with 1 container'] =
                     return deferred.promise
 
         q.onerror = (err) ->
-            test.equals err.message, "error resolving promise returned from factory 'a'"
+            test.equals err.message, "promise returned from factory 'a' was rejected with: 5"
             test.deepEqual container.instances, {}
             test.done()
 
