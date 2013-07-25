@@ -147,6 +147,8 @@ hinoki.inject(container, function(a, b, c) {
 
 ##### computation
 
+
+
 ```javascript
 var hinoki = require('hinoki');
 
@@ -190,16 +192,40 @@ if you dont pass in a instances one will be created for you.
 
 ##### asynchronous computations
 
-If a Factory returns a promise hinoki will wait until the promise Is resolved
+if a factory returns a [q promise](https://github.com/kriskowal/q)
+hinoki will wait until the promise is resolved.
 
 can also be used to make complex async flows more managable
 
 use `q.nfcall` for callback style functions
 
 ```javascript
-factories.async = function() {
-    q.nfcall();
+var dns = require('dns');
+
+var q = require('q');
+var hinoki = require('hinoki');
+
+var factories = {
+    addresses: function(domain) {
+        return q.nfcall(dns.resolve4, domain);
+    },
+    domains: function(addresses) {
+        return q.all(addresses.map(function(address) {
+            return q.nfcall(dns.reverse, address);
+        }));
+    }
 };
+
+var container = {
+    factories: factories,
+    instances: {
+        domain: 'www.google.com'
+    }
+};
+
+hinoki.inject(container, function(domains) {
+    console.log(domains);
+});
 ```
 
 ##### multiple containers
