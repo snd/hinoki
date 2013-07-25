@@ -1,8 +1,18 @@
 # hinoki
 
-magical inversion of control for nodejs.
+### todo
 
-hinoki is a tool to manage complexity in large nodejs applications.
+seed instances...
+hooks
+readme
+more tests
+refactor and polish
+
+### REAL README
+
+**magical inversion of control for nodejs**
+
+hinoki manages complexity in large nodejs applications.
 
 Keep it as simple and minimal as possible
 Open
@@ -13,9 +23,13 @@ Which Problem Is it trying to solve?
 application structure, testability,
 complex interdependent async loads
 
-### use cases
+*link here to the usage examples below*
 
 hinoki leads to shorter and simpler code in a variety of cases:
+
+computation example
+
+only computes whats needed
 
 - make computations with many interrelated
 cache results which are needed multiple times
@@ -33,6 +47,9 @@ hinoki is inspired by [prismatic's graph](https://github.com/Prismatic/plumbing#
 crafted with great care.
 
 even with lots of asynchronous calls
+
+it can be used to describe complex closure ...
+and then resolve them repeatedly with different values
 
 ### terminology
 
@@ -58,14 +75,14 @@ the id of a service
 
 **instance** -
 
-**scope** - an object with properties where a key that is an *id* is associated  with an **instance** of that service.
+**instances** - an object with properties where a key that is an *id* is associated  with an **instance** of that service.
 *used for the*
 
-**seed** - an instance inside a scope without a corresponding factory.
+**seed** - an instance inside a instances without a corresponding factory.
 
 *used for bootstrapping and testing*
 
-**container** manages services, factories, scope, configuration, lifetime
+**container** manages services, factories, instances, configuration, lifetime
 
 **lifetime**
 
@@ -90,14 +107,14 @@ var factories = {
 
 var container = {
     factories: factories,
-    scope: {},
+    instances: {},
     config: {}
 };
 
 hinoki.inject(container, function(a, b, c) {
     console.log(a);     // -> 1
     console.log(b);     // -> 2
-    console.log(c);     // -> 3
+    console.log(c);     // -> 4
 });
 ```
 
@@ -114,7 +131,7 @@ var factories = {
 
 var container = {
     factories: factories,
-    scope: {
+    instances: {
         a: 1,
         b: 2
     },
@@ -128,27 +145,52 @@ hinoki.inject(container, function(a, b, c) {
 });
 ```
 
-##### async computations
-
-##### multiple containers
-
-### multiple containers
+##### computation
 
 ```javascript
-hinoki.inject([c1, c2, c3], function(a, b, c) {
+var hinoki = require('hinoki');
 
+var factories = {
+    count: function(xs) {
+        return xs.length;
+    },
+    mean: function(xs, count) {
+        var reducer = function(acc, x) {
+            return acc + x;
+        };
+        return xs.reduce(reducer, 0) / count;
+    },
+    meanOfSquares: function(xs, count) {
+        var reducer = function(acc, x) {
+            return acc + x * x;
+        };
+        return xs.reduce(reducer, 0) / count;
+    },
+    variance: function(mean, meanOfSquares) {
+        return meanOfSquares - mean * mean;
+    }
+};
+
+var container = {
+    factories: factories,
+    instances: {
+        xs: [1, 2, 3, 6]
+    }
+};
+
+hinoki.inject(container, function(a, b, c) {
+    console.log(a);     // -> 1
+    console.log(b);     // -> 2
+    console.log(c);     // -> 3
 });
 ```
 
-the dependencies are looked up right to left (nearest to farest from factory)
+if you ask for the mean, the mean of squares will not be computed.
+if you ask for the variance the count will only be computed once.
 
-decreasing lifetime
+if you dont pass in a instances one will be created for you.
 
-this allows you to attach stuff
-
-describe this in a good example
-
-#####
+##### asynchronous computations
 
 If a Factory returns a promise hinoki will wait until the promise Is resolved
 
@@ -161,6 +203,29 @@ factories.async = function() {
     q.nfcall();
 };
 ```
+
+##### multiple containers
+
+```javascript
+hinoki.inject([c1, c2, c3], function(a, b, c) {
+
+});
+```
+
+some parts that stay the same during the entire duration of the application
+and some parts change but should use those other parts.
+
+closure factories
+
+the dependencies are looked up left to right
+
+decreasing lifetime
+
+this allows you to attach stuff
+
+describe this in a good example
+
+#####
 
 if hinoki encounters a service somewhere in its dependencies then there is a loop
 
@@ -178,8 +243,6 @@ inject will handle errors thrown in factory functions or rejected promises
 
 do distinguish both!!!!
 
-also dont depend on q
-
 allow that callback style
 
 ```javascript
@@ -196,9 +259,9 @@ config.onRequire = function(id, factory, requiringId, requiringFactory) {
 
 };
 
-// when an instance was created and is ready to be set on the scope
-config.onRegister = function(id, scope, instance) {
-    scope[id] = instance;
+// when an instance was created and is ready to be set on the instances
+config.onRegister = function(id, instances, instance) {
+    instances[id] = instance;
 };
 
 config.onInject = function(id, factory, instances) {
@@ -218,13 +281,6 @@ hinoki will cache
 
 
 or you provide these values already hinoki will
-
-### api
-
-returns the ids of the dependencies of a factory function:
-
-```javascript
-hinoki.parseDependencies(function(a, b, c) {});     // -> ['a', 'b', 'c']
 ```
 
 ### license: MIT
