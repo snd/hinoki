@@ -5,14 +5,14 @@ hinoki = require '../src/hinoki'
 computationExampleFactories =
     count: (xs) ->
         xs.length
-    mean: (xs, n) ->
+    mean: (xs, count) ->
         reducer = (acc, x) ->
             acc + x
-        xs.reduce reducer, 0
-    meanOfSquares: (xs, n) ->
+        xs.reduce(reducer, 0) / count
+    meanOfSquares: (xs, count) ->
         reducer = (acc, x) ->
             acc + x * x
-        xs.reduce reducer, 0
+        xs.reduce(reducer, 0) / count
     variance: (mean, meanOfSquares) ->
         meanOfSquares - mean * mean
 
@@ -407,4 +407,21 @@ module.exports =
 
             hinoki.inject c, (count) ->
                 test.equals count, 4
+                test.deepEqual c.scope,
+                    xs: [1, 2, 3, 6]
+                    count: 4
+                test.done()
+
+        'computation - ask for mean': (test) ->
+            c =
+                factories: computationExampleFactories
+                scope:
+                    xs: [1, 2, 3, 6]
+
+            hinoki.inject c, (mean) ->
+                test.equals mean, 3
+                test.deepEqual c.scope,
+                    xs: [1, 2, 3, 6]
+                    count: 4
+                    mean: 3
                 test.done()
