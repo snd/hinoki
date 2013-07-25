@@ -425,3 +425,33 @@ module.exports =
                     count: 4
                     mean: 3
                 test.done()
+
+        'computation - ask for meanOfSquares': (test) ->
+            c =
+                factories: computationExampleFactories
+                scope:
+                    xs: [1, 2, 3, 6]
+
+            hinoki.inject c, (meanOfSquares) ->
+                test.equals meanOfSquares, 12.5
+                test.deepEqual c.scope,
+                    xs: [1, 2, 3, 6]
+                    count: 4
+                    meanOfSquares: 12.5
+                test.done()
+
+        'computation - ask for variance': (test) ->
+            c =
+                factories: computationExampleFactories
+                scope:
+                    xs: [1, 2, 3, 6]
+
+            hinoki.inject c, (variance) ->
+                test.equals variance, 3.5
+                test.deepEqual c.scope,
+                    xs: [1, 2, 3, 6]
+                    count: 4
+                    mean: 3
+                    meanOfSquares: 12.5
+                    variance: 3.5
+                test.done()
