@@ -2,6 +2,20 @@ q = require 'q'
 
 hinoki = require '../src/hinoki'
 
+computationExampleFactories =
+    count: (xs) ->
+        xs.length
+    mean: (xs, n) ->
+        reducer = (acc, x) ->
+            acc + x
+        xs.reduce reducer, 0
+    meanOfSquares: (xs, n) ->
+        reducer = (acc, x) ->
+            acc + x * x
+        xs.reduce reducer, 0
+    variance: (mean, meanOfSquares) ->
+        meanOfSquares - mean * mean
+
 module.exports =
 
     'parseFunctionArguments':
@@ -34,7 +48,7 @@ module.exports =
                 hinoki.parseFunctionArguments (first, second, third) ->
             test.done()
 
-    'find with single container':
+    'find with 1 container':
 
         'not found': (test) ->
             result = hinoki.find [{}], 'id'
@@ -171,13 +185,11 @@ module.exports =
 
             test.done()
 
-    'inject with one container':
+    'inject with 1 container':
 
         'missing factory': (test) ->
-            container = {}
-
             try
-                hinoki.inject container, (a) ->
+                hinoki.inject {}, (a) ->
             catch error
                 test.equals error.message, "missing factory for service 'a'"
                 test.done()
@@ -205,7 +217,7 @@ module.exports =
                 test.equals error.message, "exception in factory 'a': Error: b"
                 test.done()
 
-        'one seed': (test) ->
+        '1 seed': (test) ->
             container =
                 scope:
                     a: 5
@@ -214,7 +226,7 @@ module.exports =
                 test.equals a, 5
                 test.done()
 
-        'three dependencies': (test) ->
+        '3 dependencies': (test) ->
             container =
                 factories:
                     a: -> 1
@@ -383,4 +395,16 @@ module.exports =
                     b: 2
                 test.deepEqual container3.scope,
                     a: 1
+                test.done()
+
+    'examples':
+
+        'computation - ask for count': (test) ->
+            c =
+                factories: computationExampleFactories
+                scope:
+                    xs: [1, 2, 3, 6]
+
+            hinoki.inject c, (count) ->
+                test.equals count, 4
                 test.done()
