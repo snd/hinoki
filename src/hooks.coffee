@@ -38,4 +38,4 @@ module.exports =
     # resolution: (chain, instance) ->
 
     # called right before a factory is called
-    # factory: (chain, factory, arguments) ->
+    # factory: (chain, factory, args) ->
