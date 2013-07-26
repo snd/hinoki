@@ -84,6 +84,7 @@ module.exports =
             container = result.containers[0]
 
             if result.instance?
+                container.hooks?.instanceFound? newChain, result.instance
                 resolved[id] = result.instance
                 return
 
