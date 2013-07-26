@@ -20,16 +20,18 @@ module.exports =
     notFunction: (chain, factory) ->
         throw new Error "factory '#{chain[0]}' is not a function: #{factory}"
 
-    # additional hooks which are useful for debugging:
+    # # additional hooks which are useful for debugging:
 
-    # called when an instance is found
-    # instanceFound: (
+    # # called when an instance is found
+    #
+    # instanceFound: (chain, instance) ->
+
+    # # called when a factory is found
+    #
+    # factoryFound: (chain, factory, factoryDependencyIds) ->
 
     # called right before resolved dependencies are injected into a function:
     # inject: () ->
-    #
-    # called when no instance
-    # noInstance: () ->
     #
     # called right before an instance is added to instances
     # newInstance: (id, instance) ->
