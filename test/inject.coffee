@@ -2,8 +2,6 @@ q = require 'q'
 
 hinoki = require '../src/hinoki'
 
-module.exports = {}
-
 module.exports =
 
     '1 container':
