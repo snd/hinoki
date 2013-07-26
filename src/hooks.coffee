@@ -23,17 +23,19 @@ module.exports =
     # # additional hooks which are useful for debugging:
 
     # # called when an instance is found
-    #
     # instanceFound: (chain, instance) ->
 
     # # called when a factory is found
-    #
     # factoryFound: (chain, factory, factoryDependencyIds) ->
 
-    # called right before resolved dependencies are injected into a function:
-    # inject: () ->
-    #
-    # called right before an instance is added to instances
-    # newInstance: (id, instance) ->
-    #
-    # resolve
+    # # called when a factory returns an instance
+    # instance: (chain, instance) ->
+
+    # # called when a factory returns a promise
+    # promise: (chain, promise) ->
+
+    # # called when a promise is resolved
+    # resolution: (chain, instance) ->
+
+    # called right before a factory is called
+    # factory: (chain, factory, arguments) ->
