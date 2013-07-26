@@ -74,7 +74,7 @@ module.exports =
 
             result = module.exports.find containers, id
 
-            newChain = chain.concat([id])
+            newChain = [id].concat chain
 
             unless result?
                 hasErrorOccured = true
@@ -104,7 +104,7 @@ module.exports =
                     instance = result.factory.apply null, arguments
                 catch err
                     hasErrorOccured = true
-                    (if container.hooks?.exception? then container.hooks?.exception else hooks.exception) id, err
+                    (if container.hooks?.exception? then container.hooks?.exception else hooks.exception) newChain, err
                     return
 
                 unless q.isPromise instance

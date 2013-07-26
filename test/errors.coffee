@@ -4,13 +4,6 @@ hinoki = require '../src/hinoki'
 
 module.exports =
 
-    'not found': (test) ->
-        try
-            hinoki.inject {}, (a) ->
-        catch error
-            test.equals error.message, "missing factory: a"
-            test.done()
-
     'exception': (test) ->
         container =
             factories:
@@ -73,7 +66,7 @@ module.exports =
         try
             hinoki.inject container, (a) ->
         catch error
-            test.equals error.message, "circular dependency a <- b <- c <- d <- e <- f <- a"
+            test.equals error.message, "circular dependency a <- f <- e <- d <- c <- b <- a"
             test.deepEqual container.instances, {}
             test.done()
 
@@ -93,3 +86,25 @@ module.exports =
 
         hinoki.inject container, (a) ->
 
+    'not found': (test) ->
+        try
+            hinoki.inject {}, (a) ->
+        catch error
+            test.equals error.message, "missing factory 'a' (a)"
+            test.done()
+
+    'containers can not depend on services in containers to the left of them': (test) ->
+            container1 =
+                factories:
+                    a: -> 1
+
+            container2 =
+                factories:
+                    b: (a) ->
+                        a + 1
+
+            try
+                hinoki.inject [container1, container2], (b) ->
+            catch err
+                test.equals err.message, "missing factory 'a' (a <- b)"
+                test.done()

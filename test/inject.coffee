@@ -121,22 +121,6 @@ module.exports =
                     test.equals b, 2
                     test.done()
 
-        'containers can not depend on services in containers to the left of them': (test) ->
-                container1 =
-                    factories:
-                        a: -> 1
-
-                container2 =
-                    factories:
-                        b: (a) ->
-                            a + 1
-
-                try
-                    hinoki.inject [container1, container2], (b) ->
-                catch err
-                    test.equals err.message, "missing factory: b <- a"
-                    test.done()
-
     '3 containers':
 
         '3 async dependencies': (test) ->

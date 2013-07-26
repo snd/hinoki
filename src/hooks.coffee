@@ -5,30 +5,30 @@ module.exports =
         throw new Error "circular dependency #{chain.join(' <- ')}"
 
     # called when a factory function throws an exception
-    exception: (id, err) ->
-        throw new Error "exception in factory '#{id}': #{err}"
+    exception: (chain, err) ->
+        throw new Error "exception in factory '#{chain[0]}': #{err}"
 
     # called when a promise that was returned from a factory is rejected
-    rejection: (id, err) ->
-        throw new Error "promise returned from factory '#{id}' was rejected with: #{err}"
+    rejection: (chain, err) ->
+        throw new Error "promise returned from factory '#{chain[0]}' was rejected with: #{err}"
 
     # called when no factory was found for a service
     notFound: (chain) ->
-        throw new Error "missing factory: #{chain.join(' <- ')}"
+        throw new Error "missing factory '#{chain[0]}' (#{chain.join(' <- ')})"
 
     # called when a factory is not a function
-    notFunction: (id, factory) ->
-        throw new Error "factory 'a' is not a function: #{factory}"
+    notFunction: (chain, factory) ->
+        throw new Error "factory '#{chain[0]}' is not a function: #{factory}"
 
     # additional hooks which are useful for debugging:
 
     # called right before resolved dependencies are injected into a function:
-    # onInject: (
+    # inject: (
     #
     # called when no instance
-    # onNoInstance:
+    # noInstance:
     #
     # called right before an instance is added to instances
-    # onNewInstance: (id, instance) ->
+    # newInstance: (id, instance) ->
     #
-    # onResolve
+    # resolve
