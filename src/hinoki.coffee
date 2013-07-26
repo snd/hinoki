@@ -69,11 +69,17 @@ module.exports =
                 cb.apply null, dependencyIds.map (id) -> resolved[id]
 
         dependencyIds.forEach (id) ->
+            if hasErrorOccured
+                return
+
             result = module.exports.find containers, id
 
+            newChain = chain.concat([id])
+
             unless result?
-                throw new Error "missing factory for service '#{id}'"
-                (if container.onNotFound? then container.onNotFound else hooks.onNotFound) id
+                hasErrorOccured = true
+                (if containers[0].hooks?.notFound? then containers[0].hooks?.notFound else hooks.notFound) newChain
+                return
 
             container = result.containers[0]
 
@@ -81,24 +87,28 @@ module.exports =
                 resolved[id] = result.instance
                 return
 
-            newChain = chain.concat([id])
-
             if id in chain
-                (if container.onCircle? then container.onCircle else hooks.onCircle) newChain
+                (if container.hooks?.circle? then container.hooks?.circle else hooks.circle) newChain
 
             unless 'function' is typeof result.factory
-                throw new Error "factory is not a function '#{id}'"
+                hasErrorOccured = true
+                (if container.hooks?.notFunction? then container.hooks?.notFunction else hooks.notFunction) id, result.factory
+                return
 
             factoryDependencyIds = module.exports.parseFunctionArguments result.factory
 
             module.exports.resolve result.containers, factoryDependencyIds, newChain, ->
+                if hasErrorOccured
+                    return
                 try
                     instance = result.factory.apply null, arguments
                 catch err
-                    (if container.onException? then container.onException else hooks.onException) id, err
+                    hasErrorOccured = true
+                    (if container.hooks?.exception? then container.hooks?.exception else hooks.exception) id, err
+                    return
 
                 unless q.isPromise instance
-                    result.containers[0].instances[id] = instance
+                    container.instances[id] = instance
                     resolved[id] = instance
                     return
 
@@ -108,7 +118,7 @@ module.exports =
                     maybeResolved()
                 onError = (err) ->
                     hasErrorOccured = true
-                    (if container.onRejection? then container.onRejection else hooks.onRejection) id, err
+                    (if container.hooks?.rejection? then container.hooks?.rejection else hooks.rejection) id, err
                 instance.done(onSuccess, onError)
 
         maybeResolved()
