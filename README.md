@@ -4,10 +4,7 @@
 
 hinoki manages complexity in large nodejs applications.
 
-Keep it as simple and minimal as possible
-Open
-Easy to understand
-Easy to monkeypatch
+data dependencies.
 
 Which Problem Is it trying to solve?
 application structure, testability,
@@ -48,6 +45,51 @@ and then resolve them repeatedly with different values
 ```
 npm install hinoki
 ```
+
+or put this line into the dependencies section of your `package.json`:
+
+```
+"hinoki": "0.1.0"
+```
+
+### require
+
+```javascript
+var hinoki = require('hinoki');
+```
+
+### the basics
+
+a **service** is
+a piece of data, function Or api that. An Interface, contract
+a service can be anything, a simple value, an object, a function, an object with several functions.
+a service provides certain functionality that other services might need.
+
+an **id** is a string that uniquely identifies a service. it's the *name* of the service.
+
+an instance is a realized **service**
+
+a **factory** is a function which takes **dependencies** as arguments and returns an **instance**.
+
+**dependencies**
+
+##### dependency
+
+**dependency** - 
+
+
+**factories** - an object
+
+**instances** - an object with properties where a key that is an *id* is associated  with an **instance** of that service.
+*used for the*
+
+**seed** - an instance inside a instances without a corresponding factory.
+
+*used for bootstrapping and testing*
+
+**container** manages services, factories, instances, configuration, lifetime
+
+**lifetime**
 
 ### simple usage
 
@@ -108,8 +150,6 @@ hinoki.inject(container, function(a, b, c) {
 ### computation
 
 ```javascript
-var hinoki = require('hinoki');
-
 var factories = {
     count: function(xs) {
         return xs.length;
@@ -141,6 +181,10 @@ var container = {
 hinoki.inject(container, function(mean) {
     console.log(mean);  // -> 3
 });
+```
+
+// now run the same with another series
+
 ```
 
 if you ask for the mean, the mean of squares will not be computed.
@@ -194,6 +238,9 @@ use `q.nfcall` for callback style functions.
 
 ### multiple containers
 
+closure factories
+
+
 ```javascript
 hinoki.inject([c1, c2, c3], function(a, b, c) {
 
@@ -203,8 +250,6 @@ hinoki.inject([c1, c2, c3], function(a, b, c) {
 some parts that stay the same during the entire duration of the application
 and some parts change but should use those other parts.
 
-closure factories
-
 the dependencies are looked up left to right
 
 decreasing lifetime
@@ -213,77 +258,32 @@ this allows you to attach stuff
 
 describe this in a good example
 
-### hooks
-
-provide all the necessary context
-
-default behaviour is implemented using hooks. you can overwrite default behaviour.
-
-error handling is per container
-
-mainly used for debugging
-
-inject will handle errors thrown in factory functions or rejected promises
-
-do distinguish both!!!!
-
-defaultHooks
-
-// when a new instance needs to be created
-config.onRequire = function(id, factory, requiringId, requiringFactory) {
-
-};
-
-// when an instance was created and is ready to be set on the instances
-config.onRegister = function(id, instances, instance) {
-    instances[id] = instance;
-};
-
-config.onInject = function(id, factory, instances) {
-    factory.apply(undefined, instances);
-};
-
-if you provide an object
-
-hinoki will use it to 
-
 hinoki will cache 
 
 or you provide these values already hinoki will
 
-### terminology
 
-##### service
+### hooks
 
-a piece of data, function Or api that. An Interface, contract
-a service can be anything, a simple value, an object, a function, an object with several functions.
-a service provides certain functionality that other services might need.
+hooks can 
 
-##### id
+a can be changed per container
 
-a string that uniquely identifies a service. the "name" of the service.
+see `[src/hooks.coffee](src/hooks.coffee)` for all possible hooks
+and their default implementations.
 
-##### dependency
+for instance to log every time a promise is returned from a factory:
 
-the id of a service
+```javascript
+var container = {
+    hooks: {
+        promise: function(chain, promise) {
+            console.log('factory for service ' + chain[id] + ' returned promise' + promise);
+        };
+    }
+};
+```
 
-**dependency** - 
-
-**factory** - a function which takes **dependencies** as arguments and returns an **instance**.
-
-**factories** - an object
-
-**instance** -
-
-**instances** - an object with properties where a key that is an *id* is associated  with an **instance** of that service.
-*used for the*
-
-**seed** - an instance inside a instances without a corresponding factory.
-
-*used for bootstrapping and testing*
-
-**container** manages services, factories, instances, configuration, lifetime
-
-**lifetime**
+this will
 
 ### license: MIT
