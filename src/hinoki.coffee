@@ -98,6 +98,8 @@ module.exports =
                 (if container.hooks?.notFunction? then container.hooks?.notFunction else hooks.notFunction) newChain, result.factory
                 return
 
+            container.hooks?.factoryFound? newChain, result.factory
+
             factoryDependencyIds = module.exports.parseFunctionArguments result.factory
 
             module.exports.resolve result.containers, factoryDependencyIds, newChain, ->
