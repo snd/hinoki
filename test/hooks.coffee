@@ -44,19 +44,19 @@ module.exports =
         hinoki.inject container, (a) ->
             test.fail()
 
-    # 'circle': (test) ->
-    #     container =
-    #         factories:
-    #             a: (c) ->
-    #             b: (a) ->
-    #             c: (a, b) ->
+    'circle': (test) ->
+        container =
+            factories:
+                a: (c) ->
+                b: (a) ->
+                c: (a, b) ->
+            hooks:
+                circle: (chain) ->
+                    test.deepEqual chain, ['a', 'c', 'a']
+                    test.done()
 
-    #     try
-    #         hinoki.inject container, (a) ->
-    #     catch error
-    #         test.equals error.message, "circular dependency a <- c <- a"
-    #         test.deepEqual container.instances, {}
-    #         test.done()
+        hinoki.inject container, (a) ->
+            test.fail()
 
     # 'circle (self)': (test) ->
     #     container =
