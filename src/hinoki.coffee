@@ -106,6 +106,7 @@ module.exports =
                 if hasErrorOccured
                     return
                 try
+                    container.hooks?.factory? newChain, result.factory, arguments
                     instance = result.factory.apply null, arguments
                 catch err
                     hasErrorOccured = true
@@ -113,11 +114,15 @@ module.exports =
                     return
 
                 unless q.isPromise instance
+                    container.hooks?.instance? newChain, instance
                     container.instances[id] = instance
                     resolved[id] = instance
                     return
 
+                container.hooks?.promise? newChain, instance
+
                 onSuccess = (value) ->
+                    container.hooks?.resolution? newChain, value
                     result.containers[0].instances[id] = value
                     resolved[id] = value
                     maybeResolved()
