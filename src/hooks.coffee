@@ -34,7 +34,7 @@ module.exports =
     # # called when a factory returns a promise
     # promise: (chain, promise) ->
 
-    # # called when a promise is resolved
+    # # called when a promise is resolved into an instance
     # resolution: (chain, instance) ->
 
     # called right before a factory is called
