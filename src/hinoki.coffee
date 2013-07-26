@@ -120,7 +120,7 @@ module.exports =
                     maybeResolved()
                 onError = (err) ->
                     hasErrorOccured = true
-                    (if container.hooks?.rejection? then container.hooks?.rejection else hooks.rejection) id, err
+                    (if container.hooks?.rejection? then container.hooks?.rejection else hooks.rejection) newChain, err
                 instance.done(onSuccess, onError)
 
         maybeResolved()
