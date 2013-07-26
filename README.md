@@ -287,12 +287,3 @@ the id of a service
 **lifetime**
 
 ### license: MIT
-
-### todo
-
-readme
-refactor and polish
-
-(symetric errors and hooks tests)
-(test order)
-(inject is not such a great name)
