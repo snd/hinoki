@@ -104,3 +104,19 @@ module.exports =
 
         hinoki.inject container, (a) ->
             test.fail()
+
+    'instanceFound': (test) ->
+        test.expect 3
+        container =
+            factories:
+                a: (b) -> b + 3
+            instances:
+                b: 5
+            hooks:
+                instanceFound: (chain, instance) ->
+                    test.deepEqual chain, ['b', 'a']
+                    test.equals instance, 5
+
+        hinoki.inject container, (a) ->
+            test.equals a, 8
+            test.done()
