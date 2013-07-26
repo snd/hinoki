@@ -46,11 +46,20 @@ and then resolve them repeatedly with different values
 npm install hinoki
 ```
 
-or put this line into the dependencies section of your `package.json`:
+OR
+
+put this line into the dependencies section of your `package.json`:
 
 ```
 "hinoki": "0.1.0"
 ```
+
+and then run:
+
+```
+npm install
+```
+
 
 ### require
 
