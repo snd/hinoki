@@ -1,15 +1,5 @@
 # hinoki
 
-### todo
-
-seed instances...
-hooks
-readme
-more tests
-refactor and polish
-
-### REAL README
-
 **magical inversion of control for nodejs**
 
 hinoki manages complexity in large nodejs applications.
@@ -28,6 +18,8 @@ complex interdependent async loads
 hinoki leads to shorter and simpler code in a variety of cases:
 
 computation example
+
+dependency injection
 
 only computes whats needed
 
@@ -51,44 +43,13 @@ even with lots of asynchronous calls
 it can be used to describe complex closure ...
 and then resolve them repeatedly with different values
 
-### terminology
+### install
 
-##### service
+```
+npm install hinoki
+```
 
-a piece of data, function Or api that. An Interface, contract
-a service can be anything, a simple value, an object, a function, an object with several functions.
-a service provides certain functionality that other services might need.
-
-##### id
-
-a string that uniquely identifies a service. the "name" of the service.
-
-##### dependency
-
-the id of a service
-
-**dependency** - 
-
-**factory** - a function which takes **dependencies** as arguments and returns an **instance**.
-
-**factories** - an object
-
-**instance** -
-
-**instances** - an object with properties where a key that is an *id* is associated  with an **instance** of that service.
-*used for the*
-
-**seed** - an instance inside a instances without a corresponding factory.
-
-*used for bootstrapping and testing*
-
-**container** manages services, factories, instances, configuration, lifetime
-
-**lifetime**
-
-### use
-
-##### simple
+### simple usage
 
 ```javascript
 var hinoki = require('hinoki');
@@ -145,9 +106,7 @@ hinoki.inject(container, function(a, b, c) {
 });
 ```
 
-##### computation
-
-
+### computation
 
 ```javascript
 var hinoki = require('hinoki');
@@ -190,14 +149,12 @@ if you ask for the variance the count will only be computed once.
 
 if you dont pass in a instances one will be created for you.
 
-##### asynchronous computations
+### asynchronous computations
 
 if a factory returns a [q promise](https://github.com/kriskowal/q)
 hinoki will wait until the promise is resolved.
 
-can also be used to make complex async flows more managable
-
-use `q.nfcall` for callback style functions
+hinoki can make complex async flows more managable.
 
 ```javascript
 var dns = require('dns');
@@ -228,7 +185,15 @@ hinoki.inject(container, function(domains) {
 });
 ```
 
-##### multiple containers
+use `q.nfcall` for callback style functions.
+
+### closure factories
+
+```javascript
+
+```
+
+### multiple containers
 
 ```javascript
 hinoki.inject([c1, c2, c3], function(a, b, c) {
@@ -249,10 +214,6 @@ this allows you to attach stuff
 
 describe this in a good example
 
-#####
-
-if hinoki encounters a service somewhere in its dependencies then there is a loop
-
 ### hooks
 
 provide all the necessary context
@@ -267,16 +228,7 @@ inject will handle errors thrown in factory functions or rejected promises
 
 do distinguish both!!!!
 
-allow that callback style
-
-```javascript
-config.onError = function(id, factory, err) {
-    throw new Error('hinoki: error instantiating service ' + id + ': ' + err.message);
-};
-
-config.onCircular = function(circularIds) {
-    throw new Error('hinoki: circular dependency ' + circularIds.join(' <- '));
-};
+defaultHooks
 
 // when a new instance needs to be created
 config.onRequire = function(id, factory, requiringId, requiringFactory) {
@@ -292,19 +244,58 @@ config.onInject = function(id, factory, instances) {
     factory.apply(undefined, instances);
 };
 
-config.onNotFound = function(id, parent) {
-    if (!parentContainer) throw new Error('hinoki: not found ' + id);
-};
-```
-
 if you provide an object
 
 hinoki will use it to 
 
 hinoki will cache 
 
-
 or you provide these values already hinoki will
-```
+
+### terminology
+
+##### service
+
+a piece of data, function Or api that. An Interface, contract
+a service can be anything, a simple value, an object, a function, an object with several functions.
+a service provides certain functionality that other services might need.
+
+##### id
+
+a string that uniquely identifies a service. the "name" of the service.
+
+##### dependency
+
+the id of a service
+
+**dependency** - 
+
+**factory** - a function which takes **dependencies** as arguments and returns an **instance**.
+
+**factories** - an object
+
+**instance** -
+
+**instances** - an object with properties where a key that is an *id* is associated  with an **instance** of that service.
+*used for the*
+
+**seed** - an instance inside a instances without a corresponding factory.
+
+*used for bootstrapping and testing*
+
+**container** manages services, factories, instances, configuration, lifetime
+
+**lifetime**
 
 ### license: MIT
+
+### todo
+
+hooks
+readme
+more tests
+refactor and polish
+
+(symetric errors and hooks tests)
+(test order)
+(inject is not such a great name)
