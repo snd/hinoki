@@ -22,11 +22,14 @@ module.exports =
 
     # additional hooks which are useful for debugging:
 
+    # called when an instance is found
+    # instanceFound: (
+
     # called right before resolved dependencies are injected into a function:
-    # inject: (
+    # inject: () ->
     #
     # called when no instance
-    # noInstance:
+    # noInstance: () ->
     #
     # called right before an instance is added to instances
     # newInstance: (id, instance) ->
