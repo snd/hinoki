@@ -92,7 +92,7 @@ module.exports =
 
             unless 'function' is typeof result.factory
                 hasErrorOccured = true
-                (if container.hooks?.notFunction? then container.hooks?.notFunction else hooks.notFunction) id, result.factory
+                (if container.hooks?.notFunction? then container.hooks?.notFunction else hooks.notFunction) newChain, result.factory
                 return
 
             factoryDependencyIds = module.exports.parseFunctionArguments result.factory

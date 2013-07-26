@@ -30,16 +30,19 @@ module.exports =
         hinoki.inject container, (a) ->
             test.fail()
 
-    # 'not a function': (test) ->
-    #     container =
-    #         factories:
-    #             a: 5
+    'not a function': (test) ->
+        container =
+            factories:
+                a: (b) ->
+                b: 5
+            hooks:
+                notFunction: (chain, factory) ->
+                    test.deepEqual chain, ['b', 'a']
+                    test.equals factory, 5
+                    test.done()
 
-    #     try
-    #         hinoki.inject container, (a) ->
-    #     catch error
-    #         test.equals error.message, "factory 'a' is not a function: 5"
-    #         test.done()
+        hinoki.inject container, (a) ->
+            test.fail()
 
     # 'circle': (test) ->
     #     container =
