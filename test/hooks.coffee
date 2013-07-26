@@ -122,16 +122,20 @@ module.exports =
             test.done()
 
     'factoryFound': (test) ->
-        test.expect 3
-        f = -> 5
+        test.expect 4
+        f = (b, c) -> b + c + 3
         container =
             factories:
                 a: f
+            instances:
+                b: 1
+                c: 2
             hooks:
-                factoryFound: (chain, factory) ->
+                factoryFound: (chain, factory, dependencyIds) ->
                     test.deepEqual chain, ['a']
                     test.equals factory, f
+                    test.deepEqual dependencyIds, ['b', 'c']
 
         hinoki.inject container, (a) ->
-            test.equals a, 5
+            test.equals a, 6
             test.done()
