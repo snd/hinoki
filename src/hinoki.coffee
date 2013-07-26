@@ -106,7 +106,7 @@ module.exports =
                 if hasErrorOccured
                     return
                 try
-                    container.hooks?.factory? newChain, result.factory, arguments
+                    container.hooks?.factory? newChain, result.factory, Array.prototype.slice.call arguments
                     instance = result.factory.apply null, arguments
                 catch err
                     hasErrorOccured = true
