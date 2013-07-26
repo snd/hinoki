@@ -87,19 +87,20 @@ module.exports =
         hinoki.inject container, (a) ->
             test.fail()
 
-    # 'rejection': (test) ->
-    #     container =
-    #         factories:
-    #             a: ->
-    #                 deferred = q.defer()
-    #                 q.nextTick ->
-    #                     deferred.reject 5
-    #                 return deferred.promise
+    'rejection': (test) ->
+        container =
+            factories:
+                a: (b) ->
+                b: ->
+                    deferred = q.defer()
+                    q.nextTick ->
+                        deferred.reject 5
+                    return deferred.promise
+            hooks:
+                rejection: (chain, err) ->
+                    test.deepEqual chain, ['b', 'a']
+                    test.equals err, 5
+                    test.done()
 
-    #     q.onerror = (err) ->
-    #         test.equals err.message, "promise returned from factory 'a' was rejected with: 5"
-    #         test.deepEqual container.instances, {}
-    #         test.done()
-
-    #     hinoki.inject container, (a) ->
-
+        hinoki.inject container, (a) ->
+            test.fail()
