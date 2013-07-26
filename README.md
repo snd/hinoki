@@ -1,10 +1,14 @@
 # hinoki
 
+service is not such a good word.
+
 **magical inversion of control for nodejs**
 
 hinoki manages complexity in large nodejs applications.
 
-data dependencies.
+describe dependency graphs.
+query them.
+resolve automatically.
 
 Which Problem Is it trying to solve?
 application structure, testability,
@@ -21,19 +25,11 @@ hinoki can make complex async flows more managable.
 - make computations with many interrelated
 cache results which are needed multiple times
 
-- services consumed by hinoki are inherently very well testable.
-
-to compose large applications.
-
-with hinoki you can theoretically 
-
-COMPOSABILITY
+services consumed by hinoki are inherently very well testable.
 
 hinoki is inspired by [prismatic's graph](https://github.com/Prismatic/plumbing#graph-the-functional-swiss-army-knife) and [angular's dependency injection](http://docs.angularjs.org/guide/di).
 
 crafted with great care.
-
-even with lots of asynchronous calls
 
 it can be used to describe complex closure ...
 and then resolve them repeatedly with different values
@@ -44,7 +40,7 @@ and then resolve them repeatedly with different values
 npm install hinoki
 ```
 
-OR
+**or**
 
 put this line into the dependencies section of your `package.json`:
 
@@ -52,7 +48,7 @@ put this line into the dependencies section of your `package.json`:
 "hinoki": "0.1.0"
 ```
 
-and then run:
+then run:
 
 ```
 npm install
@@ -67,35 +63,25 @@ var hinoki = require('hinoki');
 
 ### the basics
 
-a **service** is
-a piece of data, function Or api that. An Interface, contract
+**service** - a piece of data, function Or api that. An Interface, contract
 a service can be anything, a simple value, an object, a function, an object with several functions.
 a service provides certain functionality that other services might need.
 
-an **id** is a string that uniquely identifies a service. it's the *name* of the service.
+**id** - is a string that uniquely identifies a service. it's the *name* of the service.
 
-an instance is a realized **service**
+**instance** is a realized **service**
 
 a **factory** is a function which takes **dependencies** as arguments and returns an **instance**.
-
-**dependencies**
 
 **dependency** - 
 
 
-**factories** - an object
-
 **instances** - an object with properties where a key that is an *id* is associated  with an **instance** of that service.
 *used for the*
-
-**seed** - an instance inside a instances without a corresponding factory.
-
-*used for bootstrapping and testing*
 
 **container** manages services, factories, instances, configuration, lifetime
 
 **lifetime**
-
 
 ### computation
 
@@ -136,15 +122,36 @@ var container = {
         numbers: [1, 2, 3, 6]
     }
 };
+```
 
+lets ask for the mean:
+
+```javascript
 hinoki.inject(container, function(mean) {
     console.log(mean);  // -> 3
 });
 ```
 
+if you ask for the mean, the mean of squares will not be computed.
+if you ask for the variance the count will only be computed once.
+
+**hinoki will only call the factory for services which don't have an instance**
+
+once a factory has been called, th
+and it will not be called again.
+
+**hinoki will call any factory at most once per container.**
+
+
+the instances
+
 note that the meanOfSquares and variance have not been computed
 because we only asked for the mean and the mean only depends
 on the count.
+
+all instances are added to container
+
+the factory function will not be called again.
 
 now run the same computation with another series:
 
@@ -155,16 +162,15 @@ var container2 = {
         xs: [1, 2, 3, 6]
     }
 };
-
-hinoki.inject(container2, function(variance) {
-    console.log(mean);  // -> 3
-});
 ```
 
-if you ask for the mean, the mean of squares will not be computed.
-if you ask for the variance the count will only be computed once.
+lets ask for the variance:
 
-if you dont pass in a instances one will be created for you.
+```javascript
+hinoki.inject(container2, function(variance) {
+    console.log(variance);  // -> 3.5
+});
+```
 
 ### async
 
@@ -179,6 +185,8 @@ var hinoki = require('hinoki');
 
 var factories = {
     addresses: function(domain) {
+        // here we use q.nfcall to return a promise
+        // for a function that takes a nodejs style callback
         return q.nfcall(dns.resolve4, domain);
     },
     domains: function(addresses) {
@@ -200,8 +208,6 @@ hinoki.inject(container, function(domains) {
 });
 ```
 
-use `q.nfcall` for callback style functions.
-
 ### closure factories
 
 closures are used to...
@@ -209,20 +215,28 @@ closures are used to...
 can be used to construct
 
 ```javascript
+var factories = {
+};
 
+var container = {
+    factories: factories,
+    instances: {}
+};
 ```
 
 ### multiple containers
 
 different lifetimes
 
-
+database connections. data access methods.
 
 ```javascript
 hinoki.inject([c1, c2, c3], function(a, b, c) {
 
 });
 ```
+
+we want these to only be created once
 
 some parts that stay the same during the entire duration of the application
 and some parts change but should use those other parts.
@@ -235,21 +249,11 @@ this allows you to attach stuff
 
 describe this in a good example
 
-hinoki will cache 
-
-or you provide these values already hinoki will
-
-
 ### hooks
 
-hooks can 
+hooks can change error handling and add debugging to any container.
 
-a can be changed per container
-
-see [src/hooks.coffee](src/hooks.coffee) for all possible hooks
-and their default implementations.
-
-for instance to log every time a promise is returned from a factory:
+example: log every time a promise is returned from a factory:
 
 ```javascript
 var container = {
@@ -261,6 +265,7 @@ var container = {
 };
 ```
 
-this will
+see [src/hooks.coffee](src/hooks.coffee) for all available hooks
+and their default implementations.
 
 ### license: MIT
