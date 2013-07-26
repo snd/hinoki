@@ -154,3 +154,24 @@ module.exports =
         hinoki.inject container, (a) ->
             test.equals a, 5
             test.done()
+
+    'promise': (test) ->
+        test.expect 3
+
+        promiseObject = null
+
+        container =
+            factories:
+                a: ->
+                    deferred = q.defer()
+                    q.nextTick -> deferred.resolve 5
+                    promiseObject = deferred.promise
+                    return deferred.promise
+            hooks:
+                promise: (chain, promise) ->
+                    test.deepEqual chain, ['a']
+                    test.equals promise, promiseObject
+
+        hinoki.inject container, (a) ->
+            test.equals a, 5
+            test.done()
