@@ -69,7 +69,6 @@ var factories = {
 var container = {
     factories: factories,
     instances: {},
-    config: {}
 };
 
 hinoki.inject(container, function(a, b, c) {
@@ -291,9 +290,7 @@ the id of a service
 
 ### todo
 
-hooks
 readme
-more tests
 refactor and polish
 
 (symetric errors and hooks tests)
