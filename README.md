@@ -14,11 +14,9 @@ complex interdependent async loads
 
 hinoki leads to shorter and simpler code in a variety of cases:
 
-computation example
-
 dependency injection
 
-only computes whats needed
+hinoki can make complex async flows more managable.
 
 - make computations with many interrelated
 cache results which are needed multiple times
@@ -82,8 +80,6 @@ a **factory** is a function which takes **dependencies** as arguments and return
 
 **dependencies**
 
-##### dependency
-
 **dependency** - 
 
 
@@ -100,76 +96,23 @@ a **factory** is a function which takes **dependencies** as arguments and return
 
 **lifetime**
 
-### simple usage
-
-```javascript
-var hinoki = require('hinoki');
-
-var factories = {
-    a: function() {
-        return 1;
-    },
-    b: function(a) {
-        return a + 1;
-    },
-    c: function(a, b) {
-        return a + b + 1;
-    }
-};
-
-var container = {
-    factories: factories,
-    instances: {},
-};
-
-hinoki.inject(container, function(a, b, c) {
-    console.log(a);     // -> 1
-    console.log(b);     // -> 2
-    console.log(c);     // -> 4
-});
-```
-
-##### seed values
-
-```javascript
-var hinoki = require('hinoki');
-
-var factories = {
-    c: function(a, b) {
-        return a + b + 1;
-    }
-};
-
-var container = {
-    factories: factories,
-    instances: {
-        a: 1,
-        b: 2
-    },
-    config: {}
-};
-
-hinoki.inject(container, function(a, b, c) {
-    console.log(a);     // -> 1
-    console.log(b);     // -> 2
-    console.log(c);     // -> 3
-});
-```
 
 ### computation
 
+describe a computation in terms of the data dependencies.
+
 ```javascript
 var factories = {
-    count: function(xs) {
-        return xs.length;
+    count: function(numbers) {
+        return numbers.length;
     },
-    mean: function(xs, count) {
+    mean: function(numbers, count) {
         var reducer = function(acc, x) {
             return acc + x;
         };
-        return xs.reduce(reducer, 0) / count;
+        return numbers.reduce(reducer, 0) / count;
     },
-    meanOfSquares: function(xs, count) {
+    meanOfSquares: function(numbers, count) {
         var reducer = function(acc, x) {
             return acc + x * x;
         };
@@ -179,11 +122,18 @@ var factories = {
         return meanOfSquares - mean * mean;
     }
 };
+```
 
+we can see that the mean needs the series and the count
+
+lets build a container where we provide the missing dependency
+explicitely.
+
+```
 var container = {
     factories: factories,
     instances: {
-        xs: [1, 2, 3, 6]
+        numbers: [1, 2, 3, 6]
     }
 };
 
@@ -192,8 +142,23 @@ hinoki.inject(container, function(mean) {
 });
 ```
 
-// now run the same with another series
+note that the meanOfSquares and variance have not been computed
+because we only asked for the mean and the mean only depends
+on the count.
 
+now run the same computation with another series:
+
+```javascript
+var container2 = {
+    factories: factories,
+    instances: {
+        xs: [1, 2, 3, 6]
+    }
+};
+
+hinoki.inject(container2, function(variance) {
+    console.log(mean);  // -> 3
+});
 ```
 
 if you ask for the mean, the mean of squares will not be computed.
@@ -201,12 +166,10 @@ if you ask for the variance the count will only be computed once.
 
 if you dont pass in a instances one will be created for you.
 
-### asynchronous computations
+### async
 
 if a factory returns a [q promise](https://github.com/kriskowal/q)
 hinoki will wait until the promise is resolved.
-
-hinoki can make complex async flows more managable.
 
 ```javascript
 var dns = require('dns');
@@ -241,13 +204,18 @@ use `q.nfcall` for callback style functions.
 
 ### closure factories
 
+closures are used to...
+
+can be used to construct
+
 ```javascript
 
 ```
 
 ### multiple containers
 
-closure factories
+different lifetimes
+
 
 
 ```javascript
@@ -278,7 +246,7 @@ hooks can
 
 a can be changed per container
 
-see `[src/hooks.coffee](src/hooks.coffee)` for all possible hooks
+see [src/hooks.coffee](src/hooks.coffee) for all possible hooks
 and their default implementations.
 
 for instance to log every time a promise is returned from a factory:
