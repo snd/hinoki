@@ -89,6 +89,8 @@ module.exports =
 
             if id in chain
                 (if container.hooks?.circle? then container.hooks?.circle else hooks.circle) newChain
+                hasErrorOccured = true
+                return
 
             unless 'function' is typeof result.factory
                 hasErrorOccured = true
