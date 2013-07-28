@@ -4,24 +4,11 @@
 
 hinoki manages complexity in large nodejs applications.
 
-describe dependency graphs.
-query them.
-resolve automatically.
-
-hinoki leads to shorter and simpler code in a variety of cases:
-
-dependency injection
-
-hinoki can make complex async flows more managable.
+it was designed with great care to
 
 hinoki is inspired by [prismatic's graph](https://github.com/Prismatic/plumbing#graph-the-functional-swiss-army-knife) and [angular's dependency injection](http://docs.angularjs.org/guide/di).
 
-crafted with great care.
-
-it can be used to describe complex closure ...
-and then resolve them repeatedly with different values
-
-### how do i get started?
+### get started
 
 ##### install
 
@@ -49,7 +36,9 @@ npm install
 var hinoki = require('hinoki');
 ```
 
-##### lets build a simple graph
+##### make a graph
+
+lets make a simple graph:
 
 ```javascript
 var graph = {
@@ -65,15 +54,60 @@ var graph = {
 };
 ```
 
-`graph` is a dependency graph with three nodes.
-`b` depends on `a` because `a` is an argument to `b`s function.
+`a`, `b` and `c` are the **nodes** of the graph.
+
+every node has an associated function. lets call them **factories**.
+
+the arguments to the factories declare the **dependencies** of each node:
+`a` has no dependencies.
+`b` depends on `a`.
 `c` depends on `a` and `b`.
 
-##### lets ask for a value from the graph
+a factory returns an **instance** of a node when called with the **instances**
+of the nodes which are its dependencies.
 
+##### make a container
 
+we need a place to put those instances.
+this place is called a `scope`.
 
-##### 
+the pair of `graph` and `scope` is called a **container**. let's make one:
+
+```javascript
+var container = {
+    graph: graph,
+    scope: {}
+};
+```
+
+if you omit the `scope` property hinoki will create one for you.
+
+##### ask for a value
+
+let's ask the container for the instance of node `c`:
+
+```javascript
+hinoki.inject(container, function(c) {
+    console.log(c) // => 3
+});
+```
+
+because we asked for `c`, which depends on `a` and `b`, hinoki has
+made instances for `a` and `b` as well and added them to the scope:
+
+```javascript
+console.log(container.scope.a) // => 1
+console.log(container.scope.b) // => 2
+console.log(container.scope.c) // => 3
+```
+
+while `a` is a dependency of both `b` and `c`, the factory for `a` was only
+called once. every node has at most one instance. the second time `a` needed
+to be resolved it was already in scope.
+
+**hinoki will only call a nodes factory function if the node has no instance yet.**
+
+lets provide an instance directly:
 
 ```javascript
 var container = {
@@ -81,20 +115,52 @@ var container = {
     scope: {
         a: 3
     }
-}
-```
+};
 
-```javascript
-hinoki.inject(container, function(c) {
-    console.log(c) // => 7
+hinoki.inject(container, function(b) {
+    console.log(b) // => 4
 });
 ```
 
+here we only asked for `b`. it was not necessary to resolve `c`:
+
+```javascript
+console.log(container.scope.a) // => 1
+console.log(container.scope.b) // => 2
+console.log(container.scope.c) // => undefined
+```
+
+**hinoki will only call the factories for nodes that you ask for or that the nodes
+you ask for depend on.**
+
+##### promises
+
+if a factory returns a [q promise](https://github.com/kriskowal/q)
+hinoki will wait until the promise is resolved.
+
+see [example/async.js](example/async.js).
+
+##### hooks
+
+using hooks you can change the error handling of any container.
+you can also use them to add debugging to a container.
+
+let's log every time a promise is returned from a factory:
+
+```javascript
+var container = {
+    hooks: {
+        promise: function(chain, promise) {
+            console.log('factory for service ' + chain[id] + ' returned promise' + promise);
+        };
+    }
+};
+```
+
+see [src/hooks.coffee](src/hooks.coffee) for all available hooks
+and their default implementations.
+
 ### great! can i do anything useful with it?
-
-there are at least three cases where hinoki can lead to simpler and shorter code:
-
-
 
 ### automated dependency injection
 
@@ -202,42 +268,6 @@ hinoki.inject(container2, function(variance) {
 });
 ```
 
-### async
-
-if a factory returns a [q promise](https://github.com/kriskowal/q)
-hinoki will wait until the promise is resolved.
-
-```javascript
-var dns = require('dns');
-
-var q = require('q');
-var hinoki = require('hinoki');
-
-var factories = {
-    addresses: function(domain) {
-        // here we use q.nfcall to return a promise
-        // for a function that takes a nodejs style callback
-        return q.nfcall(dns.resolve4, domain);
-    },
-    domains: function(addresses) {
-        return q.all(addresses.map(function(address) {
-            return q.nfcall(dns.reverse, address);
-        }));
-    }
-};
-
-var container = {
-    factories: factories,
-    instances: {
-        domain: 'www.google.com'
-    }
-};
-
-hinoki.inject(container, function(domains) {
-    console.log(domains);
-});
-```
-
 ### closure factories
 
 closures are used to...
@@ -278,24 +308,5 @@ decreasing lifetime
 this allows you to attach stuff
 
 describe this in a good example
-
-### hooks
-
-hooks allow you to change the error handling and add debugging to any container.
-
-example: log every time a promise is returned from a factory:
-
-```javascript
-var container = {
-    hooks: {
-        promise: function(chain, promise) {
-            console.log('factory for service ' + chain[id] + ' returned promise' + promise);
-        };
-    }
-};
-```
-
-see [src/hooks.coffee](src/hooks.coffee) for all available hooks
-and their default implementations.
 
 ### license: MIT
