@@ -2,11 +2,9 @@
 
 **magical inversion of control for nodejs**
 
-hinoki manages complexity in large nodejs applications.
+hinoki can manage complexity in large nodejs applications.
 
-it was designed with great care to
-
-hinoki is inspired by [prismatic's graph](https://github.com/Prismatic/plumbing#graph-the-functional-swiss-army-knife) and [angular's dependency injection](http://docs.angularjs.org/guide/di).
+it is inspired by [prismatic's graph](https://github.com/Prismatic/plumbing#graph-the-functional-swiss-army-knife) and [angular's dependency injection](http://docs.angularjs.org/guide/di).
 
 ### get started
 
@@ -56,7 +54,7 @@ var graph = {
 
 `a`, `b` and `c` are the **nodes** of the graph.
 
-every node has an associated function. lets call them **factories**.
+every node has an associated **factory** function.
 
 the arguments to the factories declare the **dependencies** of each node:
 `a` has no dependencies.
