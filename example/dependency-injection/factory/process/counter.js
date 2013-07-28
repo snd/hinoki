@@ -4,9 +4,9 @@ module.exports = {
             counter: 0
         };
     },
-    incrementCounter: function(counterState) {
+    incrementCounter: function(counterState, config) {
         return function() {
-            return counterState.counter++
+            return counterState.counter += config.increment;
         };
     }
 };

@@ -3,7 +3,7 @@ module.exports = {
         if (!commandLineArguments[0]) {
             var port = defaults.port;
         } else {
-            var increment = parseInt(commandLineArguments[0], 10);
+            var port = parseInt(commandLineArguments[0], 10);
             if (isNaN(port)) {
                 throw new Error('port is not a number');
             }
