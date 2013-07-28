@@ -12,9 +12,9 @@ module.exports =
 
         argumentPart = string.slice(string.indexOf('(') + 1, string.indexOf(')'))
 
-        dependencies = argumentPart.split(/,\s/)
+        dependencies = argumentPart.match(/([^\s,]+)/g)
 
-        return if dependencies[0] is '' then [] else dependencies
+        return if dependencies?  then dependencies else []
 
     # find the first instance or factory of the service
     # specified by `id` in `containers`
