@@ -1,7 +1,5 @@
 # hinoki
 
-service is not such a good word.
-
 **magical inversion of control for nodejs**
 
 hinoki manages complexity in large nodejs applications.
@@ -10,22 +8,11 @@ describe dependency graphs.
 query them.
 resolve automatically.
 
-Which Problem Is it trying to solve?
-application structure, testability,
-complex interdependent async loads
-
-*link here to the usage examples below*
-
 hinoki leads to shorter and simpler code in a variety of cases:
 
 dependency injection
 
 hinoki can make complex async flows more managable.
-
-- make computations with many interrelated
-cache results which are needed multiple times
-
-services consumed by hinoki are inherently very well testable.
 
 hinoki is inspired by [prismatic's graph](https://github.com/Prismatic/plumbing#graph-the-functional-swiss-army-knife) and [angular's dependency injection](http://docs.angularjs.org/guide/di).
 
@@ -34,7 +21,9 @@ crafted with great care.
 it can be used to describe complex closure ...
 and then resolve them repeatedly with different values
 
-### install
+### how do i get started?
+
+##### install
 
 ```
 npm install hinoki
@@ -42,7 +31,7 @@ npm install hinoki
 
 **or**
 
-put this line into the dependencies section of your `package.json`:
+put this line in dependencies section of your `package.json`:
 
 ```
 "hinoki": "0.1.0"
@@ -54,36 +43,70 @@ then run:
 npm install
 ```
 
-
-### require
+##### require
 
 ```javascript
 var hinoki = require('hinoki');
 ```
 
-### the basics
+##### lets build a simple graph
 
-**service** - a piece of data, function Or api that. An Interface, contract
-a service can be anything, a simple value, an object, a function, an object with several functions.
-a service provides certain functionality that other services might need.
+```javascript
+var graph = {
+    a: function() {
+        return 1;
+    },
+    b: function(a) {
+        return a + 1;
+    },
+    c: function(a, b) {
+        return a + b;
+    }
+};
+```
 
-**id** - is a string that uniquely identifies a service. it's the *name* of the service.
+`graph` is a dependency graph with three nodes.
+`b` depends on `a` because `a` is an argument to `b`s function.
+`c` depends on `a` and `b`.
 
-**instance** is a realized **service**
-
-a **factory** is a function which takes **dependencies** as arguments and returns an **instance**.
-
-**dependency** - 
+##### lets ask for a value from the graph
 
 
-**instances** - an object with properties where a key that is an *id* is associated  with an **instance** of that service.
-*used for the*
 
-**container** manages services, factories, instances, configuration, lifetime
+##### 
 
-**lifetime**
+```javascript
+var container = {
+    graph: graph,
+    scope: {
+        a: 3
+    }
+}
+```
 
-### computation
+```javascript
+hinoki.inject(container, function(c) {
+    console.log(c) // => 7
+});
+```
+
+### great! can i do anything useful with it?
+
+there are at least three cases where hinoki can lead to simpler and shorter code:
+
+
+
+### automated dependency injection
+
+just register all your services in a graph object
+
+example dependency injection
+
+just a counter example
+
+architectural style that is very well testable
+
+##### computation
 
 describe a computation in terms of the data dependencies.
 
@@ -109,6 +132,13 @@ var factories = {
     }
 };
 ```
+
+once the mean factory has been called
+the mean instance is added to container.instances
+and will not be computed again for this container.
+
+only the factory functions needed to get instances of
+the dependencies will be called.
 
 we can see that the mean needs the series and the count
 
@@ -251,7 +281,7 @@ describe this in a good example
 
 ### hooks
 
-hooks can change error handling and add debugging to any container.
+hooks allow you to change the error handling and add debugging to any container.
 
 example: log every time a promise is returned from a factory:
 
