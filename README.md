@@ -55,9 +55,9 @@ var graph = {
 every node has a **factory** function.
 
 the arguments to the factory are the **dependencies** of a node:
-`a` has no dependencies.
-`b` depends on node `a`.
-`c` depends on nodes `a` and `b`.
+- `a` has no dependencies.
+- `b` depends on node `a`.
+- `c` depends on nodes `a` and `b`.
 
 a factory returns an **instance** of a node when called with the **instances**
 of the nodes which are its dependencies.
