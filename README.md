@@ -89,7 +89,7 @@ hinoki.inject(container, function(c) {
 ```
 
 because we asked for `c`, which depends on `a` and `b`, hinoki has
-made instances for `a` and `b` as well and added them to the scope:
+made instances for `a` and `b` as well and added them to the `instances` property:
 
 ```javascript
 console.log(container.instances.a); // => 1
@@ -97,10 +97,12 @@ console.log(container.instances.b); // => 2
 console.log(container.instances.c); // => 3
 ```
 
+**hinoki will add all instances to the instances property.**
+
 while `a` is a dependency of both `b` and `c`, the factory for `a` was only
 called once. the second time `a` was needed it already had an instance.
 
-**hinoki will only call a node's factory function if the node has no instance yet.**
+**hinoki will only call a node's factory function when the node has no instance yet.**
 
 lets provide an instance directly:
 
