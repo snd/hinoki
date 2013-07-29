@@ -82,7 +82,7 @@ var container = {
 
 if you omit the `instances` property hinoki will create one for you.
 
-### let's ask the container for the instance of node `c`:
+### let's ask the container for an instance
 
 ```javascript
 hinoki.inject(container, function(c) {
