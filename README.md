@@ -168,7 +168,10 @@ see [example/dependency-injection](example/dependency-injection):
 [example/dependency-injection/load-sync.js](example/dependency-injection/load-sync.js)
 is used by [example/dependency-injection/inject.js](example/dependency-injection/inject.js)
 to pull in all the properties of the exports in the files in
-[example/dependency-injection/factory](example/dependency-injection/factory)
+[example/dependency-injection/factory](example/dependency-injection/factory).
+hinoki then uses the graph of all those properties.
+this enables inversion of control for all files in
+[example/dependency-injection/factory](example/dependency-injection/factory).
 
 **expect more documentation on this soon!**
 
