@@ -16,7 +16,7 @@ npm install hinoki
 
 **or**
 
-put this line in dependencies section of your `package.json`:
+put this line in the dependencies section of your `package.json`:
 
 ```
 "hinoki": "0.1.0"
@@ -164,141 +164,23 @@ and their default implementations.
 
 ## great! can i do anything useful with it?
 
-### automate dependency injection
+### you can automate dependency injection
 
-just register all your services in a graph object
+see [example/dependency-injection](example/dependency-injection):
 
-architectural style that is very well testable
+[example/dependency-injection/load-sync.js](example/dependency-injection/load-sync.js)
+is used by [example/dependency-injection/inject.js](example/dependency-injection/inject.js)
+to pull in all the properties of the exports in the files in
+[example/dependency-injection/factory](example/dependency-injection/factory)
 
-different lifetimes
+**expect more documentation on this soon!**
 
-database connections. data access methods.
+### you can tame async flows
 
-```javascript
-hinoki.inject([c1, c2, c3], function(a, b, c) {
+see [example/async.js](example/async.js)
 
-});
-```
+### you can structure computation
 
-we want these to only be created once
-
-some parts that stay the same during the entire duration of the application
-and some parts change but should use those other parts.
-
-the dependencies are looked up left to right
-
-decreasing lifetime
-
-this allows you to attach stuff
-
-describe this in a good example
-
-**expect more documentation on this in the future!**
-
-### tame async flows
-
-see [example/async.js](example/async.js).
-
-### structure computation
-
-describe a computation in terms of the data dependencies.
-
-
-##### computation
-
-
-```javascript
-var factories = {
-    count: function(numbers) {
-        return numbers.length;
-    },
-    mean: function(numbers, count) {
-        var reducer = function(acc, x) {
-            return acc + x;
-        };
-        return numbers.reduce(reducer, 0) / count;
-    },
-    meanOfSquares: function(numbers, count) {
-        var reducer = function(acc, x) {
-            return acc + x * x;
-        };
-        return xs.reduce(reducer, 0) / count;
-    },
-    variance: function(mean, meanOfSquares) {
-        return meanOfSquares - mean * mean;
-    }
-};
-```
-
-once the mean factory has been called
-the mean instance is added to container.instances
-and will not be computed again for this container.
-
-only the factory functions needed to get instances of
-the dependencies will be called.
-
-we can see that the mean needs the series and the count
-
-lets build a container where we provide the missing dependency
-explicitely.
-
-```
-var container = {
-    factories: factories,
-    instances: {
-        numbers: [1, 2, 3, 6]
-    }
-};
-```
-
-lets ask for the mean:
-
-```javascript
-hinoki.inject(container, function(mean) {
-    console.log(mean);  // -> 3
-});
-```
-
-if you ask for the mean, the mean of squares will not be computed.
-if you ask for the variance the count will only be computed once.
-
-**hinoki will only call the factory for services which don't have an instance**
-
-once a factory has been called, th
-and it will not be called again.
-
-**hinoki will call any factory at most once per container.**
-
-
-the instances
-
-note that the meanOfSquares and variance have not been computed
-because we only asked for the mean and the mean only depends
-on the count.
-
-all instances are added to container
-
-the factory function will not be called again.
-
-now run the same computation with another series:
-
-```javascript
-var container2 = {
-    factories: factories,
-    instances: {
-        xs: [1, 2, 3, 6]
-    }
-};
-```
-
-lets ask for the variance:
-
-```javascript
-hinoki.inject(container2, function(variance) {
-    console.log(variance);  // -> 3.5
-});
-```
-
-### multiple containers
+see [example/computation.js](example/computation.js)
 
 ### license: MIT
