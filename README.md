@@ -1,5 +1,7 @@
 # hinoki
 
+[![Build Status](https://travis-ci.org/snd/hinoki.png)](https://travis-ci.org/snd/hinoki)
+
 **magical inversion of control for nodejs**
 
 hinoki can manage complexity in nodejs applications.
