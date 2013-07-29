@@ -14,7 +14,7 @@ module.exports =
 
         dependencies = argumentPart.match(/([^\s,]+)/g)
 
-        return if dependencies?  then dependencies else []
+        return if dependencies? then dependencies else []
 
     # find the first instance or factory of the service
     # specified by `id` in `containers`
