@@ -6,9 +6,9 @@ hinoki can manage complexity in nodejs applications.
 
 it is inspired by [prismatic's graph](https://github.com/Prismatic/plumbing#graph-the-functional-swiss-army-knife) and [angular's dependency injection](http://docs.angularjs.org/guide/di).
 
-### get started
+## get started
 
-##### install
+### install
 
 ```
 npm install hinoki
@@ -28,13 +28,13 @@ then run:
 npm install
 ```
 
-##### require
+### require
 
 ```javascript
 var hinoki = require('hinoki');
 ```
 
-##### lets make a simple graph
+### lets make a graph
 
 ```javascript
 var graph = {
@@ -52,7 +52,7 @@ var graph = {
 
 `a`, `b` and `c` are the **nodes** of the graph.
 
-every node has a **factory** function.
+every node has a **factory** function:
 node `a` has the factory `function() {return 1;}`.
 
 the arguments to the factory are the **dependencies** of the node:
@@ -64,9 +64,9 @@ a factory returns the **instance** of a node.
 a factory must be called with the instances of its dependencies:
 `function(a) {return a + 1;}` must be called with the instance of `a`.
 
-##### make a container
+### lets make a container
 
-we need a place to put those instances.
+we need a place to put those instances:
 this place is called the `scope`.
 
 the pair of `graph` and `scope` is called a **container**. let's make one:
@@ -80,7 +80,7 @@ var container = {
 
 if you omit the `scope` property hinoki will create one for you.
 
-##### let's ask the container for the instance of node `c`:
+### let's ask the container for the instance of node `c`:
 
 ```javascript
 hinoki.inject(container, function(c) {
