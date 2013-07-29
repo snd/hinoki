@@ -120,7 +120,7 @@ hinoki.inject(container, function(a, b) {
 });
 ```
 
-the factory for `a` wasn't called since we provided an instance for `a`.
+the factory for `a` wasn't called since we already provided an instance for `a`.
 
 we only asked for `a` and `b`. it was not necessary to get the instance for `c`:
 
