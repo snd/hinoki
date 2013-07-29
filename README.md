@@ -36,7 +36,7 @@ npm install
 var hinoki = require('hinoki');
 ```
 
-### lets make a graph
+### let's make a graph
 
 ```javascript
 var graph = {
@@ -66,10 +66,10 @@ a factory returns the **instance** of a node.
 it must be called with the instances of its dependencies:
 `function(a) {return a + 1;}` must be called with the instance of `a`.
 
-### lets make a container
+### let's make a container
 
 we need a place to put those instances:
-lets call it `instances`.
+let's call it `instances`.
 
 the pair of `factories` and `instances` is called a **container**. let's make one:
 
@@ -82,7 +82,7 @@ var container = {
 
 if you omit the `instances` property hinoki will create one for you.
 
-### let's ask the container for an instance
+### let's ask for an instance
 
 ```javascript
 hinoki.inject(container, function(c) {
@@ -106,7 +106,7 @@ called once. the second time `a` was needed it already had an instance.
 
 **hinoki will only call the factory function for nodes that you ask for (or that the nodes you ask for depend on) and that have no instance yet.**
 
-lets provide an instance directly:
+let's provide an instance directly:
 
 ```javascript
 var container = {
