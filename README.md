@@ -102,7 +102,7 @@ console.log(container.instances.c); // => 3
 while `a` is a dependency of both `b` and `c`, the factory for `a` was only
 called once. the second time `a` was needed it already had an instance.
 
-**hinoki will only call a node's factory function when the node has no instance yet.**
+**hinoki will only call the factory function for nodes which are needed but have no instance yet.**
 
 lets provide an instance directly:
 
