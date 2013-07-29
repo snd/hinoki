@@ -43,6 +43,17 @@ module.exports =
                     c: 4
                 test.done()
 
+        '3 dependencies - ask for nothing': (test) ->
+            container =
+                factories:
+                    a: -> 1
+                    b: (a) -> a + 1
+                    c: (a, b) -> a + b + 1
+
+            hinoki.inject container, ->
+                test.deepEqual container.instances, {}
+                test.done()
+
         '1 factory and 2 seeds': (test) ->
             container =
                 instances:
