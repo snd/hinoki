@@ -1,6 +1,6 @@
 var path = require('path');
 
-var hinoki = require('../../src/hinoki');
+var hinoki = require('hinoki');
 var loadSync = require('./load-sync');
 
 var processFactories = {};

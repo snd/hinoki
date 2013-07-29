@@ -1,7 +1,7 @@
 var dns = require('dns');
 
 var q = require('q');
-var hinoki = require('../src/hinoki');
+var hinoki = require('hinoki');
 
 var factories = {
     addresses: function(domain) {

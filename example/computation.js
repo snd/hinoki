@@ -1,4 +1,4 @@
-var hinoki = require('../src/hinoki');
+var hinoki = require('hinoki');
 
 var factories = {
     count: function(xs) {
