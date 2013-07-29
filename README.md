@@ -57,28 +57,28 @@ node `a` has the factory `function() {return 1;}`.
 
 the arguments to the factory are the **dependencies** of the node:
 - `a` has no dependencies.
-- `b` depends on node `a`.
-- `c` depends on nodes `a` and `b`.
+- `b` depends on `a`.
+- `c` depends on `a` and `b`.
 
 a factory returns the **instance** of a node.
-a factory must be called with the instances of its dependencies:
+it must be called with the instances of its dependencies:
 `function(a) {return a + 1;}` must be called with the instance of `a`.
 
 ### lets make a container
 
 we need a place to put those instances:
-this place is called the `scope`.
+this place is called `instances`.
 
-the pair of `graph` and `scope` is called a **container**. let's make one:
+the pair of `factories` and `instances` is called a **container**. let's make one:
 
 ```javascript
 var container = {
-    graph: graph,
-    scope: {}
+    factories: graph,
+    instances: {}
 };
 ```
 
-if you omit the `scope` property hinoki will create one for you.
+if you omit the `instances` property hinoki will create one for you.
 
 ### let's ask the container for the instance of node `c`:
 
@@ -92,18 +92,14 @@ because we asked for `c`, which depends on `a` and `b`, hinoki has
 made instances for `a` and `b` as well and added them to the scope:
 
 ```javascript
-console.log(container.scope.a); // => 1
-console.log(container.scope.b); // => 2
-console.log(container.scope.c); // => 3
+console.log(container.instances.a); // => 1
+console.log(container.instances.b); // => 2
+console.log(container.instances.c); // => 3
 ```
 
 while `a` is a dependency of both `b` and `c`, the factory for `a` was only
 called once. the second time `a` needed
 to be resolved it was already in scope.
-
-**hinoki will only call a nodes factory function if the node has no instance yet.**
-
-**hinoki will call any factory at most once**
 
 lets provide an instance directly:
 
@@ -131,10 +127,20 @@ console.log(container.scope.b) // => 2
 console.log(container.scope.c) // => undefined
 ```
 
+### 
+
+**hinoki makes an instance of every node that .
+it does not. it only makes one instance, even if the node is a dependency of
+multiple nodes.**
+
+**hinoki will only call a nodes factory function if the node has no instance yet.**
+
+**hinoki will call any factory at most once**
+
 **hinoki will only call the factories for nodes that you ask for or that the nodes
 you ask for depend on.**
 
-##### promises
+### promises
 
 if a factory returns a [q promise](https://github.com/kriskowal/q)
 hinoki will wait until the promise is resolved.
@@ -143,7 +149,7 @@ this can greatly simplify complex async flows.
 
 see [example/async.js](example/async.js).
 
-##### hooks
+### hooks
 
 hooks let you change the error handling of any container.
 you can also use them to add debugging to a container.
@@ -160,20 +166,53 @@ var container = {
 };
 ```
 
-see [src/hooks.coffee](src/hooks.coffee) for all available hooks
+look at [src/hooks.coffee](src/hooks.coffee) for all available hooks
 and their default implementations.
 
-### great! can i do anything useful with it?
+## great! can i do anything useful with it?
 
-##### automated dependency injection
+### automate dependency injection
 
 just register all your services in a graph object
 
 architectural style that is very well testable
 
-##### computation
+different lifetimes
+
+database connections. data access methods.
+
+```javascript
+hinoki.inject([c1, c2, c3], function(a, b, c) {
+
+});
+```
+
+we want these to only be created once
+
+some parts that stay the same during the entire duration of the application
+and some parts change but should use those other parts.
+
+the dependencies are looked up left to right
+
+decreasing lifetime
+
+this allows you to attach stuff
+
+describe this in a good example
+
+**expect more documentation on this in the future!**
+
+### tame async flows
+
+see [example/async.js](example/async.js).
+
+### structure computation
 
 describe a computation in terms of the data dependencies.
+
+
+##### computation
+
 
 ```javascript
 var factories = {
@@ -268,28 +307,5 @@ hinoki.inject(container2, function(variance) {
 ```
 
 ### multiple containers
-
-different lifetimes
-
-database connections. data access methods.
-
-```javascript
-hinoki.inject([c1, c2, c3], function(a, b, c) {
-
-});
-```
-
-we want these to only be created once
-
-some parts that stay the same during the entire duration of the application
-and some parts change but should use those other parts.
-
-the dependencies are looked up left to right
-
-decreasing lifetime
-
-this allows you to attach stuff
-
-describe this in a good example
 
 ### license: MIT
