@@ -53,19 +53,21 @@ var graph = {
 `a`, `b` and `c` are the **nodes** of the graph.
 
 every node has a **factory** function.
+node `a` has the factory `function() {return 1;}`.
 
-the arguments to the factory are the **dependencies** of a node:
+the arguments to the factory are the **dependencies** of the node:
 - `a` has no dependencies.
 - `b` depends on node `a`.
 - `c` depends on nodes `a` and `b`.
 
-a factory returns an **instance** of a node when called with the **instances**
-of the nodes which are its dependencies.
+a factory returns the **instance** of a node.
+a factory must be called with the instances of its dependencies:
+`function(a) {return a + 1;}` must be called with the instance of `a`.
 
 ##### make a container
 
 we need a place to put those instances.
-this place is called a `scope`.
+this place is called the `scope`.
 
 the pair of `graph` and `scope` is called a **container**. let's make one:
 
