@@ -106,7 +106,7 @@ called once. the second time `a` was needed it already had an instance.
 
 **hinoki will only call the factory function for nodes that have no instance.**
 
-**hinoki will only call the factory function for nodes that you ask for (or that the nodes you ask for depend on).
+**hinoki will only call the factory function for nodes that you ask for (or that the nodes you ask for depend on).**
 
 let's provide an instance directly:
 
