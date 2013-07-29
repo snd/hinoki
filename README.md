@@ -125,9 +125,9 @@ the factory for `a` wasn't called since we already provided an instance for `a`.
 we only asked for `a` and `b`. it was not necessary to get the instance for `c`:
 
 ```javascript
-console.log(container.scope.a) // => 1
-console.log(container.scope.b) // => 2
-console.log(container.scope.c) // => undefined
+console.log(container.instances.a) // => 1
+console.log(container.instances.b) // => 2
+console.log(container.instances.c) // => undefined
 ```
 
 ### promises
