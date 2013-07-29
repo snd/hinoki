@@ -55,7 +55,7 @@ var graph = {
 every node has a **factory** function:
 node `a` has the factory `function() {return 1;}`.
 
-the arguments to the factory are the **dependencies** of the node:
+the arguments of a factory are the **dependencies** of the node:
 - `a` has no dependencies.
 - `b` depends on `a`.
 - `c` depends on `a` and `b`.
@@ -67,7 +67,7 @@ it must be called with the instances of its dependencies:
 ### lets make a container
 
 we need a place to put those instances:
-this place is called `instances`.
+lets call it `instances`.
 
 the pair of `factories` and `instances` is called a **container**. let's make one:
 
@@ -98,15 +98,16 @@ console.log(container.instances.c); // => 3
 ```
 
 while `a` is a dependency of both `b` and `c`, the factory for `a` was only
-called once. the second time `a` needed
-to be resolved it was already in scope.
+called once. the second time `a` was needed it already had an instance.
+
+**hinoki will only call a node's factory function if the node has no instance yet.**
 
 lets provide an instance directly:
 
 ```javascript
 var container = {
-    graph: graph,
-    scope: {
+    factories: graph,
+    instances: {
         a: 3
     }
 };
@@ -117,25 +118,15 @@ hinoki.inject(container, function(a, b) {
 });
 ```
 
-the factory for `a` wasn't called since we provided an instance.
+the factory for `a` wasn't called since we provided an instance for `a`.
 
-we only asked for `a` and `b`. it was not necessary to get an instance for `c`:
+we only asked for `a` and `b`. it was not necessary to get the instance for `c`:
 
 ```javascript
 console.log(container.scope.a) // => 1
 console.log(container.scope.b) // => 2
 console.log(container.scope.c) // => undefined
 ```
-
-### 
-
-**hinoki makes an instance of every node that .
-it does not. it only makes one instance, even if the node is a dependency of
-multiple nodes.**
-
-**hinoki will only call a nodes factory function if the node has no instance yet.**
-
-**hinoki will call any factory at most once**
 
 **hinoki will only call the factories for nodes that you ask for or that the nodes
 you ask for depend on.**
