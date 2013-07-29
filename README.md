@@ -152,7 +152,7 @@ let's log every time a promise is returned from a factory:
 var container = {
     hooks: {
         promise: function(chain, promise) {
-            console.log('factory for service ' + chain[id] + ' returned promise' + promise);
+            console.log('factory for node ' + chain[id] + ' returned promise' + promise);
         };
     }
 };
