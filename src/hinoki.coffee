@@ -16,7 +16,7 @@ module.exports =
 
         return if dependencies? then dependencies else []
 
-    # find the first instance or factory of the service
+    # find the first instance or factory of the node
     # specified by `id` in `containers`
     find: (containers, id) ->
         len = containers.length
