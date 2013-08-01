@@ -1,6 +1,6 @@
 {
     "name": "hinoki",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "magical inversion of control",
     "keywords": ["inversion", "control", "dependency", "injection", "ioc", "container"],
     "homepage": "http://github.com/snd/hinoki",
