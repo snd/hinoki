@@ -42,21 +42,40 @@ module.exports =
 
         return null
 
-    inject: (arg, fun) ->
-        containers = if Array.isArray arg then arg else [arg]
+    handleInjectArguments: (arg1, arg2, arg3) ->
+        object = {}
+        object.containers = if Array.isArray arg1 then arg1 else [arg1]
 
-        containers.forEach (c) ->
+        object.containers.forEach (c) ->
             unless c? and 'object' is typeof c
-                throw new Error 'the first argument to inject must be an object or an array of objects'
+                throw new Error 'the 1st argument to inject must be an object or an array of objects'
 
-        containers.forEach (c) ->
+        object.containers.forEach (c) ->
             unless c.instances?
                 c.instances = {}
 
-        dependencyIds = module.exports.parseFunctionArguments fun
+        if arg3?
+            unless 'function' is typeof arg3
+                throw new Error 'the 3rd argument to inject is optional but must be a function if provided'
+            object.ids = if Array.isArray arg2 then arg2 else [arg2]
+            object.ids.forEach (id) ->
+                unless id? and 'string' is typeof id
+                    throw new Error 'the 2nd argument to inject must be a string or an array of strings if a 3rd argument is provided'
+            object.fun = arg3
 
-        module.exports.resolve containers, dependencyIds, [], ->
-            fun.apply null, arguments
+        else
+            unless 'function' is typeof arg2
+                throw new Error 'the 2nd argument to inject must be a function if no 3rd argument is provided'
+            object.ids = module.exports.parseFunctionArguments arg2
+            object.fun = arg2
+
+        object
+
+    inject: ->
+        namedArgs = module.exports.handleInjectArguments.apply null, arguments
+
+        module.exports.resolve namedArgs.containers, namedArgs.ids, [], ->
+            namedArgs.fun.apply null, arguments
 
     resolve: (containers, dependencyIds, chain, cb) ->
         hasErrorOccured = false
