@@ -134,6 +134,26 @@ console.log(container.instances.b) // => 2
 console.log(container.instances.c) // => undefined
 ```
 
+hinoki parses the dependencies from the function you pass to inject.
+you can also provide them directly:
+
+```javascript
+hinoki.inject(container, 'a', function(arg) {
+    console.log(arg) // => 1
+    console.log(container.instances.a) // => 1
+});
+```
+
+```javascript
+hinoki.inject(container, ['a', 'b'], function(arg1, arg2) {
+    console.log(arg1) // => 1
+    console.log(container.instances.a) // => 1
+
+    console.log(arg2) // => 2
+    console.log(container.instances.b) // => 2
+});
+```
+
 ### promises
 
 if a factory returns a [q promise](https://github.com/kriskowal/q)
