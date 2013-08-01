@@ -134,7 +134,7 @@ console.log(container.instances.b) // => 2
 console.log(container.instances.c) // => undefined
 ```
 
-hinoki parses the dependencies from the function you pass to inject.
+hinoki parses dependencies from the function you pass to inject.
 you can also provide them directly:
 
 ```javascript
