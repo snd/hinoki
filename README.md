@@ -90,6 +90,8 @@ hinoki.inject(container, function(c) {
 });
 ```
 
+the second argument to inject is a factory function.
+
 because we asked for `c`, which depends on `a` and `b`, hinoki has
 made instances for `a` and `b` as well and added them to the `instances` property:
 
@@ -134,22 +136,40 @@ console.log(container.instances.b) // => 2
 console.log(container.instances.c) // => undefined
 ```
 
+##### programmatic usage
+
+```javascript
+var graph = {
+    a: function() {
+        return 1;
+    },
+    b: ['a', function(dep1) {
+        return dep1 + 1;
+    }],
+    c: ['a', 'b', function(dep1, dep2) {
+        return dep1 + dep2;
+    }]
+};
+```
+
+this is convenient.
+
 hinoki parses dependencies from the function you pass to inject.
 you can also provide them directly:
 
 ```javascript
-hinoki.inject(container, 'a', function(arg) {
-    console.log(arg) // => 1
+hinoki.inject(container, 'a', function(dep1) {
+    console.log(dep1) // => 1
     console.log(container.instances.a) // => 1
 });
 ```
 
 ```javascript
-hinoki.inject(container, ['a', 'b'], function(arg1, arg2) {
-    console.log(arg1) // => 1
+hinoki.inject(container, ['a', 'b'], function(dep1, dep2) {
+    console.log(dep1) // => 1
     console.log(container.instances.a) // => 1
 
-    console.log(arg2) // => 2
+    console.log(dep2) // => 2
     console.log(container.instances.b) // => 2
 });
 ```
@@ -162,6 +182,22 @@ hinoki will wait until the promise is resolved.
 this can greatly simplify complex async flows.
 
 see [example/async.js](example/async.js).
+
+### errors
+
+hinoki needs a way to communicate those problems
+
+hinoki inject throws synchronously
+
+all other errors are called on the next tick of the event loop
+they escape all try catch blocks
+
+### events
+
+in addition to the errors the event
+
+provide your own emitter (or any object that implements the
+`emit` method)
 
 ### hooks
 
