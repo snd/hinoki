@@ -1,6 +1,10 @@
 module.exports =
 
-    # returns first value in `array` for which `predicate` returns true
+    # returns first value in `array` for which `predicate` returns true.
+    #
+    # example:
+    # find ['a', 'ab', 'abc], (s) -> s.length is 2
+    # => 'ab'
 
     find: (array, predicate) ->
         i = 0
@@ -11,6 +15,8 @@ module.exports =
             i++
         return null
 
+    # returns whether an array of strings contains duplicates.
+    #
     # complexity: O(n) since hash lookup is O(1)
 
     arrayOfStringsHasDuplicates: (array) ->

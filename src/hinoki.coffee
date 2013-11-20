@@ -6,6 +6,7 @@ module.exports = hinoki = core
 # manual dependency injection
 # ---------------------------
 
+# late binding for cyclic dependency
 assembleReturningPromise = ->
     hinoki.assembleReturningPromise.call null, arguments
 
