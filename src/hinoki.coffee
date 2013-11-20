@@ -136,7 +136,7 @@ module.exports =
                     container.hooks?.instance? newChain, instance
                     container.instances[id] = instance
                     resolved[id] = instance
-                    return
+                    return maybeResolved()
 
                 container.hooks?.promise? newChain, instance
 
