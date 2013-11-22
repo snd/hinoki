@@ -28,7 +28,7 @@ h.addToId = f.addToId(
 h.isCyclic = f.isCyclic(
     merge(
         selectKeys(h, 'getKeys')
-        selectKeys(u, 'arrayOfStringsHasDuplicate')
+        selectKeys(u, 'arrayOfStringsHasDuplicates')
     )
 )
 
@@ -38,19 +38,19 @@ h.isCyclic = f.isCyclic(
 h.getEmitter = f.getEmitter()
 
 h.getInstance = f.getInstance(
-    selectKeys(h, 'getKeys')
+    selectKeys(h, 'getKey')
 )
 
 
 h.getFactory = f.getFactory(
-    selectKeys(h, 'getKeys')
+    selectKeys(h, 'getKey')
 )
 
 h.getDependencies = f.getDependencies(
     merge(
         selectKeys(u, 'parseFunctionArguments')
         selectKeys(h,
-            'getKeys'
+            'getKey'
             'getFactory'
         )
     )
@@ -66,11 +66,15 @@ h.findContainerThatContainsFactory = f.findContainerThatContainsFactory(
     )
 )
 
-h.findInstance = f.findInstance(
+h.findContainerThatContainsInstance = f.findContainerThatContainsInstance(
     merge(
         selectKeys(u, 'find')
         selectKeys(h, 'getInstance')
     )
+)
+
+h.findInstance = f.findInstance(
+    selectKeys(h, 'getInstance', 'findContainerThatContainsInstance')
 )
 
 # ###################################################################################
@@ -80,7 +84,7 @@ h.setInstance = f.setInstance(
     selectKeys(h, 'getKey')
 )
 
-h.setDependencies = f.setDependencies(
+h.cacheDependencies = f.cacheDependencies(
     selectKeys(h, 'getKey')
 )
 
@@ -122,7 +126,7 @@ h.emitInstanceFound = f.emit(
     )
 )
 
-h.emit = f.emit(
+h.emitError = f.emit(
     merge(
         {event: 'error'}
         selectKeys(h, 'getEmitter')
@@ -132,63 +136,92 @@ h.emit = f.emit(
 # ###################################################################################
 # # error
 
-h.cycleRejection(
+h.cycleRejection = f.cycleRejection(
     selectKeys(h, 'idToString')
 )
-h.missingFactoryRejection(
+h.missingFactoryRejection = f.missingFactoryRejection(
     selectKeys(h, 'idToString', 'getKey')
 )
-h.exceptionRejection(
+h.exceptionRejection = f.exceptionRejection(
     selectKeys(h, 'getKey')
 )
-h.rejectionRejection(
+h.rejectionRejection = f.rejectionRejection(
     selectKeys(h, 'getKey')
 )
-h.factoryNotFunctionRejection(
+h.factoryNotFunctionRejection = f.factoryNotFunctionRejection(
     selectKeys(h, 'getKey')
 )
 
-h.emitRejection = f.emit(
-    selectKeys(h, 'emit')
+h.emitRejection = f.emitRejection(
+    selectKeys(h, 'emitError')
 )
 
 # ###################################################################################
 # # container side effecting functions
-# 
-# h.callFactory = f.callFactory(
-#     h.getFactory
-#     h.emitInstanceCreated
-#     h.emitPromiseCreated
-#     h.emitPromiseResolved
-#     h.emitPromiseRejected
-#     h.missingFactoryRejection
-#     h.exceptionRejection
-#     h.rejectionRejection
-# )
-# 
-# h.getOrCreateInstance = f.getOrCreateInstance(
-#     u.startingWith
-#     h.getInstance
-#     h.findInstance
-#     h.findContainerThatContainsFactory
-# 
-# )
-# 
-# h.getOrCreateManyInstances = f.getOrCreateManyInstances(
-#     h.getOrCreateInstance
-# )
-# 
-# ###################################################################################
-# # interface
-# 
-# h._inject = f._inject({
-#     selectKeys(h, 'getOrCreateManyInstances'
-#     h.getOrCreateManyInstances
-#     h.emitRejection
-# )
-# 
-# h.inject = f.inject(
-#     u.arrayify
-#     u.parseFunctionArguments
-#     h._inject
-# )
+
+getOrCreateManyInstancesDelegate = ->
+    if not h.getOrCreateManyInstances?
+        h.getOrCreateManyInstances = f.getOrCreateManyInstances(
+            selectKeys(h, 'getOrCreateInstance')
+        )
+    h.getOrCreateManyInstances.apply null, arguments
+
+h.callFactory = f.callFactory(
+    selectKeys(h,
+        'getFactory'
+        'missingFactoryRejection'
+        'exceptionRejection'
+        'emitInstanceCreated'
+        'emitPromiseCreated'
+        'emitPromiseResolved'
+        'rejectionRejection'
+    )
+)
+
+h.createInstance = f.createInstance(
+    merge(
+        selectKeys(h,
+            'getDependencies'
+            'getOrCreateManyInstances'
+            'callFactory'
+            'cacheDependencies'
+            'addToId'
+            'setInstance'
+        )
+        {getOrCreateManyInstances: getOrCreateManyInstancesDelegate}
+    )
+)
+
+h.getOrCreateInstance = f.getOrCreateInstance(
+    merge(
+        selectKeys(u, 'startingWith')
+        selectKeys(h,
+            'findInstance'
+            'emitInstanceFound'
+            'isCyclic'
+            'cycleRejection'
+            'findContainerThatContainsFactory'
+            'missingFactoryRejection'
+            'getFactory'
+            'factoryNotFunctionRejection'
+            'createInstance'
+        )
+    )
+)
+
+###################################################################################
+# interface
+
+h._inject = f._inject(
+    merge(
+        selectKeys(h, 'emitRejection')
+        {getOrCreateManyInstances: getOrCreateManyInstancesDelegate}
+    )
+)
+
+h.inject = f.inject(
+    merge(
+        selectKeys(u, 'arrayify', 'parseFunctionArguments')
+        selectKeys(h, '_inject')
+    )
+)

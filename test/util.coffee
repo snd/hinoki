@@ -52,6 +52,6 @@ module.exports =
         test.done()
 
     'selectKeys': (test) ->
-        test.deepEqual {}, util.selectKeys {a: 1, b: 2, c: 3}, []
-        test.deepEqual {a: 1, b: 2}, util.selectKeys {a: 1, b: 2, c: 3}, ['a', 'b']
+        test.deepEqual {}, util.selectKeys {a: 1, b: 2, c: 3}
+        test.deepEqual {a: 1, b: 2}, util.selectKeys {a: 1, b: 2, c: 3}, 'a', 'b'
         test.done()

@@ -79,10 +79,10 @@ module.exports =
         checkDeps deps,
             'findInstance'
             'emitInstanceFound'
-            'hasCycle'
+            'isCyclic'
             'cycleRejection'
             'findContainerThatContainsFactory'
-            'factoryNotFoundRejection'
+            'missingFactoryRejection'
             'getFactory'
             'factoryNotFunctionRejection'
             'startingWith'
@@ -94,13 +94,13 @@ module.exports =
                 deps.emitInstanceFound containers[0], id, instance
                 return Q.resolve instance
 
-            if deps.hasCycle id
+            if deps.isCyclic id
                 return deps.cycleRejection containers[0], id
 
             container = deps.findContainerThatContainsFactory containers, id
 
             unless container?
-                return deps.factoryNotFoundRejection containers[0], id
+                return deps.missingFactoryRejection containers[0], id
 
             factory = deps.getFactory container, id
 
@@ -109,7 +109,7 @@ module.exports =
 
             remainingContainers = deps.startingWith containers, container
 
-            instance = deps.createInstance container, remainingContainers, id
+            instance = deps.createInstance container, id, remainingContainers
 
     # side effects `container` by 
     # returns a promise that is resolved with the instance
@@ -120,22 +120,22 @@ module.exports =
     createInstance: (deps) ->
         checkDeps deps,
             'getDependencies'
-            'getInstances'
+            'getOrCreateManyInstances'
             'callFactory'
+            'setInstance'
+            'addToId'
             'cacheDependencies'
         (container, id, containers) ->
             dependencyIds = deps.getDependencies container, id
 
             dependencyIds = dependencyIds.map (x) ->
-                addToId id, x
+                deps.addToId id, x
 
-            dependencyInstances = deps.getInstances containers, dependencyIds
+            dependencyInstances = deps.getOrCreateManyInstances containers, dependencyIds
 
-            factory = getFactory container, id
+            instance = deps.callFactory container, id, dependencyInstances
 
-            instance = deps.callFactory container, factory, dependencyInstances
-
-            instanceSet = setInstance container, id, instance
+            instanceSet = deps.setInstance container, id, instance
             dependenciesCached = deps.cacheDependencies container, id, dependencyInstances
 
             Q.all([instanceSet, dependenciesCached]).then ->
@@ -204,9 +204,9 @@ module.exports =
             [key].concat deps.arrayify id
 
     isCyclic: (deps) ->
-        checkDeps deps, 'arrayOfStringsHasDuplicate'
+        checkDeps deps, 'arrayOfStringsHasDuplicates', 'getKeys'
         (id) ->
-            deps.arrayOfStringsHasDuplicate getKeys id
+            deps.arrayOfStringsHasDuplicates deps.getKeys id
 
 ###################################################################################
 # container getters
@@ -253,13 +253,12 @@ module.exports =
         checkDeps deps, 'find', 'getInstance'
         (containers, id) ->
             deps.find containers, (x) ->
-                deps.getFactory(x, id)?
+                deps.getInstance(x, id)?
 
     findInstance: (deps) ->
-        checkDeps deps, 'find', 'findContainerThatContainsInstance'
+        checkDeps deps, 'getInstance', 'findContainerThatContainsInstance'
         (containers, id) ->
-            container = deps.find containers, (x) ->
-                deps.getInstance(x, id)?
+            container = deps.findContainerThatContainsInstance containers, id
             deps.getInstance container, id
 
 ###################################################################################
@@ -290,7 +289,7 @@ module.exports =
     emit: (deps) ->
         checkDeps deps, 'getEmitter', 'event'
         (container) ->
-            deps.getEmitter(container).emit deps.event Array.prototype.slice.call(arguments, 1)
+            deps.getEmitter(container).emit deps.event, Array.prototype.slice.call(arguments, 1)
 
 ###################################################################################
 # error
@@ -344,6 +343,7 @@ module.exports =
             return Q.reject error
 
     emitRejection: (deps) ->
-        checkDeps deps, 'getKey'
+        checkDeps deps, 'emitError'
         (rejection) ->
-            deps.emit rejection.container, 'error', rejection
+            console.log 'emitRejection', rejection
+            deps.emitError rejection.container, rejection
