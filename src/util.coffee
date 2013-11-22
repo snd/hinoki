@@ -74,3 +74,20 @@ module.exports =
         dependencies = argumentPart.match(/([^\s,]+)/g)
 
         return if dependencies? then dependencies else []
+
+    selectKeys: (object, keys...) ->
+        result = {}
+
+        keys.forEach (key) ->
+            result[key] = object[key]
+
+        result
+
+    merge: (objects...) ->
+        result = {}
+
+        objects.forEach (object) ->
+            Object.keys(object1).forEach (key) ->
+                result[key] = object[key]
+
+        return result

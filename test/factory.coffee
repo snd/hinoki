@@ -1,4 +1,4 @@
-core = require '../src/core'
+factory = require '../src/factory'
 
 Q = require 'q'
 
@@ -10,10 +10,11 @@ module.exports =
             test.expect 3
             container = {}
             id = {}
-            getKey = (arg1) ->
-                test.equals arg1, id
-                return 'a'
-            setInstance = core.setInstance getKey
+            deps =
+                getKey: (arg1) ->
+                    test.equals arg1, id
+                    return 'a'
+            setInstance = factory.setInstance deps
             promise = setInstance container, id, Q(5)
 
             promise.then (value) ->
@@ -25,9 +26,10 @@ module.exports =
             test.expect 2
             container = {}
             id = {}
-            getKey = ->
-                test.fail()
-            setInstance = core.setInstance getKey
+            deps =
+                getKey: ->
+                    test.fail()
+            setInstance = factory.setInstance deps
             promise = setInstance container, id, Q.reject(5)
 
             promise.fail (value) ->
@@ -41,10 +43,11 @@ module.exports =
             test.expect 3
             container = {}
             id = {}
-            getKey = (arg1) ->
-                test.equals arg1, id
-                return 'a'
-            setDependencies = core.setDependencies getKey
+            deps =
+                getKey: (arg1) ->
+                    test.equals arg1, id
+                    return 'a'
+            setDependencies = factory.setDependencies deps
             promise = setDependencies container, id, Q(5)
 
             promise.then (value) ->
@@ -56,9 +59,10 @@ module.exports =
             test.expect 2
             container = {}
             id = {}
-            getKey = ->
-                test.fail()
-            setDependencies = core.setDependencies getKey
+            deps =
+                getKey: ->
+                    test.fail()
+            setDependencies = factory.setDependencies deps
             promise = setDependencies container, id, Q.reject(5)
 
             promise.fail (value) ->
@@ -68,14 +72,14 @@ module.exports =
 
     'callFactory':
 
-        'factory returns instance': (test) ->
-            test.expect 7
+        'emit and return instance if one is created': (test) ->
+            test.expect 8
 
             instance = {}
             container = {}
             id = {}
 
-            dependencies =
+            deps =
                 getFactory: (arg1, arg2) ->
                     test.equals arg1, container
                     test.equals arg2, id
@@ -83,11 +87,12 @@ module.exports =
                         test.equals arg1, 1
                         test.equals arg2, 2
                         return instance
-                emitInstance: (arg1, arg2, arg3) ->
+                emitInstanceCreated: (arg1, arg2, arg3) ->
                     test.equals arg1, container
                     test.equals arg2, id
+                    test.equals arg3, instance
 
-            callFactory = core.callFactory dependencies
+            callFactory = factory.callFactory deps
 
             promise = callFactory container, id, Q.resolve [1, 2]
 
@@ -95,22 +100,24 @@ module.exports =
                 test.equals value, instance
                 test.done()
 
-        'factory not found': (test) ->
-            test.expect 3
+        'return rejection if factory is not found': (test) ->
+            test.expect 5
 
             container = {}
             rejection = {}
             id = {}
 
-            dependencies =
-                getFactory: ->
-                    return null
-                factoryNotFoundRejection: (arg1, arg2) ->
+            deps =
+                getFactory: (arg1, arg2) ->
                     test.equals arg1, container
                     test.equals arg2, id
-                    return rejection
+                    return null
+                missingFactoryRejection: (arg1, arg2) ->
+                    test.equals arg1, container
+                    test.equals arg2, id
+                    return Q.reject rejection
 
-            callFactory = core.callFactory dependencies
+            callFactory = factory.callFactory deps
 
             promise = callFactory container, id, Q.resolve [1, 2]
 
@@ -118,7 +125,7 @@ module.exports =
                 test.equals value, rejection
                 test.done()
 
-        'factory throws exception': (test) ->
+        'return rejection if factory throws exception': (test) ->
             test.expect 4
 
             container = {}
@@ -126,7 +133,7 @@ module.exports =
             id = {}
             err = {}
 
-            dependencies =
+            deps =
                 getFactory: ->
                     return ->
                         throw err
@@ -134,17 +141,17 @@ module.exports =
                     test.equals arg1, container
                     test.equals arg2, id
                     test.equals arg3, err
-                    return rejection
+                    return Q.reject rejection
 
-            callFactory = core.callFactory dependencies
+            callFactory = factory.callFactory deps
 
-            promise = callFactory container, id, Q.resolve [1, 2]
+            promise = callFactory container, id, [1, 2]
 
             promise.fail (value) ->
                 test.equals value, rejection
                 test.done()
 
-        'factory returns promise which is resolved to an instance': (test) ->
+        'emit and return promise when it is created': (test) ->
             test.expect 7
 
             container = {}
@@ -152,20 +159,20 @@ module.exports =
             promiseReturnedByFactory = Q.resolve resolution
             id = {}
 
-            dependencies =
+            deps =
                 getFactory: ->
                     ->
                         promiseReturnedByFactory
-                emitPromise: (arg1, arg2, arg3) ->
+                emitPromiseCreated: (arg1, arg2, arg3) ->
                     test.equals arg1, container
                     test.equals arg2, id
                     test.equals arg3, promiseReturnedByFactory
-                emitResolved: (arg1, arg2, arg3) ->
+                emitPromiseResolved: (arg1, arg2, arg3) ->
                     test.equals arg1, container
                     test.equals arg2, id
                     test.equals arg3, resolution
 
-            callFactory = core.callFactory dependencies
+            callFactory = factory.callFactory deps
 
             promise = callFactory container, id, Q.resolve [1, 2]
 
@@ -173,7 +180,7 @@ module.exports =
                 test.equals value, resolution
                 test.done()
 
-        'factory returns promise which is rejected': (test) ->
+        'return rejection if promise is rejected': (test) ->
             test.expect 7
 
             container = {}
@@ -182,11 +189,11 @@ module.exports =
             rejectionRejection = {}
             id = {}
 
-            dependencies =
+            deps =
                 getFactory: ->
                     ->
                         promiseReturnedByFactory
-                emitPromise: (arg1, arg2, arg3) ->
+                emitPromiseCreated: (arg1, arg2, arg3) ->
                     test.equals arg1, container
                     test.equals arg2, id
                     test.equals arg3, promiseReturnedByFactory
@@ -194,9 +201,9 @@ module.exports =
                     test.equals arg1, container
                     test.equals arg2, id
                     test.equals arg3, rejection
-                    return rejectionRejection
+                    return Q.reject rejectionRejection
 
-            callFactory = core.callFactory dependencies
+            callFactory = factory.callFactory deps
 
             promise = callFactory container, id, Q.resolve [1, 2]
 
@@ -204,7 +211,7 @@ module.exports =
                 test.equals value, rejectionRejection
                 test.done()
 
-    'overloadedInject':
+    'inject':
 
         'containers and callback': (test) ->
             test.expect 5
@@ -214,21 +221,21 @@ module.exports =
             dependencyIds = {}
             cb = ->
 
-            dependencies =
+            deps =
                 arrayify: (arg1) ->
                     test.equals arg1, container
                     return containers
                 parseFunctionArguments: (arg1) ->
                     test.equals arg1, cb
                     return dependencyIds
-                inject: (arg1, arg2, arg3) ->
+                _inject: (arg1, arg2, arg3) ->
                     test.equals arg1, containers
                     test.equals arg2, dependencyIds
                     test.equals arg3, cb
 
-            overloadedInject = core.overloadedInject dependencies
+            inject = factory.inject deps
 
-            overloadedInject container, cb
+            inject container, cb
 
             test.done()
 
@@ -240,33 +247,33 @@ module.exports =
             dependencyIds = {}
             cb = ->
 
-            dependencies =
+            deps =
                 arrayify: (arg1) ->
                     test.equals arg1, container
                     return containers
-                inject: (arg1, arg2, arg3) ->
+                _inject: (arg1, arg2, arg3) ->
                     test.equals arg1, containers
                     test.equals arg2, dependencyIds
                     test.equals arg3, cb
 
-            overloadedInject = core.overloadedInject dependencies
+            inject = factory.inject deps
 
-            overloadedInject container, dependencyIds, cb
+            inject container, dependencyIds, cb
 
             test.done()
 
         '2 or 3 arguments required': (test) ->
             test.expect 2
 
-            overloadedInject = core.overloadedInject {}
+            inject = factory.inject {}
 
             try
-                overloadedInject()
+                inject()
             catch err
                 test.equals err.message, '2 or 3 arguments required but 0 were given'
 
             try
-                overloadedInject 1, 2, 3, 4
+                inject 1, 2, 3, 4
             catch err
                 test.equals err.message, '2 or 3 arguments required but 4 were given'
 
@@ -279,10 +286,10 @@ module.exports =
                 arrayify: ->
                     return []
 
-            overloadedInject = core.overloadedInject dependencies
+            inject = factory.inject dependencies
 
             try
-                overloadedInject {}, 2
+                inject {}, 2
             catch err
                 test.equals err.message, 'at least 1 container is required'
                 test.done()
@@ -294,15 +301,15 @@ module.exports =
                 arrayify: ->
                     return [{}]
 
-            overloadedInject = core.overloadedInject dependencies
+            inject = factory.inject dependencies
 
             try
-                overloadedInject {}, 2
+                inject {}, 2
             catch err
                 test.equals err.message, 'cb must be a function'
 
             try
-                overloadedInject {}, [], 2
+                inject {}, [], 2
             catch err
                 test.equals err.message, 'cb must be a function'
 
