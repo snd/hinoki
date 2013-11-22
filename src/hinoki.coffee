@@ -73,8 +73,8 @@ h.findInstance = f.findInstance(
     )
 )
 
-###################################################################################
-# container setters
+# ###################################################################################
+# # container setters
 
 h.setInstance = f.setInstance(
     selectKeys(h, 'getKey')
@@ -84,67 +84,111 @@ h.setDependencies = f.setDependencies(
     selectKeys(h, 'getKey')
 )
 
-###################################################################################
-# emit
+# ###################################################################################
+# # emit
 
 h.emitInstanceCreated = f.emit(
     merge(
         {event: 'instanceCreated'}
-        selectKeys(h, 'instanceCreated')
+        selectKeys(h, 'getEmitter')
     )
 )
-h.emitPromiseCreated = f.emit(h.getEmitter, 'promiseCreated')
-h.emitPromiseResolved = f.emit(h.getEmitter, 'promiseResolved')
-h.emitPromiseRejected = f.emit(h.getEmitter, 'promiseRejected')
-h.emitInstanceFound = f.emit(h.getEmitter, 'instanceFound')
 
-###################################################################################
-# error
-
-h.cycleRejection(h.idToString)
-h.missingFactoryRejection(h.idToString, h.getKey)
-h.exceptionRejection(h.getKey)
-h.rejectionRejection(h.getKey)
-h.factoryNotFunctionRejection(h.getKey)
-
-h.emitRejection(h.emit)
-
-###################################################################################
-# container side effecting functions
-
-h.callFactory = f.callFactory(
-    h.getFactory
-    h.emitInstanceCreated
-    h.emitPromiseCreated
-    h.emitPromiseResolved
-    h.emitPromiseRejected
-    h.missingFactoryRejection
-    h.exceptionRejection
-    h.rejectionRejection
+h.emitPromiseCreated = f.emit(
+    merge(
+        {event: 'promiseCreated'}
+        selectKeys(h, 'getEmitter')
+    )
 )
 
-h.getOrCreateInstance = f.getOrCreateInstance(
-    u.startingWith
-    h.getInstance
-    h.findInstance
-    h.findContainerThatContainsFactory
-
+h.emitPromiseResolved = f.emit(
+    merge(
+        {event: 'promiseResolved'}
+        selectKeys(h, 'getEmitter')
+    )
 )
 
-h.getOrCreateManyInstances = f.getOrCreateManyInstances(
-    h.getOrCreateInstance
+h.emitPromiseRejected = f.emit(
+    merge(
+        {event: 'promiseRejected'}
+        selectKeys(h, 'getEmitter')
+    )
 )
 
-###################################################################################
-# interface
-
-h._inject = f._inject(
-    h.getOrCreateManyInstances
-    h.emitRejection
+h.emitInstanceFound = f.emit(
+    merge(
+        {event: 'instanceFound'}
+        selectKeys(h, 'getEmitter')
+    )
 )
 
-h.inject = f.inject(
-    u.arrayify
-    u.parseFunctionArguments
-    h._inject
+h.emit = f.emit(
+    merge(
+        {event: 'error'}
+        selectKeys(h, 'getEmitter')
+    )
 )
+
+# ###################################################################################
+# # error
+
+h.cycleRejection(
+    selectKeys(h, 'idToString')
+)
+h.missingFactoryRejection(
+    selectKeys(h, 'idToString', 'getKey')
+)
+h.exceptionRejection(
+    selectKeys(h, 'getKey')
+)
+h.rejectionRejection(
+    selectKeys(h, 'getKey')
+)
+h.factoryNotFunctionRejection(
+    selectKeys(h, 'getKey')
+)
+
+h.emitRejection = f.emit(
+    selectKeys(h, 'emit')
+)
+
+# ###################################################################################
+# # container side effecting functions
+# 
+# h.callFactory = f.callFactory(
+#     h.getFactory
+#     h.emitInstanceCreated
+#     h.emitPromiseCreated
+#     h.emitPromiseResolved
+#     h.emitPromiseRejected
+#     h.missingFactoryRejection
+#     h.exceptionRejection
+#     h.rejectionRejection
+# )
+# 
+# h.getOrCreateInstance = f.getOrCreateInstance(
+#     u.startingWith
+#     h.getInstance
+#     h.findInstance
+#     h.findContainerThatContainsFactory
+# 
+# )
+# 
+# h.getOrCreateManyInstances = f.getOrCreateManyInstances(
+#     h.getOrCreateInstance
+# )
+# 
+# ###################################################################################
+# # interface
+# 
+# h._inject = f._inject({
+#     selectKeys(h, 'getOrCreateManyInstances'
+#     h.getOrCreateManyInstances
+#     h.emitRejection
+# )
+# 
+# h.inject = f.inject(
+#     u.arrayify
+#     u.parseFunctionArguments
+#     h._inject
+# )

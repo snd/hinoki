@@ -87,7 +87,7 @@ module.exports =
         result = {}
 
         objects.forEach (object) ->
-            Object.keys(object1).forEach (key) ->
+            Object.keys(object).forEach (key) ->
                 result[key] = object[key]
 
         return result
