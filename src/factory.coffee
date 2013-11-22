@@ -292,8 +292,7 @@ module.exports =
         checkDeps deps, 'getKey'
         (container, id, promise) ->
             container.underConstruction ?= {}
-            container.underConstruction[deps.getKey id]
-            promise
+            container.underConstruction[deps.getKey id] = promise
 
     removeUnderConstruction: (deps) ->
         checkDeps deps, 'getKey'
