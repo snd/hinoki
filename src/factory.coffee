@@ -86,6 +86,9 @@ module.exports =
             'getFactory'
             'factoryNotFunctionRejection'
             'startingWith'
+            'getUnderConstruction'
+            'addUnderConstruction'
+            'removeUnderConstruction'
             'createInstance'
         (containers, id) ->
             instance = deps.findInstance containers, id
@@ -102,6 +105,15 @@ module.exports =
             unless container?
                 return deps.missingFactoryRejection containers[0], id
 
+            # if the instance is already being constructed elsewhere
+            # wait for that instead of starting a second construction
+            # a factory must only be called exactly once per container
+
+            underConstruction = deps.getUnderConstruction container, id
+
+            if underConstruction?
+                return underConstruction
+
             factory = deps.getFactory container, id
 
             unless 'function' is typeof factory
@@ -110,6 +122,13 @@ module.exports =
             remainingContainers = deps.startingWith containers, container
 
             instance = deps.createInstance container, id, remainingContainers
+
+            deps.addUnderConstruction container, id, instance
+
+            instance.then (value) ->
+                # instance is fully constructed
+                deps.removeUnderConstruction container, id
+                value
 
     # side effects `container` by 
     # returns a promise that is resolved with the instance
@@ -260,6 +279,29 @@ module.exports =
         (containers, id) ->
             container = deps.findContainerThatContainsInstance containers, id
             deps.getInstance container, id
+
+###################################################################################
+# under construction
+
+    getUnderConstruction: (deps) ->
+        checkDeps deps, 'getKey'
+        (container, id) ->
+            container.underConstruction?[deps.getKey id]
+
+    addUnderConstruction: (deps) ->
+        checkDeps deps, 'getKey'
+        (container, id, promise) ->
+            container.underConstruction ?= {}
+            container.underConstruction[deps.getKey id]
+            promise
+
+    removeUnderConstruction: (deps) ->
+        checkDeps deps, 'getKey'
+        (container, id) ->
+            container.underConstruction ?= {}
+            promise = container.underConstruction[deps.getKey id]
+            delete container.underConstruction[deps.getKey id]
+            promise
 
 ###################################################################################
 # container setters

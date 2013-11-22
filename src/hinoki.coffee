@@ -88,6 +88,21 @@ h.cacheDependencies = f.cacheDependencies(
     selectKeys(h, 'getKey')
 )
 
+###################################################################################
+# under construction
+
+h.getUnderConstruction = f.getUnderConstruction(
+    selectKeys(h, 'getKey')
+)
+
+h.addUnderConstruction = f.addUnderConstruction(
+    selectKeys(h, 'getKey')
+)
+
+h.removeUnderConstruction = f.removeUnderConstruction(
+    selectKeys(h, 'getKey')
+)
+
 # ###################################################################################
 # # emit
 
@@ -204,6 +219,9 @@ h.getOrCreateInstance = f.getOrCreateInstance(
             'missingFactoryRejection'
             'getFactory'
             'factoryNotFunctionRejection'
+            'getUnderConstruction'
+            'addUnderConstruction'
+            'removeUnderConstruction'
             'createInstance'
         )
     )
