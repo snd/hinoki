@@ -356,7 +356,7 @@ module.exports =
     exceptionRejection: (deps) ->
         checkDeps deps, 'getKey'
         (container, id, exception) ->
-            error = new Error "exception in factory '#{deps.getKey id}': #{err}"
+            error = new Error "exception in factory '#{deps.getKey id}': #{exception}"
             error.name = 'exceptionRejection'
             error.exception = exception
             error.id = id
@@ -386,5 +386,4 @@ module.exports =
     emitRejection: (deps) ->
         checkDeps deps, 'emitError'
         (rejection) ->
-            console.log 'emitRejection', rejection
             deps.emitError rejection.container, rejection
