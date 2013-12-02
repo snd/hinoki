@@ -8,6 +8,8 @@ f = require './factory'
 
 module.exports = h = {}
 
+h.parseFunctionArguments = u.parseFunctionArguments
+
 ###################################################################################
 # path
 
