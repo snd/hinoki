@@ -21,7 +21,7 @@ npm install hinoki
 put this line in the dependencies section of your `package.json`:
 
 ```
-"hinoki": "0.2.0"
+"hinoki": "0.3.0"
 ```
 
 then run:
@@ -154,8 +154,7 @@ var graph = {
 
 this is convenient.
 
-hinoki parses dependencies from the function you pass to inject.
-you can also provide them directly:
+hinoki parses dependencies from the function you pass to inject:
 
 ```javascript
 hinoki.inject(container, 'a', function(dep1) {
@@ -164,15 +163,34 @@ hinoki.inject(container, 'a', function(dep1) {
 });
 ```
 
+if a factory has a `$inject` property:
+
 ```javascript
-hinoki.inject(container, ['a', 'b'], function(dep1, dep2) {
+var factory = function(dep1, dep2) {
     console.log(dep1) // => 1
     console.log(container.instances.a) // => 1
 
     console.log(dep2) // => 2
     console.log(container.instances.b) // => 2
-});
+};
+
+factory['$inject'] = ['a', 'b'];
+
+hinoki.inject(container, factory);
 ```
+
+third style: array of dependency names followed by the factory
+
+```javascript
+hinoki.inject(container, ['a', 'b', function(dep1, dep2) {
+    console.log(dep1) // => 1
+    console.log(container.instances.a) // => 1
+
+    console.log(dep2) // => 2
+    console.log(container.instances.b) // => 2
+}]);
+```
+
 
 ### promises
 
@@ -185,39 +203,58 @@ see [example/async.js](example/async.js).
 
 ### errors
 
+promises
+
 hinoki needs a way to communicate those problems
 
-hinoki inject throws synchronously
+because
 
-all other errors are called on the next tick of the event loop
-they escape all try catch blocks
+hinoki uses event emitters to accomplish this.
 
-### events
+errors are emitted as the error event
+nodejs throws those
+
+```javascript
+var EventEmitter = require('events').EventEmitter;
+
+var emitter = new EventEmitter;
+
+emitter.on('error', function() {
+
+});
+
+var container = {
+    emitter: emitter
+}
+```
+
+### debugging
+
+to see what's going on
+
+```javascript
+
+emitter.on('instanceCreated', function() {
+
+});
+
+emitter.on('instanceFound', function() {
+
+});
+
+emitter.on('promiseCreated', function() {
+
+});
+
+emitter.on('promiseResolved', function() {
+
+});
+```
 
 in addition to the errors the event
 
 provide your own emitter (or any object that implements the
 `emit` method)
-
-### hooks
-
-hooks let you change the error handling of any container.
-you can also use them to add debugging to a container.
-
-let's log every time a promise is returned from a factory:
-
-```javascript
-var container = {
-    hooks: {
-        promise: function(chain, promise) {
-            console.log('factory for node ' + chain[id] + ' returned promise ' + promise);
-        };
-    }
-};
-```
-
-look at [src/hooks.coffee](src/hooks.coffee) for all available hooks
-and their default implementations.
 
 ## great! can i do anything useful with it?
 

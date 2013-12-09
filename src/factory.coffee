@@ -186,8 +186,9 @@ module.exports =
 
                 # not a promise
                 unless Q.isPromiseAlike instanceOrPromise
-                    deps.emitInstanceCreated container, id, instanceOrPromise
-                    return Q instanceOrPromise
+                    instance = instanceOrPromise
+                    deps.emitInstanceCreated container, id, instance
+                    return Q instance
 
                 deps.emitPromiseCreated container, id, instanceOrPromise
 

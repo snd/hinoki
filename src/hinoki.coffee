@@ -129,13 +129,6 @@ h.emitPromiseResolved = f.emit(
     )
 )
 
-h.emitPromiseRejected = f.emit(
-    merge(
-        {event: 'promiseRejected'}
-        selectKeys(h, 'getEmitter')
-    )
-)
-
 h.emitInstanceFound = f.emit(
     merge(
         {event: 'instanceFound'}
