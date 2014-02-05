@@ -1,153 +1,240 @@
-q = require 'q'
+u = require './util'
+f = require './factory'
 
-hooks = require './hooks'
+{selectKeys, merge} = u
 
-module.exports =
+###################################################################################
+# manual dependency injection
 
-    parseFunctionArguments: (fun) ->
-        unless 'function' is typeof fun
-            throw new Error 'argument must be a function'
+module.exports = h = {}
 
-        string = fun.toString()
+h.parseFunctionArguments = u.parseFunctionArguments
 
-        argumentPart = string.slice(string.indexOf('(') + 1, string.indexOf(')'))
+###################################################################################
+# path
 
-        dependencies = argumentPart.match(/([^\s,]+)/g)
+h.getKey = f.getKey()
 
-        return if dependencies? then dependencies else []
+h.getKeys = f.getKeys(
+    selectKeys(u, 'arrayify')
+)
 
-    # find the first instance or factory of the node
-    # specified by `id` in `containers`
-    find: (containers, id) ->
-        len = containers.length
-        i = 0
-        while i < len
-            container = containers[i]
+h.idToString = f.idToString(
+    selectKeys(h, 'getKeys')
+)
 
-            instance = container.instances?[id]
-            if instance?
-                return {
-                    instance: instance
-                    containers: containers.slice(i)
-                }
+h.addToId = f.addToId(
+    selectKeys(u, 'arrayify')
+)
 
-            factory = container.factories?[id]
-            if factory?
-                return {
-                    factory: factory
-                    containers: containers.slice(i)
-                }
+h.isCyclic = f.isCyclic(
+    merge(
+        selectKeys(h, 'getKeys')
+        selectKeys(u, 'arrayOfStringsHasDuplicates')
+    )
+)
 
-            i++
+###################################################################################
+# container getters
 
-        return null
+h.getEmitter = f.getEmitter()
 
-    handleInjectArguments: (arg1, arg2, arg3) ->
-        object = {}
-        object.containers = if Array.isArray arg1 then arg1 else [arg1]
+h.getInstance = f.getInstance(
+    selectKeys(h, 'getKey')
+)
 
-        object.containers.forEach (c) ->
-            unless c? and 'object' is typeof c
-                throw new Error 'the 1st argument to inject must be an object or an array of objects'
 
-        object.containers.forEach (c) ->
-            unless c.instances?
-                c.instances = {}
+h.getFactory = f.getFactory(
+    selectKeys(h, 'getKey')
+)
 
-        if arg3?
-            unless 'function' is typeof arg3
-                throw new Error 'the 3rd argument to inject is optional but must be a function if provided'
-            object.ids = if Array.isArray arg2 then arg2 else [arg2]
-            object.ids.forEach (id) ->
-                unless id? and 'string' is typeof id
-                    throw new Error 'the 2nd argument to inject must be a string or an array of strings if a 3rd argument is provided'
-            object.fun = arg3
+h.getDependencies = f.getDependencies(
+    merge(
+        selectKeys(u, 'parseFunctionArguments')
+        selectKeys(h,
+            'getKey'
+            'getFactory'
+        )
+    )
+)
 
-        else
-            unless 'function' is typeof arg2
-                throw new Error 'the 2nd argument to inject must be a function if no 3rd argument is provided'
-            object.ids = module.exports.parseFunctionArguments arg2
-            object.fun = arg2
+###################################################################################
+# finding instances
 
-        object
+h.findContainerThatContainsFactory = f.findContainerThatContainsFactory(
+    merge(
+        selectKeys(u, 'find')
+        selectKeys(h, 'getFactory')
+    )
+)
 
-    inject: ->
-        namedArgs = module.exports.handleInjectArguments.apply null, arguments
+h.findContainerThatContainsInstance = f.findContainerThatContainsInstance(
+    merge(
+        selectKeys(u, 'find')
+        selectKeys(h, 'getInstance')
+    )
+)
 
-        module.exports.resolve namedArgs.containers, namedArgs.ids, [], ->
-            namedArgs.fun.apply null, arguments
+h.findInstance = f.findInstance(
+    selectKeys(h, 'getInstance', 'findContainerThatContainsInstance')
+)
 
-    resolve: (containers, dependencyIds, chain, cb) ->
-        hasErrorOccured = false
-        resolved = {}
+# ###################################################################################
+# # container setters
 
-        maybeResolved = ->
-            if hasErrorOccured
-                return
-            if Object.keys(resolved).length is dependencyIds.length
-                cb.apply null, dependencyIds.map (id) -> resolved[id]
+h.setInstance = f.setInstance(
+    selectKeys(h, 'getKey')
+)
 
-        dependencyIds.forEach (id) ->
-            if hasErrorOccured
-                return
+h.cacheDependencies = f.cacheDependencies(
+    selectKeys(h, 'getKey')
+)
 
-            result = module.exports.find containers, id
+###################################################################################
+# under construction
 
-            newChain = [id].concat chain
+h.getUnderConstruction = f.getUnderConstruction(
+    selectKeys(h, 'getKey')
+)
 
-            unless result?
-                hasErrorOccured = true
-                (if containers[0].hooks?.notFound? then containers[0].hooks?.notFound else hooks.notFound) newChain
-                return
+h.addUnderConstruction = f.addUnderConstruction(
+    selectKeys(h, 'getKey')
+)
 
-            container = result.containers[0]
+h.removeUnderConstruction = f.removeUnderConstruction(
+    selectKeys(h, 'getKey')
+)
 
-            if result.instance?
-                container.hooks?.instanceFound? newChain, result.instance
-                resolved[id] = result.instance
-                return
+# ###################################################################################
+# # emit
 
-            if id in chain
-                hasErrorOccured = true
-                (if container.hooks?.circle? then container.hooks?.circle else hooks.circle) newChain
-                return
+h.emitInstanceCreated = f.emit(
+    merge(
+        {event: 'instanceCreated'}
+        selectKeys(h, 'getEmitter')
+    )
+)
 
-            unless 'function' is typeof result.factory
-                hasErrorOccured = true
-                (if container.hooks?.notFunction? then container.hooks?.notFunction else hooks.notFunction) newChain, result.factory
-                return
+h.emitPromiseCreated = f.emit(
+    merge(
+        {event: 'promiseCreated'}
+        selectKeys(h, 'getEmitter')
+    )
+)
 
-            factoryDependencyIds = module.exports.parseFunctionArguments result.factory
+h.emitPromiseResolved = f.emit(
+    merge(
+        {event: 'promiseResolved'}
+        selectKeys(h, 'getEmitter')
+    )
+)
 
-            container.hooks?.factoryFound? newChain, result.factory, factoryDependencyIds
+h.emitInstanceFound = f.emit(
+    merge(
+        {event: 'instanceFound'}
+        selectKeys(h, 'getEmitter')
+    )
+)
 
-            module.exports.resolve result.containers, factoryDependencyIds, newChain, ->
-                if hasErrorOccured
-                    return
-                try
-                    container.hooks?.factory? newChain, result.factory, Array.prototype.slice.call arguments
-                    instance = result.factory.apply null, arguments
-                catch err
-                    hasErrorOccured = true
-                    (if container.hooks?.exception? then container.hooks?.exception else hooks.exception) newChain, err
-                    return
+h.emitError = f.emit(
+    merge(
+        {event: 'error'}
+        selectKeys(h, 'getEmitter')
+    )
+)
 
-                unless q.isPromise instance
-                    container.hooks?.instance? newChain, instance
-                    container.instances[id] = instance
-                    resolved[id] = instance
-                    return maybeResolved()
+# ###################################################################################
+# # error
 
-                container.hooks?.promise? newChain, instance
+h.cycleRejection = f.cycleRejection(
+    selectKeys(h, 'idToString')
+)
+h.missingFactoryRejection = f.missingFactoryRejection(
+    selectKeys(h, 'idToString', 'getKey')
+)
+h.exceptionRejection = f.exceptionRejection(
+    selectKeys(h, 'getKey')
+)
+h.rejectionRejection = f.rejectionRejection(
+    selectKeys(h, 'getKey')
+)
+h.factoryNotFunctionRejection = f.factoryNotFunctionRejection(
+    selectKeys(h, 'getKey')
+)
 
-                onSuccess = (value) ->
-                    container.hooks?.resolution? newChain, value
-                    result.containers[0].instances[id] = value
-                    resolved[id] = value
-                    maybeResolved()
-                onError = (err) ->
-                    hasErrorOccured = true
-                    (if container.hooks?.rejection? then container.hooks?.rejection else hooks.rejection) newChain, err
-                instance.done(onSuccess, onError)
+h.emitRejection = f.emitRejection(
+    selectKeys(h, 'emitError')
+)
 
-        maybeResolved()
+# ###################################################################################
+# # container side effecting functions
+
+getOrCreateManyInstancesDelegate = ->
+    if not h.getOrCreateManyInstances?
+        h.getOrCreateManyInstances = f.getOrCreateManyInstances(
+            selectKeys(h, 'getOrCreateInstance')
+        )
+    h.getOrCreateManyInstances.apply null, arguments
+
+h.callFactory = f.callFactory(
+    selectKeys(h,
+        'getFactory'
+        'missingFactoryRejection'
+        'exceptionRejection'
+        'emitInstanceCreated'
+        'emitPromiseCreated'
+        'emitPromiseResolved'
+        'rejectionRejection'
+    )
+)
+
+h.createInstance = f.createInstance(
+    merge(
+        selectKeys(h,
+            'getDependencies'
+            'getOrCreateManyInstances'
+            'callFactory'
+            'cacheDependencies'
+            'addToId'
+            'setInstance'
+        )
+        {getOrCreateManyInstances: getOrCreateManyInstancesDelegate}
+    )
+)
+
+h.getOrCreateInstance = f.getOrCreateInstance(
+    merge(
+        selectKeys(u, 'startingWith')
+        selectKeys(h,
+            'findInstance'
+            'emitInstanceFound'
+            'isCyclic'
+            'cycleRejection'
+            'findContainerThatContainsFactory'
+            'missingFactoryRejection'
+            'getFactory'
+            'factoryNotFunctionRejection'
+            'getUnderConstruction'
+            'addUnderConstruction'
+            'removeUnderConstruction'
+            'createInstance'
+        )
+    )
+)
+
+###################################################################################
+# interface
+
+h._inject = f._inject(
+    merge(
+        selectKeys(h, 'emitRejection')
+        {getOrCreateManyInstances: getOrCreateManyInstancesDelegate}
+    )
+)
+
+h.inject = f.inject(
+    merge(
+        selectKeys(u, 'arrayify', 'parseFunctionArguments')
+        selectKeys(h, '_inject')
+    )
+)

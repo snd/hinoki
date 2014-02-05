@@ -1,6 +1,6 @@
 {
     "name": "hinoki",
-    "version": "0.1.1",
+    "version": "0.3.0-beta.1",
     "description": "magical inversion of control",
     "keywords": ["inversion", "control", "dependency", "injection", "ioc", "container"],
     "homepage": "http://github.com/snd/hinoki",
@@ -25,11 +25,11 @@
         "node": ">=0.8.0"
     },
     "dependencies": {
-        "q": "0.9.6"
+        "q": "1.0.0"
     },
     "devDependencies": {
-        "coffee-script": "1.6.3",
-        "nodeunit": "0.8"
+        "coffee-script": "1.7.1",
+        "nodeunit": "0.8.4"
     },
     "main": "src/hinoki",
     "scripts": {
@@ -37,6 +37,7 @@
         "postpublish": "rm src/*.js",
         "pretest": "coffee --bare --compile --output src src/*.coffee && coffee --bare --compile --output test test/*.coffee",
         "posttest": "rm src/*.js && rm test/*.js",
+        "clean": "rm src/*.js && rm test/*.js",
         "test": "nodeunit test/*.js"
     }
 }
