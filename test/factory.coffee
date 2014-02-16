@@ -1,6 +1,6 @@
 factory = require '../src/factory'
 
-Q = require 'q'
+Promise = require 'bluebird'
 
 module.exports =
 
@@ -133,7 +133,7 @@ module.exports =
                 getOrCreateManyInstances: (arg1, arg2) ->
                     test.equals arg1, containers
                     test.equals arg2, ids
-                    return Q.resolve instances
+                    return Promise.resolve instances
                 emitRejection: (arg1) ->
                     test.fail()
 
@@ -146,13 +146,13 @@ module.exports =
 
             containers = {}
             ids = {}
-            rejection = Q.reject {}
+            rejection = Promise.reject {}
 
             _inject = factory._inject
                 getOrCreateManyInstances: (arg1, arg2) ->
                     test.equal arg1, containers
                     test.equal arg2, ids
-                    return Q.reject rejection
+                    return Promise.reject rejection
                 emitRejection: (arg1) ->
                     test.equal arg1, rejection
                     test.done()

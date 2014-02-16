@@ -1,6 +1,6 @@
 events = require 'events'
 
-Q = require 'q'
+Promise = require 'bluebird'
 
 # the functions are isolated to be tested in isolation
 
@@ -8,6 +8,12 @@ checkDeps = (deps, names...) ->
     names.map (name) ->
         unless deps[name]?
             throw new Error "missing dependency #{name}"
+
+isObject = (x) ->
+    x is Object(x)
+
+isThenable = (x) ->
+    isObject(x) and 'function' is typeof object.then
 
 module.exports =
 
@@ -69,7 +75,7 @@ module.exports =
     getOrCreateManyInstances: (deps) ->
         checkDeps deps, 'getOrCreateInstance'
         (containers, ids) ->
-            Q.all ids.map (id) ->
+            Promise.all(ids).map (id) ->
                 deps.getOrCreateInstance containers, id
 
     # mostly concerned with debugging and error handling
@@ -95,7 +101,7 @@ module.exports =
 
             if instance?
                 deps.emitInstanceFound containers[0], id, instance
-                return Q.resolve instance
+                return Promise.resolve instance
 
             if deps.isCyclic id
                 return deps.cycleRejection containers[0], id
@@ -157,7 +163,7 @@ module.exports =
             instanceSet = deps.setInstance container, id, instance
             dependenciesCached = deps.cacheDependencies container, id, dependencyInstances
 
-            Q.all([instanceSet, dependenciesCached]).then ->
+            Promise.all([instanceSet, dependenciesCached]).then ->
                 instance
 
     # calls `factory` with `dependencies`.
@@ -173,7 +179,7 @@ module.exports =
             'emitPromiseResolved'
             'rejectionRejection'
         (container, id, dependencyInstances) ->
-            Q(dependencyInstances).then (dependencyInstances) ->
+            Promise.resolve(dependencyInstances).then (dependencyInstances) ->
                 factory = deps.getFactory container, id
 
                 unless factory?
@@ -184,11 +190,11 @@ module.exports =
                 catch err
                     return deps.exceptionRejection container, id, err
 
-                # not a promise
-                unless Q.isPromiseAlike instanceOrPromise
+                unless isThenable instanceOrPromise
+                    # not a promise!
                     instance = instanceOrPromise
                     deps.emitInstanceCreated container, id, instance
-                    return Q instance
+                    return Promise.resolve instance
 
                 deps.emitPromiseCreated container, id, instanceOrPromise
 
@@ -310,7 +316,7 @@ module.exports =
     setInstance: (deps) ->
         checkDeps deps, 'getKey'
         (container, id, instance) ->
-            Q(instance).then (value) ->
+            Promise.resolve(instance).then (value) ->
                 container.instances ?= {}
                 container.instances[deps.getKey id] = value
                 return value
@@ -319,7 +325,7 @@ module.exports =
     cacheDependencies: (deps) ->
         checkDeps deps, 'getKey'
         (container, id, dependencies) ->
-            Q(dependencies).then (value) ->
+            Promise.resolve(dependencies).then (value) ->
                 container.dependencyCache ?= {}
                 container.dependencyCache[deps.getKey id] = value
                 return value
@@ -343,7 +349,7 @@ module.exports =
             error.name = 'cycle'
             error.id = id
             error.container = container
-            return Q.reject error
+            return Promise.reject error
 
     missingFactoryRejection: (deps) ->
         checkDeps deps, 'getKey', 'idToString'
@@ -352,7 +358,7 @@ module.exports =
             error.name = 'missingFactory'
             error.id = id
             error.container = container
-            return Q.reject error
+            return Promise.reject error
 
     exceptionRejection: (deps) ->
         checkDeps deps, 'getKey'
@@ -362,7 +368,7 @@ module.exports =
             error.exception = exception
             error.id = id
             error.container = container
-            return Q.reject error
+            return Promise.reject error
 
     rejectionRejection: (deps) ->
         checkDeps deps, 'getKey'
@@ -372,7 +378,7 @@ module.exports =
             error.rejection = rejection
             error.id = id
             error.container = container
-            return Q.reject error
+            return Promise.reject error
 
     factoryNotFunctionRejection: (deps) ->
         checkDeps deps, 'getKey'
@@ -382,7 +388,7 @@ module.exports =
             error.factory = factory
             error.id = id
             error.container = container
-            return Q.reject error
+            return Promise.reject error
 
     emitRejection: (deps) ->
         checkDeps deps, 'emitError'
