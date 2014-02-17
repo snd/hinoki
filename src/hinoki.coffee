@@ -1,4 +1,4 @@
-realize = require './core'
+realize = require './realize'
 util = require './util'
 factories = require './factory'
 
