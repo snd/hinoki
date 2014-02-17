@@ -1,93 +1,89 @@
-module.exports =
+module.exports.isObject = (x) ->
+    x is Object(x)
 
-    # returns first value in `array` for which `predicate` returns true.
-    #
-    # example:
-    # find ['a', 'ab', 'abc], (s) -> s.length is 2
-    # => 'ab'
+module.exports.isThenable = (x) ->
+    module.exports.isObject(x) and 'function' is typeof x.then
 
-    find: (array, predicate) ->
-        i = 0
-        length = array.length
-        while i < length
-            if predicate array[i]
-                return array[i]
-            i++
-        return null
+# returns first value in `array` for which `predicate` returns true.
+#
+# example:
+# find ['a', 'ab', 'abc], (s) -> s.length is 2
+# => 'ab'
 
-    # returns whether an array of strings contains duplicates.
-    #
-    # complexity: O(n) since hash lookup is O(1)
+module.exports.find = (array, predicate) ->
+    i = 0
+    length = array.length
+    while i < length
+        if predicate array[i]
+            return array[i]
+        i++
+    return null
 
-    arrayOfStringsHasDuplicates: (array) ->
-        i = 0
-        length = array.length
-        valuesSoFar = {}
-        while i < length
-            value = array[i]
-            if Object.prototype.hasOwnProperty.call valuesSoFar, value
-                return true
-            valuesSoFar[value] = true
-            i++
-        return false
+# returns whether an array of strings contains duplicates.
+#
+# complexity: O(n) since hash lookup is O(1)
 
-    # coerces `arg` into an array.
-    #
-    # returns `arg` if it is an array.
-    # returns `[arg]` otherwise.
-    # returns `[]` if `arg` is null.
-    #
-    # example:
-    # arrayify 'a'
-    # => ['a']
+module.exports.arrayOfStringsHasDuplicates = (array) ->
+    i = 0
+    length = array.length
+    valuesSoFar = {}
+    while i < length
+        value = array[i]
+        if Object.prototype.hasOwnProperty.call valuesSoFar, value
+            return true
+        valuesSoFar[value] = true
+        i++
+    return false
 
-    arrayify: (arg) ->
-        if Array.isArray arg
-            return arg
-        unless arg?
-            return []
-        [arg]
+# coerces `arg` into an array.
+#
+# returns `arg` if it is an array.
+# returns `[arg]` otherwise.
+# returns `[]` if `arg` is null.
+#
+# example:
+# arrayify 'a'
+# => ['a']
 
-    # returns the first sequence of elements in `xs` which starts with `x`
-    #
-    # example:
-    # startingWith ['a', 'b', 'c', 'd'], 'c'
-    # => ['c', 'd']
+module.exports.arrayify = (arg) ->
+    if Array.isArray arg
+        return arg
+    unless arg?
+        return []
+    [arg]
 
-    startingWith: (xs, x) ->
-        index = xs.indexOf x
-        return [] if index is -1
-        xs.slice index
+# returns the first sequence of elements in `xs` which starts with `x`
+#
+# example:
+# startingWith ['a', 'b', 'c', 'd'], 'c'
+# => ['c', 'd']
 
-    # example:
-    # parseFunctionArguments (a, b c) ->
-    # => ['a', 'b‘, 'c']
+module.exports.startingWith = (xs, x) ->
+    index = xs.indexOf x
+    return [] if index is -1
+    xs.slice index
 
-    parseFunctionArguments: (fun) ->
-        unless 'function' is typeof fun
-            throw new Error 'argument must be a function'
+# example:
+# parseFunctionArguments (a, b c) ->
+# => ['a', 'b‘, 'c']
 
-        string = fun.toString()
+module.exports.parseFunctionArguments = (fun) ->
+    unless 'function' is typeof fun
+        throw new Error 'argument must be a function'
 
-        argumentPart = string.slice(string.indexOf('(') + 1, string.indexOf(')'))
+    string = fun.toString()
 
-        dependencies = argumentPart.match(/([^\s,]+)/g)
+    argumentPart = string.slice(string.indexOf('(') + 1, string.indexOf(')'))
 
-        return if dependencies? then dependencies else []
+    dependencies = argumentPart.match(/([^\s,]+)/g)
 
-    selectKeys: (object, keys...) ->
-        result = {}
+    return if dependencies? then dependencies else []
 
-        keys.forEach (key) ->
+module.exports.merge = (objects...) ->
+    result = {}
+
+    objects.forEach (object) ->
+        Object.keys(object).forEach (key) ->
             result[key] = object[key]
 
-        result
-
-    merge: (objects...) ->
-        result = {}
-
-        objects.forEach (object) ->
-            Object.keys(object).forEach (key) ->
-                result[key] = object[key]
-
-        return result
+    return result
