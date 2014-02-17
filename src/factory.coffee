@@ -336,8 +336,10 @@ module.exports =
     # synchronous
     emit: (deps) ->
         checkDeps deps, 'getEmitter', 'event'
-        (container) ->
-            deps.getEmitter(container).emit deps.event, Array.prototype.slice.call(arguments, 1)
+        (container, args...) ->
+            emitter = deps.getEmitter container
+            emitter.emit 'any', deps.event, args...
+            emitter.emit deps.event, args...
 
 ###################################################################################
 # error
