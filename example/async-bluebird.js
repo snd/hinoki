@@ -8,8 +8,8 @@ var hinoki = require('hinoki');
 
 var emitter = new events.EventEmitter();
 
-emitter.on('any', function(event, a, b) {
-    console.log('ANY', event, a, b);
+emitter.on('any', function(event) {
+    console.log(event);
 });
 
 var factories = {
