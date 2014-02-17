@@ -50,8 +50,3 @@ module.exports =
         test.deepEqual ['first', 'second', 'third'],
             util.parseFunctionArguments (first, second, third) ->
         test.done()
-
-    'selectKeys': (test) ->
-        test.deepEqual {}, util.selectKeys {a: 1, b: 2, c: 3}
-        test.deepEqual {a: 1, b: 2}, util.selectKeys {a: 1, b: 2, c: 3}, 'a', 'b'
-        test.done()

@@ -17,17 +17,24 @@ module.exports =
             dependencyIds = {}
             cb = ->
 
-            inject = factory.inject
-                arrayify: (arg1) ->
-                    test.equals arg1, container
-                    return containers
-                parseFunctionArguments: (arg1) ->
-                    test.equals arg1, cb
-                    return dependencyIds
-                _inject: (arg1, arg2, arg3) ->
-                    test.equals arg1, containers
-                    test.equals arg2, dependencyIds
-                    test.equals arg3, cb
+            arrayify = (arg1) ->
+                test.equals arg1, container
+                return containers
+
+            parseFunctionArguments = (arg1) ->
+                test.equals arg1, cb
+                return dependencyIds
+
+            _inject = (arg1, arg2, arg3) ->
+                test.equals arg1, containers
+                test.equals arg2, dependencyIds
+                test.equals arg3, cb
+
+            inject = factory.inject(
+                arrayify
+                parseFunctionArguments
+                _inject
+            )
 
             inject container, cb
 
@@ -41,17 +48,21 @@ module.exports =
             dependencyIds = {}
             cb = ->
 
-            inject = factory.inject
-                arrayify: (arg1) ->
-                    test.equals arg1, container
-                    return containers
-                parseFunctionArguments: ->
-                    test.fail()
-                _inject: (arg1, arg2, arg3) ->
-                    test.equals arg1, containers
-                    test.equals arg2, dependencyIds
-                    test.equals arg3, cb
+            arrayify = (arg1) ->
+                test.equals arg1, container
+                return containers
+            parseFunctionArguments = ->
+                test.fail()
+            _inject = (arg1, arg2, arg3) ->
+                test.equals arg1, containers
+                test.equals arg2, dependencyIds
+                test.equals arg3, cb
 
+            inject = factory.inject(
+                arrayify
+                parseFunctionArguments
+                _inject
+            )
 
             inject container, dependencyIds, cb
 
@@ -60,13 +71,18 @@ module.exports =
         '2 or 3 arguments required': (test) ->
             test.expect 2
 
-            inject = factory.inject
-                arrayify: ->
-                    test.fail()
-                parseFunctionArguments: ->
-                    test.fail()
-                _inject: ->
-                    test.fail()
+            arrayify = ->
+                test.fail()
+            parseFunctionArguments = ->
+                test.fail()
+            _inject = ->
+                test.fail()
+
+            inject = factory.inject(
+                arrayify
+                parseFunctionArguments
+                _inject
+            )
 
             try
                 inject()
@@ -83,13 +99,18 @@ module.exports =
         'at least 1 container required': (test) ->
             test.expect 1
 
-            inject = factory.inject
-                arrayify: ->
-                    return []
-                parseFunctionArguments: ->
-                    test.fail()
-                _inject: ->
-                    test.fail()
+            arrayify = ->
+                return []
+            parseFunctionArguments = ->
+                test.fail()
+            _inject = ->
+                test.fail()
+
+            inject = factory.inject(
+                arrayify
+                parseFunctionArguments
+                _inject
+            )
 
             try
                 inject {}, 2
@@ -100,13 +121,18 @@ module.exports =
         'cb must be a function': (test) ->
             test.expect 2
 
-            inject = factory.inject
-                arrayify: ->
-                    return [{}]
-                parseFunctionArguments: ->
-                    test.fail()
-                _inject: ->
-                    test.fail()
+            arrayify = ->
+                return [{}]
+            parseFunctionArguments = ->
+                test.fail()
+            _inject = ->
+                test.fail()
+
+            inject = factory.inject(
+                arrayify
+                parseFunctionArguments
+                _inject
+            )
 
             try
                 inject {}, 2
@@ -129,13 +155,17 @@ module.exports =
             ids = {}
             instances = [{}, {}, {}]
 
-            _inject = factory._inject
-                getOrCreateManyInstances: (arg1, arg2) ->
-                    test.equals arg1, containers
-                    test.equals arg2, ids
-                    return Promise.resolve instances
-                emitRejection: (arg1) ->
-                    test.fail()
+            getOrCreateManyInstances = (arg1, arg2) ->
+                test.equals arg1, containers
+                test.equals arg2, ids
+                return Promise.resolve instances
+            emitError = (arg1) ->
+                test.fail()
+
+            _inject = factory._inject(
+                emitError
+                getOrCreateManyInstances
+            )
 
             _inject containers, ids, (args...) ->
                 test.deepEqual args, instances
@@ -148,222 +178,226 @@ module.exports =
             ids = {}
             rejection = Promise.reject {}
 
-            _inject = factory._inject
-                getOrCreateManyInstances: (arg1, arg2) ->
-                    test.equal arg1, containers
-                    test.equal arg2, ids
-                    return Promise.reject rejection
-                emitRejection: (arg1) ->
-                    test.equal arg1, rejection
-                    test.done()
+            emitError = (arg1) ->
+                test.equal arg1, rejection
+                test.done()
+            getOrCreateManyInstances = (arg1, arg2) ->
+                test.equal arg1, containers
+                test.equal arg2, ids
+                return Promise.reject rejection
+
+            _inject = factory._inject(
+                emitError
+                getOrCreateManyInstances
+            )
 
             _inject containers, ids, (args...) ->
                 test.fail()
 
-    # 'callFactory':
+    # # 'callFactory':
 
-    #     'emit and return instance if one is created': (test) ->
-    #         test.expect 8
+    # #     'emit and return instance if one is created': (test) ->
+    # #         test.expect 8
 
-    #         instance = {}
-    #         container = {}
-    #         id = {}
+    # #         instance = {}
+    # #         container = {}
+    # #         id = {}
 
-    #         deps =
-    #             getFactory: (arg1, arg2) ->
-    #                 test.equals arg1, container
-    #                 test.equals arg2, id
-    #                 return (arg1, arg2) ->
-    #                     test.equals arg1, 1
-    #                     test.equals arg2, 2
-    #                     return instance
-    #             emitInstanceCreated: (arg1, arg2, arg3) ->
-    #                 test.equals arg1, container
-    #                 test.equals arg2, id
-    #                 test.equals arg3, instance
+    # #         deps =
+    # #             getFactory: (arg1, arg2) ->
+    # #                 test.equals arg1, container
+    # #                 test.equals arg2, id
+    # #                 return (arg1, arg2) ->
+    # #                     test.equals arg1, 1
+    # #                     test.equals arg2, 2
+    # #                     return instance
+    # #             emitInstanceCreated: (arg1, arg2, arg3) ->
+    # #                 test.equals arg1, container
+    # #                 test.equals arg2, id
+    # #                 test.equals arg3, instance
 
-    #         callFactory = factory.callFactory deps
+    # #         callFactory = factory.callFactory deps
 
-    #         promise = callFactory container, id, Q.resolve [1, 2]
+    # #         promise = callFactory container, id, Q.resolve [1, 2]
 
-    #         promise.then (value) ->
-    #             test.equals value, instance
-    #             test.done()
+    # #         promise.then (value) ->
+    # #             test.equals value, instance
+    # #             test.done()
 
-    #     'return rejection if factory is not found': (test) ->
-    #         test.expect 5
+    # #     'return rejection if factory is not found': (test) ->
+    # #         test.expect 5
 
-    #         container = {}
-    #         rejection = {}
-    #         id = {}
+    # #         container = {}
+    # #         rejection = {}
+    # #         id = {}
 
-    #         deps =
-    #             getFactory: (arg1, arg2) ->
-    #                 test.equals arg1, container
-    #                 test.equals arg2, id
-    #                 return null
-    #             missingFactoryRejection: (arg1, arg2) ->
-    #                 test.equals arg1, container
-    #                 test.equals arg2, id
-    #                 return Q.reject rejection
+    # #         deps =
+    # #             getFactory: (arg1, arg2) ->
+    # #                 test.equals arg1, container
+    # #                 test.equals arg2, id
+    # #                 return null
+    # #             missingFactoryRejection: (arg1, arg2) ->
+    # #                 test.equals arg1, container
+    # #                 test.equals arg2, id
+    # #                 return Q.reject rejection
 
-    #         callFactory = factory.callFactory deps
+    # #         callFactory = factory.callFactory deps
 
-    #         promise = callFactory container, id, Q.resolve [1, 2]
+    # #         promise = callFactory container, id, Q.resolve [1, 2]
 
-    #         promise.fail (value) ->
-    #             test.equals value, rejection
-    #             test.done()
+    # #         promise.fail (value) ->
+    # #             test.equals value, rejection
+    # #             test.done()
 
-    #     'return rejection if factory throws exception': (test) ->
-    #         test.expect 4
+    # #     'return rejection if factory throws exception': (test) ->
+    # #         test.expect 4
 
-    #         container = {}
-    #         rejection = {}
-    #         id = {}
-    #         err = {}
+    # #         container = {}
+    # #         rejection = {}
+    # #         id = {}
+    # #         err = {}
 
-    #         deps =
-    #             getFactory: ->
-    #                 return ->
-    #                     throw err
-    #             exceptionRejection: (arg1, arg2, arg3, arg4) ->
-    #                 test.equals arg1, container
-    #                 test.equals arg2, id
-    #                 test.equals arg3, err
-    #                 return Q.reject rejection
+    # #         deps =
+    # #             getFactory: ->
+    # #                 return ->
+    # #                     throw err
+    # #             exceptionRejection: (arg1, arg2, arg3, arg4) ->
+    # #                 test.equals arg1, container
+    # #                 test.equals arg2, id
+    # #                 test.equals arg3, err
+    # #                 return Q.reject rejection
 
-    #         callFactory = factory.callFactory deps
+    # #         callFactory = factory.callFactory deps
 
-    #         promise = callFactory container, id, [1, 2]
+    # #         promise = callFactory container, id, [1, 2]
 
-    #         promise.fail (value) ->
-    #             test.equals value, rejection
-    #             test.done()
+    # #         promise.fail (value) ->
+    # #             test.equals value, rejection
+    # #             test.done()
 
-    #     'emit and return promise when it is created': (test) ->
-    #         test.expect 7
+    # #     'emit and return promise when it is created': (test) ->
+    # #         test.expect 7
 
-    #         container = {}
-    #         resolution = {}
-    #         promiseReturnedByFactory = Q.resolve resolution
-    #         id = {}
+    # #         container = {}
+    # #         resolution = {}
+    # #         promiseReturnedByFactory = Q.resolve resolution
+    # #         id = {}
 
-    #         deps =
-    #             getFactory: ->
-    #                 ->
-    #                     promiseReturnedByFactory
-    #             emitPromiseCreated: (arg1, arg2, arg3) ->
-    #                 test.equals arg1, container
-    #                 test.equals arg2, id
-    #                 test.equals arg3, promiseReturnedByFactory
-    #             emitPromiseResolved: (arg1, arg2, arg3) ->
-    #                 test.equals arg1, container
-    #                 test.equals arg2, id
-    #                 test.equals arg3, resolution
+    # #         deps =
+    # #             getFactory: ->
+    # #                 ->
+    # #                     promiseReturnedByFactory
+    # #             emitPromiseCreated: (arg1, arg2, arg3) ->
+    # #                 test.equals arg1, container
+    # #                 test.equals arg2, id
+    # #                 test.equals arg3, promiseReturnedByFactory
+    # #             emitPromiseResolved: (arg1, arg2, arg3) ->
+    # #                 test.equals arg1, container
+    # #                 test.equals arg2, id
+    # #                 test.equals arg3, resolution
 
-    #         callFactory = factory.callFactory deps
+    # #         callFactory = factory.callFactory deps
 
-    #         promise = callFactory container, id, Q.resolve [1, 2]
+    # #         promise = callFactory container, id, Q.resolve [1, 2]
 
-    #         promise.then (value) ->
-    #             test.equals value, resolution
-    #             test.done()
+    # #         promise.then (value) ->
+    # #             test.equals value, resolution
+    # #             test.done()
 
-    #     'return rejection if promise is rejected': (test) ->
-    #         test.expect 7
+    # #     'return rejection if promise is rejected': (test) ->
+    # #         test.expect 7
 
-    #         container = {}
-    #         rejection = {}
-    #         promiseReturnedByFactory = Q.reject rejection
-    #         rejectionRejection = {}
-    #         id = {}
+    # #         container = {}
+    # #         rejection = {}
+    # #         promiseReturnedByFactory = Q.reject rejection
+    # #         rejectionRejection = {}
+    # #         id = {}
 
-    #         deps =
-    #             getFactory: ->
-    #                 ->
-    #                     promiseReturnedByFactory
-    #             emitPromiseCreated: (arg1, arg2, arg3) ->
-    #                 test.equals arg1, container
-    #                 test.equals arg2, id
-    #                 test.equals arg3, promiseReturnedByFactory
-    #             rejectionRejection: (arg1, arg2, arg3) ->
-    #                 test.equals arg1, container
-    #                 test.equals arg2, id
-    #                 test.equals arg3, rejection
-    #                 return Q.reject rejectionRejection
+    # #         deps =
+    # #             getFactory: ->
+    # #                 ->
+    # #                     promiseReturnedByFactory
+    # #             emitPromiseCreated: (arg1, arg2, arg3) ->
+    # #                 test.equals arg1, container
+    # #                 test.equals arg2, id
+    # #                 test.equals arg3, promiseReturnedByFactory
+    # #             rejectionRejection: (arg1, arg2, arg3) ->
+    # #                 test.equals arg1, container
+    # #                 test.equals arg2, id
+    # #                 test.equals arg3, rejection
+    # #                 return Q.reject rejectionRejection
 
-    #         callFactory = factory.callFactory deps
+    # #         callFactory = factory.callFactory deps
 
-    #         promise = callFactory container, id, Q.resolve [1, 2]
+    # #         promise = callFactory container, id, Q.resolve [1, 2]
 
-    #         promise.fail (value) ->
-    #             test.equals value, rejectionRejection
-    #             test.done()
+    # #         promise.fail (value) ->
+    # #             test.equals value, rejectionRejection
+    # #             test.done()
 
-    # 'setInstance':
+    # # 'setInstance':
 
-    #     'success': (test) ->
-    #         test.expect 3
-    #         container = {}
-    #         id = {}
-    #         deps =
-    #             getKey: (arg1) ->
-    #                 test.equals arg1, id
-    #                 return 'a'
-    #         setInstance = factory.setInstance deps
-    #         promise = setInstance container, id, Q(5)
+    # #     'success': (test) ->
+    # #         test.expect 3
+    # #         container = {}
+    # #         id = {}
+    # #         deps =
+    # #             getKey: (arg1) ->
+    # #                 test.equals arg1, id
+    # #                 return 'a'
+    # #         setInstance = factory.setInstance deps
+    # #         promise = setInstance container, id, Q(5)
 
-    #         promise.then (value) ->
-    #             test.equals value, 5
-    #             test.equals container.instances.a, 5
-    #             test.done()
+    # #         promise.then (value) ->
+    # #             test.equals value, 5
+    # #             test.equals container.instances.a, 5
+    # #             test.done()
 
-    #     'error': (test) ->
-    #         test.expect 2
-    #         container = {}
-    #         id = {}
-    #         deps =
-    #             getKey: ->
-    #                 test.fail()
-    #         setInstance = factory.setInstance deps
-    #         promise = setInstance container, id, Q.reject(5)
+    # #     'error': (test) ->
+    # #         test.expect 2
+    # #         container = {}
+    # #         id = {}
+    # #         deps =
+    # #             getKey: ->
+    # #                 test.fail()
+    # #         setInstance = factory.setInstance deps
+    # #         promise = setInstance container, id, Q.reject(5)
 
-    #         promise.fail (value) ->
-    #             test.equals value, 5
-    #             test.ok not container.instances?
-    #             test.done()
+    # #         promise.fail (value) ->
+    # #             test.equals value, 5
+    # #             test.ok not container.instances?
+    # #             test.done()
 
-    # 'setDependencies':
+    # # 'setDependencies':
 
-    #     'success': (test) ->
-    #         test.expect 3
-    #         container = {}
-    #         id = {}
-    #         deps =
-    #             getKey: (arg1) ->
-    #                 test.equals arg1, id
-    #                 return 'a'
-    #         setDependencies = factory.setDependencies deps
-    #         promise = setDependencies container, id, Q(5)
+    # #     'success': (test) ->
+    # #         test.expect 3
+    # #         container = {}
+    # #         id = {}
+    # #         deps =
+    # #             getKey: (arg1) ->
+    # #                 test.equals arg1, id
+    # #                 return 'a'
+    # #         setDependencies = factory.setDependencies deps
+    # #         promise = setDependencies container, id, Q(5)
 
-    #         promise.then (value) ->
-    #             test.equals value, 5
-    #             test.equals container.dependencies.a, 5
-    #             test.done()
+    # #         promise.then (value) ->
+    # #             test.equals value, 5
+    # #             test.equals container.dependencies.a, 5
+    # #             test.done()
 
-    #     'error': (test) ->
-    #         test.expect 2
-    #         container = {}
-    #         id = {}
-    #         deps =
-    #             getKey: ->
-    #                 test.fail()
-    #         setDependencies = factory.setDependencies deps
-    #         promise = setDependencies container, id, Q.reject(5)
+    # #     'error': (test) ->
+    # #         test.expect 2
+    # #         container = {}
+    # #         id = {}
+    # #         deps =
+    # #             getKey: ->
+    # #                 test.fail()
+    # #         setDependencies = factory.setDependencies deps
+    # #         promise = setDependencies container, id, Q.reject(5)
 
-    #         promise.fail (value) ->
-    #             test.equals value, 5
-    #             test.ok not container.dependencies?
-    #             test.done()
+    # #         promise.fail (value) ->
+    # #             test.equals value, 5
+    # #             test.ok not container.dependencies?
+    # #             test.done()
 
