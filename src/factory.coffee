@@ -13,7 +13,7 @@ isObject = (x) ->
     x is Object(x)
 
 isThenable = (x) ->
-    isObject(x) and 'function' is typeof object.then
+    isObject(x) and 'function' is typeof x.then
 
 module.exports =
 
