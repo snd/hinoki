@@ -191,21 +191,21 @@ module.exports =
                     return deps.exceptionRejection container, id, err
 
                 unless isThenable instanceOrPromise
-                    # not a promise!
-                    instance = instanceOrPromise
-                    deps.emitInstanceCreated container, id, instance
-                    return Promise.resolve instance
+                    # instanceOrPromise is not a promise but an instance
+                    deps.emitInstanceCreated container, id, instanceOrPromise
+                    return Promise.resolve instanceOrPromise
+
+                # instanceOrPromise is a promise
 
                 deps.emitPromiseCreated container, id, instanceOrPromise
 
-                onResolve = (value) ->
-                    deps.emitPromiseResolved container, id, value
-                    return value
-
-                onReject = (rejection) ->
-                    deps.rejectionRejection container, id, rejection
-
-                return instanceOrPromise.then onResolve, onReject
+                return instanceOrPromise.then(
+                    (value) ->
+                        deps.emitPromiseResolved container, id, value
+                        return value
+                    (rejection) ->
+                        deps.rejectionRejection container, id, rejection
+                )
 
 ###################################################################################
 # path
