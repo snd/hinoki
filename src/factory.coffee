@@ -50,7 +50,6 @@ module.exports._inject = (
             process.nextTick ->
                 cb.apply null, instances
         onReject = (rejection) ->
-            console.log 'REJECTION', rejection
             emitError rejection
 
         promise = getOrCreateManyInstances containers, ids
