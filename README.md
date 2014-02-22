@@ -32,6 +32,8 @@ npm install
 
 # the documentation below is work in progress!
 
+hinoki is currently used for the dependency injection part in a framework
+
 - [events](#events)
 
 If a factory returns a thenable (bluebird or q promise) it will 
