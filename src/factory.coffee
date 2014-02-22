@@ -1,6 +1,18 @@
 ###################################################################################
 # interface
 
+module.exports.getDependencies = (
+    parseFunctionArguments
+) ->
+    (factory) ->
+        if factory.$inject?
+            factory.$inject
+        else
+            parseFunctionArguments factory
+
+###################################################################################
+# interface
+
 # callback style decorator
 #
 # like _inject but can be called with 2 or three arguments and
@@ -76,7 +88,8 @@ module.exports.getOrCreateInstance = (
     getResolver
     isCyclic
     cycleRejection
-    findFirstContainerThatCanResolveId
+    findFirstContainerThatCanResolveInstance
+    findFirstContainerThatCanResolveFactory
     unresolvableFactoryRejection
     getUnderConstruction
     factoryNotFunctionRejection
@@ -86,18 +99,28 @@ module.exports.getOrCreateInstance = (
     removeUnderConstruction
 ) ->
     (containers, id) ->
-        instance = findInstance containers, id
+        containerForInstance = findFirstContainerThatCanResolveInstance containers, id
 
-        if instance?
-            emit
-                event: 'instanceFound'
-                id: id
-                value: instance
-                container: containers[0]
-            return Promise.resolve instance
+        if containerForInstance?
+            instance = resolveInstance containerForInstance, id
+
+            if instance?
+                emit
+                    event: 'instanceFound'
+                    id: id
+                    value: instance
+                    container: containerForInstance
+                return Promise.resolve instance
+
+        # no instance available. we need a factory.
+        # let's check for cycles first.
+        # we can't use a factory if the id contains a cycle.
 
         if isCyclic id
             return cycleRejection containers[0], id
+
+        # no cycle - yeah!
+        # lets find the container that can give us a factory
 
         container = findFirstContainerThatCanResolveId containers, id
 
@@ -108,7 +131,7 @@ module.exports.getOrCreateInstance = (
         # wait for that instead of starting a second construction
         # a factory must only be called exactly once per container
 
-        underConstruction = getUnderConstruction container, id
+        underConstruction = container.getUnderConstruction container, id
 
         if underConstruction?
             emit
@@ -122,15 +145,15 @@ module.exports.getOrCreateInstance = (
 
         factory = resolver container, id
 
+        unless 'function' is typeof factory
+            return factoryNotFunctionRejection container, id, factory
+
         emit
             event: 'factoryFound'
             id: id
             value: factory
             resolver: resolver
             container: container
-
-        unless 'function' is typeof factory
-            return factoryNotFunctionRejection container, id, factory
 
         remainingContainers = startingWith containers, container
 
@@ -260,29 +283,7 @@ module.exports.isCyclic = (
         arrayOfStringsHasDuplicates getKeys id
 
 ###################################################################################
-# container getters
-
-module.exports.getEmitter = (
-    EventEmitter
-) ->
-    (container) ->
-        container.emitter ?= new EventEmitter()
-        container.emitter
-
-module.exports.getInstance = (
-    getKey
-) ->
-    (container, id) ->
-        container?.instances?[getKey(id)]
-
-module.exports.getFactory = (
-    getKey
-) ->
-    (container, id) ->
-        container?.factories?[getKey(id)]
-
-###################################################################################
-# container find functions
+# finding containers with certain properties
 
 module.exports.findContainerThatContainsFactory = (
     find

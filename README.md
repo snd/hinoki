@@ -10,6 +10,10 @@ it is inspired by [prismatic's graph](https://github.com/Prismatic/plumbing#grap
 
 *Hinoki takes its name from the hinoki cypress, a tree that only grows in Japan and is the preferred wood for building palaces, temples and shrines.*
 
+- [introduction](#introduction)
+- [install](#install)
+- [events](#events)
+
 ### install
 
 ```
@@ -33,8 +37,6 @@ npm install
 # the documentation below is work in progress!
 
 hinoki is currently used for the dependency injection part in a framework
-
-- [events](#events)
 
 ### the hinoki model
 
@@ -170,6 +172,7 @@ a container must have the following properties
 
 - factoryResolvers
 - instanceResolvers
+- setInstance
 - setUnderConstruction
 - unsetUnderConstruction
 - getUnderConstruction
