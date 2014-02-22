@@ -3,11 +3,17 @@ util = require '../src/util'
 module.exports =
 
     'find': (test) ->
-        test.equals null, util.find [], -> true
+        test.ok 'undefined' is typeof util.find [], -> true
         test.equals 1, util.find [1], (x) -> x is 1
-        test.equals null, util.find [1], (x) -> x is 2
+        test.ok 'undefined' is typeof util.find [1], (x) -> x is 2
         test.equals 2, util.find [1, 2, 3], (x) -> x > 1
-        test.equals null, util.find [1, 2, 3], (x) -> x > 3
+        test.ok 'undefined' is typeof util.find [1, 2, 3], (x) -> x > 3
+        test.ok 'undefined' is typeof util.find [1, 2, 3], (x) -> x > 3
+
+        shouldBeNull = util.find [1, 2, null], (x) -> x is null
+        test.ok 'undefined' isnt typeof shouldBeNull
+        test.ok null is shouldBeNull
+
         test.done()
 
     'arrayOfStringsHasDuplicates': (test) ->
