@@ -17,7 +17,7 @@ module.exports.find = (array, predicate) ->
         if predicate array[i]
             return array[i]
         i++
-    return null
+    return
 
 # returns whether an array of strings contains duplicates.
 #
