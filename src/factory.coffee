@@ -73,11 +73,11 @@ module.exports.getOrCreateInstance = (
     findInstance
     emit
     Promise
-    getFactory
+    getResolver
     isCyclic
     cycleRejection
-    findContainerThatContainsFactory
-    missingFactoryRejection
+    findFirstContainerThatCanResolveId
+    unresolvableFactoryRejection
     getUnderConstruction
     factoryNotFunctionRejection
     startingWith
@@ -99,10 +99,10 @@ module.exports.getOrCreateInstance = (
         if isCyclic id
             return cycleRejection containers[0], id
 
-        container = findContainerThatContainsFactory containers, id
+        container = findFirstContainerThatCanResolveId containers, id
 
         unless container?
-            return missingFactoryRejection containers[0], id
+            return unresolvableFactoryRejection containers[0], id
 
         # if the instance is already being constructed elsewhere
         # wait for that instead of starting a second construction
@@ -111,9 +111,23 @@ module.exports.getOrCreateInstance = (
         underConstruction = getUnderConstruction container, id
 
         if underConstruction?
+            emit
+                event: 'underConstruction'
+                id: id
+                value: underConstruction
+                container: container
             return underConstruction
 
-        factory = getFactory container, id
+        resolver = getResolver container, id
+
+        factory = resolver container, id
+
+        emit
+            event: 'factoryFound'
+            id: id
+            value: factory
+            resolver: resolver
+            container: container
 
         unless 'function' is typeof factory
             return factoryNotFunctionRejection container, id, factory
@@ -267,23 +281,6 @@ module.exports.getFactory = (
     (container, id) ->
         container?.factories?[getKey(id)]
 
-module.exports.getDependencies = (
-    getKey
-    getFactory
-    parseFunctionArguments
-) ->
-    (container, id) ->
-        key = getKey id
-        if container.dependencies?[key]?
-            return container.dependencies[key]
-
-        factory = getFactory container, id
-
-        unless factory?
-            return null
-
-        parseFunctionArguments factory
-
 ###################################################################################
 # container find functions
 
@@ -313,31 +310,6 @@ module.exports.findInstance = (
         getInstance container, id
 
 ###################################################################################
-# under construction
-
-module.exports.getUnderConstruction = (
-    getKey
-) ->
-    (container, id) ->
-        container.underConstruction?[getKey(id)]
-
-module.exports.addUnderConstruction = (
-    getKey
-) ->
-    (container, id, promise) ->
-        container.underConstruction ?= {}
-        container.underConstruction[getKey(id)] = promise
-
-module.exports.removeUnderConstruction = (
-    getKey
-) ->
-    (container, id) ->
-        container.underConstruction ?= {}
-        promise = container.underConstruction[getKey(id)]
-        delete container.underConstruction[getKey(id)]
-        promise
-
-###################################################################################
 # container setters
 
 # returns promise
@@ -349,17 +321,6 @@ module.exports.setInstance = (
         Promise.resolve(instance).then (value) ->
             container.instances ?= {}
             container.instances[getKey(id)] = value
-            return value
-
-# returns promise
-module.exports.cacheDependencies = (
-    getKey
-    Promise
-) ->
-    (container, id, dependencies) ->
-        Promise.resolve(dependencies).then (value) ->
-            container.dependencyCache ?= {}
-            container.dependencyCache[getKey(id)] = value
             return value
 
 ###################################################################################
@@ -394,15 +355,15 @@ module.exports.cycleRejection = (
             id: id
             container: container
 
-module.exports.missingFactoryRejection = (
+module.exports.unresolvableFactoryRejection = (
     Promise
     getKey
     idToString
 ) ->
     (container, id) ->
         Promise.reject
-            error: "missing factory '#{getKey(id)}' (#{idToString(id)})"
-            type: 'missingFactory'
+            error: "unresolvable factory rejection '#{getKey(id)}' (#{idToString(id)})"
+            type: 'unresolvableFactory'
             id: id
             container: container
 
@@ -441,3 +402,72 @@ module.exports.factoryNotFunctionRejection = (
             id: id
             factory: factory
             container: container
+
+###################################################################################
+# sugar for container construction
+
+module.exports.newContainer = (
+    defaultInstanceResolver
+    defaultFactoryResolver
+    defaultEmit
+    defaultSetInstance
+    defaultSetUnderConstruction
+    defaultUnsetUnderConstruction
+    defaultGetUnderConstruction
+    EventEmitter
+) ->
+    (factories = {}, instances = {}) ->
+        {
+            factories: factories
+            instances: instances
+            factoryResolvers: [defaultFactoryResolver]
+            instanceResolvers: [defaultInstanceResolver]
+            underConstruction: {}
+            setInstance: defaultSetInstance
+            setUnderConstruction: defaultSetUnderConstruction
+            unsetUnderConstruction: defaultUnsetUnderConstruction
+            getUnderConstruction: defaultGetUnderConstruction
+            emit: defaultEmit
+            emitter: new EventEmitter
+        }
+
+###################################################################################
+# defaults
+
+module.exports.defaultInstanceResolver = ->
+    (container, id) ->
+        container.instances?[id]
+
+module.exports.defaultFactoryResolver = (parseFunctionArguments) ->
+    (container, id) ->
+        factory = container.factories?[id]
+        unless factory?
+            return
+
+        # add $inject such that parseFunctionArguments is called only once per factory
+        unless factory.$inject?
+            factory.$inject = parseFunctionArguments factory
+
+        return factory
+
+module.exports.defaultSetInstance = ->
+    (container, id, instance) ->
+        container.instances[id] = instance
+
+module.exports.defaultEmit = ->
+    (container, name, event) ->
+        container.emitter.emit name event
+
+module.exports.defaultSetUnderConstruction = ->
+    (container, id, underConstruction) ->
+        container.underConstruction[id] = underConstruction
+
+module.exports.defaultUnsetUnderConstruction = ->
+    (container, id) ->
+        value = container.underConstruction[id]
+        delete container.underConstruction[id]
+        value
+
+module.exports.defaultGetUnderConstruction = ->
+    (container, id) ->
+        container.underConstruction[id]

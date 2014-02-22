@@ -36,7 +36,42 @@ hinoki is currently used for the dependency injection part in a framework
 
 - [events](#events)
 
+### the hinoki model
+
+just explain it in an introduction
+
+### instances and factories and stuff
+
 If a factory returns a thenable (bluebird or q promise) it will 
+
+### containers
+
+```javascript
+var container = hinoki.newContainer();
+```
+
+a container has an event emitter
+
+### instance resolver
+
+```coffeescript
+container.instanceResolvers = []
+```
+
+hinoki will emit various debug events through the emitter
+
+you can subscribe to all by listening on the `any` event
+
+or to specific events individually
+
+
+### factory resolver
+
+a resolver takes (resolves) an id and returns a factory
+
+a resolver must be pure and always return the same factory or a factory
+that behaves identically
+of the same id
 
 ### container
 
@@ -128,5 +163,18 @@ all errors are emitted as the `error` event.
 ##### factoryReturnedUndefined
 
 - `any` to listen 
+
+### container internals
+
+a container must have the following properties
+
+- factoryResolvers
+- instanceResolvers
+- setUnderConstruction
+- unsetUnderConstruction
+- getUnderConstruction
+- emit
+
+
 
 ### license: MIT
