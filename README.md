@@ -12,20 +12,22 @@ it is inspired by [prismatic's graph](https://github.com/Prismatic/plumbing#grap
 
 *Hinoki takes its name from the hinoki cypress, a tree that only grows in Japan and is the preferred wood for building palaces, temples and shrines.*
 
+## WARNING
+
+work in progress.
+
+this is alpha software.
+it is going to change a lot.
+the documentation is incomplete.
+
+use at your own risk.
+
+---
+
 - [introduction](#introduction)
 - [install](#install)
 - [events](#events)
 - [contribution](#contribution)
-
-### contribution
-
-i have a very specific vision.
-
-to make sure your contribution aligns with my vision.
-
-(formulate that it stops the wrong people and invites the right)
-
-or email me
 
 ### install
 
@@ -60,6 +62,8 @@ hinoki can work with multiple containers
 containers are asked in order
 
 instances are added to the container that resolved the factory
+
+a container manages names
 
 ### instances and factories and stuff
 

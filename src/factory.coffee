@@ -66,23 +66,27 @@ module.exports.getOrCreateManyInstances = (
 
 module.exports.getOrCreateInstance = (
     Promise
-    emit
-    findFirstContainerThatCanResolveInstance
+    getIdsToInject
+    addToId
+    getOrCreateManyInstances
+    findContainerThatCanResolveInstance
     isCyclic
+    isUndefined
     cycleRejection
-    findFirstContainerThatCanResolveFactory
+    findContainerThatCanResolveFactory
     unresolvableFactoryRejection
     getUnderConstruction
     factoryNotFunctionRejection
     startingWith
     createInstance
+    isThenable
 ) ->
     (containers, id) ->
-        instanceResult = findFirstContainerThatCanResolveInstance containers, id
+        instanceResult = findContainerThatCanResolveInstance containers, id
 
         if instanceResult?
-            emit
-                event: 'instanceResolved'
+            instanceResult.container.emit instanceResult.container,
+                event: 'instanceFound'
                 id: id
                 instance: instanceResult.instance
                 resolver: instanceResult.resolver
@@ -94,15 +98,39 @@ module.exports.getOrCreateInstance = (
         # we can't use a factory if the id contains a cycle.
 
         if isCyclic id
-            return cycleRejection containers[0], id
+            return cycleRejection
+                container: containers[0]
+                id: id
 
         # no cycle - yeah!
         # lets find the container that can give us a factory
 
-        container = findFirstContainerThatCanResolveId containers, id
+        factoryResult = findContainerThatCanResolveFactory containers, id
 
-        unless container?
-            return unresolvableFactoryRejection containers[0], id
+        unless factoryResult?
+            # we are out of luck: the factory could not be found
+            return unresolvableFactoryRejection
+                container: containers[0]
+                id: id
+
+        {factory, resolver, container} = factoryResult
+
+        unless 'function' is typeof factory
+            # we are out of luck: the resolver didnt return a function
+            return factoryNotFunctionRejection
+                container: container
+                id: id
+                factory: factory
+                resolver: resolver
+
+        # we've got a factory
+
+        container.emit container,
+            event: 'factoryFound'
+            id: id
+            factory: factory
+            resolver: resolver
+            container: container
 
         # if the instance is already being constructed elsewhere
         # wait for that instead of starting a second construction
@@ -111,7 +139,7 @@ module.exports.getOrCreateInstance = (
         underConstruction = container.getUnderConstruction container, id
 
         if underConstruction?
-            emit
+            container.emit container,
                 event: 'instanceUnderConstruction'
                 id: id
                 value: underConstruction
@@ -120,39 +148,11 @@ module.exports.getOrCreateInstance = (
 
         # there is no instance under construction. lets make one
 
-        factoryResult = findFirstContainerThatCanResolveFactory containers, id
-
-        unless factoryResult?
-            # we are out of luck: the factory could not be found
-            return unresolvableFactoryRejection
-                container: container
-                id: id
-
-        unless 'function' is typeof factoryResult.factory
-            # we are out of luck: the resolver didnt return a function
-            return factoryNotFunctionRejection
-                    container: factoryResult.container
-                    id: id
-                    factory: factory
-                    resolver: factoryResult.resolver
-
-        container = factoryResult.container
-        factory = factoryResult.factory
-
-        # we've got a factory
-
-        emit
-            event: 'factoryFound'
-            id: id
-            value: factory
-            resolver: factoryResult.resolver
-            container: container
-
         # lets resolve the dependencies of the factory
 
         remainingContainers = startingWith containers, container
 
-        dependencyIds = getIdsToInject factoryResult.factory
+        dependencyIds = getIdsToInject factory
 
         dependencyIds = dependencyIds.map (x) ->
             addToId id, x
@@ -172,14 +172,17 @@ module.exports.getOrCreateInstance = (
 
             unless isThenable instanceOrPromise
                 # instanceOrPromise is not a promise but an instance
-                emit
+                container.emit container,
                     event: 'instanceCreated',
+                    id: id
                     instance: instanceOrPromise
+                    factory: factory
+                    container: container
                 return Promise.resolve instanceOrPromise
 
             # instanceOrPromise is a promise
 
-            emit
+            container.emit container,
                 event: 'promiseCreated'
                 id: id
                 promise: instanceOrPromise
@@ -188,7 +191,7 @@ module.exports.getOrCreateInstance = (
 
             return instanceOrPromise.then(
                 (value) ->
-                    emit
+                    container.emit container,
                         event: 'promiseResolved'
                         id: id
                         value: value
@@ -196,10 +199,13 @@ module.exports.getOrCreateInstance = (
                         factory: factory
                     return value
                 (rejection) ->
-                    rejectionRejection container, id, rejection
+                    rejectionRejection
+                        container: container
+                        id: id
+                        rejection: rejection
             )
 
-        container.addUnderConstruction container, id, instancePromise
+        container.setUnderConstruction container, id, instancePromise
 
         instancePromise.then (value) ->
             if isUndefined value
@@ -208,8 +214,8 @@ module.exports.getOrCreateInstance = (
                     id: id
                     factory: factory
             # instance is fully constructed
-            container.setInstance container, id, instance
-            container.removeUnderConstruction container, id
+            container.setInstance container, id, value
+            container.unsetUnderConstruction container, id
             value
 
 ###################################################################################
@@ -251,10 +257,11 @@ module.exports.isCyclic = (
 
 module.exports.findResolverThatCanResolveFactory = (
     some
+    getKey
 ) ->
     (container, id) ->
         some container.factoryResolvers, (resolver) ->
-            factory = resolver container, id
+            factory = resolver container, getKey id
             return unless factory?
             {
                 resolver: resolver
@@ -265,14 +272,15 @@ module.exports.findResolverThatCanResolveFactory = (
 
 module.exports.findResolverThatCanResolveInstance = (
     some
+    getKey
 ) ->
     (container, id) ->
         some container.instanceResolvers, (resolver) ->
-            instance = resolver container, id
+            instance = resolver container, getKey id
             return unless instance?
             {
                 resolver: resolver
-                factory: instance
+                instance: instance
             }
 
 # returns either null or {container: , resolver: , factory: }
@@ -290,13 +298,13 @@ module.exports.findContainerThatCanResolveFactory = (
 
 # returns either null or {container: , resolver: , instance: }
 
-module.exports.find = (
+module.exports.findContainerThatCanResolveInstance = (
     some
     findResolverThatCanResolveInstance
 ) ->
     (containers, id) ->
         some containers, (container) ->
-            result = findContainerThatCanResolveInstance container, id
+            result = findResolverThatCanResolveInstance container, id
             return unless result?
             result.container = container
             result
@@ -316,13 +324,12 @@ module.exports.getIdsToInject = (
 ###################################################################################
 # emit
 
-module.exports.emit = ->
-    (event) ->
-        event.container.emit 'any', event
-        event.container.emit event.event, event
-
 module.exports.emitError = ->
     (error) ->
+        unless error.container?
+            # bug in hinoki itself!
+            # TODO throw a more helpful error message
+            throw error
         error.container.emit 'error', error
 
 ###################################################################################
@@ -441,8 +448,9 @@ module.exports.defaultSetInstance = ->
         container.instances[id] = instance
 
 module.exports.defaultEmit = ->
-    (container, name, event) ->
-        container.emitter.emit name event
+    (container, event) ->
+        container.emitter.emit event.event, event
+        container.emitter.emit 'any', event
 
 module.exports.defaultSetUnderConstruction = ->
     (container, id, underConstruction) ->
