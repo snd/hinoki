@@ -14,12 +14,11 @@ var factories = {
     }
 };
 
-var container = {
-    factories: factories,
-    instances: {
-        domain: 'www.google.com'
-    }
+var instances = {
+    domain: 'www.google.com'
 };
+
+var container = hinoki.newContainer(factories, instances);
 
 hinoki.inject(container, function(domains) {
     console.log(domains);

@@ -4,20 +4,36 @@ module.exports.isObject = (x) ->
 module.exports.isThenable = (x) ->
     module.exports.isObject(x) and 'function' is typeof x.then
 
-# returns first value in `array` for which `predicate` returns true.
-#
-# example:
-# find ['a', 'ab', 'abc], (s) -> s.length is 2
-# => 'ab'
+module.exports.isUndefined =  (x) ->
+    'undefined' is typeof x
 
-module.exports.find = (array, predicate) ->
+module.exports.isNull = (x) ->
+    null is x
+
+module.exports.isExisting = (x) ->
+    x?
+
+module.exports.identity = (x) ->
+    x
+
+# calls fun for the values in array. returns the first
+# value returned by transform for which predicate returns true.
+# otherwise returns sentinel.
+
+module.exports.some = (
+    array,
+    iterator = module.exports.identity
+    predicate = module.exports.isExisting
+    sentinel = undefined
+) ->
     i = 0
     length = array.length
     while i < length
-        if predicate array[i]
-            return array[i]
+        result = iterator array[i]
+        if predicate result
+            return result
         i++
-    return
+    return sentinel
 
 # returns whether an array of strings contains duplicates.
 #

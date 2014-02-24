@@ -6,6 +6,8 @@
 
 hinoki can manage complexity in nodejs applications.
 
+hinoki is a fairly complex piece of software
+
 it is inspired by [prismatic's graph](https://github.com/Prismatic/plumbing#graph-the-functional-swiss-army-knife) and [angular's dependency injection](http://docs.angularjs.org/guide/di).
 
 *Hinoki takes its name from the hinoki cypress, a tree that only grows in Japan and is the preferred wood for building palaces, temples and shrines.*
@@ -13,6 +15,17 @@ it is inspired by [prismatic's graph](https://github.com/Prismatic/plumbing#grap
 - [introduction](#introduction)
 - [install](#install)
 - [events](#events)
+- [contribution](#contribution)
+
+### contribution
+
+i have a very specific vision.
+
+to make sure your contribution aligns with my vision.
+
+(formulate that it stops the wrong people and invites the right)
+
+or email me
 
 ### install
 
@@ -41,6 +54,12 @@ hinoki is currently used for the dependency injection part in a framework
 ### the hinoki model
 
 just explain it in an introduction
+
+hinoki can work with multiple containers
+
+containers are asked in order
+
+instances are added to the container that resolved the factory
 
 ### instances and factories and stuff
 

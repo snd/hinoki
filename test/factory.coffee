@@ -5,7 +5,7 @@ Promise = require 'bluebird'
 module.exports =
 
 ###################################################################################
-# interface
+# functions that inject into a factory function
 
     'inject':
 
@@ -193,3 +193,55 @@ module.exports =
 
             _inject containers, ids, (args...) ->
                 test.fail()
+
+###################################################################################
+# functions that return promises
+
+    'getOrCreateInstance':
+
+        'instanceResolved': (test) ->
+            test.expect 8
+
+            fail = -> test.fail()
+
+            containers = []
+            id = {}
+            instanceResult =
+                instance: {}
+                resolver: {}
+                container: {}
+
+            emit = (event) ->
+                test.equals event.event, 'instanceResolved'
+                test.equals event.id, id
+                test.equals event.instance, instanceResult.instance
+                test.equals event.resolver, instanceResult.resolver
+                test.equals event.container, instanceResult.container
+
+            findFirstContainerThatCanResolveInstance = (arg1, arg2) ->
+                test.equal arg1, containers
+                test.equal arg2, id
+                instanceResult
+
+            getOrCreateInstance = factory.getOrCreateInstance(
+                Promise
+                emit
+                findFirstContainerThatCanResolveInstance
+                fail
+                fail
+                fail
+                fail
+                fail
+                fail
+                fail
+                fail
+            )
+
+            getOrCreateInstance(containers, id).then (result) ->
+                test.equals result, instanceResult.instance
+                test.done()
+
+###################################################################################
+# functions that resolve factories and instances
+
+

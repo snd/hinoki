@@ -21,12 +21,13 @@ var factories = {
     }
 };
 
-var container = {
-    factories: factories,
-    instances: {
-        xs: [1, 2, 3, 6]
-    }
+var instances = {
+    xs: [1, 2, 3, 6]
 };
+
+var container = hinoki.newContainer(factories, instances);
+
+container.emitter.on('any', console.log);
 
 hinoki.inject(container, function(mean) {
     console.log(mean);  // -> 3
