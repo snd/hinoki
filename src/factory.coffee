@@ -75,18 +75,18 @@ module.exports.getOrCreateInstance = (
     cycleRejection
     findContainerThatCanResolveFactory
     unresolvableFactoryRejection
-    getUnderConstruction
     factoryNotFunctionRejection
     startingWith
     createInstance
     isThenable
+    getKey
 ) ->
     (containers, id) ->
         instanceResult = findContainerThatCanResolveInstance containers, id
 
         if instanceResult?
             instanceResult.container.emit instanceResult.container,
-                event: 'instanceFound'
+                event: 'instanceResolved'
                 id: id
                 instance: instanceResult.instance
                 resolver: instanceResult.resolver
@@ -94,7 +94,7 @@ module.exports.getOrCreateInstance = (
             return Promise.resolve instanceResult.instance
 
         # no instance available. we need a factory.
-        # let's check for cycles first.
+        # let's check for cycles first since
         # we can't use a factory if the id contains a cycle.
 
         if isCyclic id
@@ -132,9 +132,9 @@ module.exports.getOrCreateInstance = (
             resolver: resolver
             container: container
 
-        # if the instance is already being constructed elsewhere
-        # wait for that instead of starting a second construction
-        # a factory must only be called exactly once per container
+        # if the instance is already being constructed
+        # wait for that instead of starting a second construction.
+        # a factory must only be called exactly once per container.
 
         underConstruction = container.getUnderConstruction container, id
 
@@ -205,7 +205,9 @@ module.exports.getOrCreateInstance = (
                         rejection: rejection
             )
 
-        container.setUnderConstruction container, id, instancePromise
+        key = getKey id
+
+        container.setUnderConstruction container, key, instancePromise
 
         instancePromise.then (value) ->
             if isUndefined value
@@ -214,8 +216,8 @@ module.exports.getOrCreateInstance = (
                     id: id
                     factory: factory
             # instance is fully constructed
-            container.setInstance container, id, value
-            container.unsetUnderConstruction container, id
+            container.setInstance container, key, value
+            container.unsetUnderConstruction container, key
             value
 
 ###################################################################################
@@ -383,6 +385,18 @@ module.exports.rejectionRejection = (
             container: container
 
 module.exports.factoryNotFunctionRejection = (
+    Promise
+    getKey
+) ->
+    (params) ->
+        Promise.reject
+            error: "factory '#{getKey(params.id)}' is not a function: #{params.factory}"
+            type: 'factoryNotFunction'
+            id: params.id
+            factory: params.factory
+            container: params.container
+
+module.exports.factoryReturnedUndefinedRejection = (
     Promise
     getKey
 ) ->

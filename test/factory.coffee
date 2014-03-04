@@ -209,39 +209,36 @@ module.exports =
             instanceResult =
                 instance: {}
                 resolver: {}
-                container: {}
+                container:
+                    emit: (container, event) ->
+                        test.equals event.event, 'instanceResolved'
+                        test.equals event.id, id
+                        test.equals event.instance, instanceResult.instance
+                        test.equals event.resolver, instanceResult.resolver
+                        test.equals event.container, instanceResult.container
 
-            emit = (event) ->
-                test.equals event.event, 'instanceResolved'
-                test.equals event.id, id
-                test.equals event.instance, instanceResult.instance
-                test.equals event.resolver, instanceResult.resolver
-                test.equals event.container, instanceResult.container
-
-            findFirstContainerThatCanResolveInstance = (arg1, arg2) ->
+            findContainerThatCanResolveInstance = (arg1, arg2) ->
                 test.equal arg1, containers
                 test.equal arg2, id
                 instanceResult
 
             getOrCreateInstance = factory.getOrCreateInstance(
                 Promise
-                emit
-                findFirstContainerThatCanResolveInstance
-                fail
-                fail
-                fail
-                fail
-                fail
-                fail
-                fail
-                fail
+                fail # getIdsToInject
+                fail # addToId
+                fail # getOrCreateManyInstances
+                findContainerThatCanResolveInstance
+                fail # isCyclic
+                fail # isUndefined
+                fail # cycleRejection
+                fail # findContainerThatCanResolveFactory
+                fail # unresolvableFactoryRejection
+                fail # factoryNotFunctionRejection
+                fail # startingWith
+                fail # isThenable
+                fail # getKey
             )
 
             getOrCreateInstance(containers, id).then (result) ->
                 test.equals result, instanceResult.instance
                 test.done()
-
-###################################################################################
-# functions that resolve factories and instances
-
-

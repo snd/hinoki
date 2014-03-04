@@ -51,6 +51,14 @@ npm install
 
 # the documentation below is work in progress!
 
+# quick start
+
+easy debugging
+
+```javascript
+container.emitter.on('any', console.log)
+```
+
 hinoki is currently used for the dependency injection part in a framework
 
 ### the hinoki model
@@ -64,6 +72,13 @@ containers are asked in order
 instances are added to the container that resolved the factory
 
 a container manages names
+
+an instance resolver is a function that takes a container and
+an id and returns an instance.
+
+programming against an interface.
+
+wire up closures on the fly
 
 ### instances and factories and stuff
 
