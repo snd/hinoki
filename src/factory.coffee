@@ -55,7 +55,7 @@ module.exports._inject = (
                 error.container.emit error.container, error
 
 ###################################################################################
-# functions that return promises
+# functions that do the heavy lifting
 
 module.exports.getOrCreateManyInstances = (
     getOrCreateInstance
@@ -76,13 +76,10 @@ module.exports.getOrCreateInstance = (
     cycleRejection
     resolveFactoryInContainers
     unresolvableFactoryRejection
-    factoryNotFunctionRejection
     startingWith
     createInstance
-    isThenable
     getKey
-    exceptionRejection
-    rejectionRejection
+    callFactory
     factoryReturnedUndefinedRejection
 ) ->
     (containers, id) ->
@@ -164,56 +161,16 @@ module.exports.getOrCreateInstance = (
 
             dependencyPromises = getOrCreateManyInstances remainingContainers, dependencyIds
 
-            instancePromise = Promise.resolve(dependencyPromises).then (dependencyInstances) ->
-
-                # the dependencies are ready
-                # and we are finally ready to call the factory
-
-                try
-                    instanceOrPromise = factory.apply null, dependencyInstances
-                catch err
-                    return exceptionRejection
-                        exception: err
-                        id: id
-                        container: container
-
-                unless isThenable instanceOrPromise
-                    # instanceOrPromise is not a promise but an instance
-                    container.emit container,
-                        event: 'instanceCreated',
-                        id: id
-                        instance: instanceOrPromise
-                        factory: factory
-                        container: container
-                    return Promise.resolve instanceOrPromise
-
-                # instanceOrPromise is a promise
-
-                container.emit container,
-                    event: 'promiseCreated'
-                    id: id
-                    promise: instanceOrPromise
-                    container: container
-                    factory: factory
-
-                return instanceOrPromise
-                    .then (value) ->
-                        container.emit container,
-                            event: 'promiseResolved'
-                            id: id
-                            value: value
-                            container: container
-                            factory: factory
-                        return value
-                    .catch (rejection) ->
-                        rejectionRejection
-                            container: container
-                            id: id
-                            rejection: rejection
-
             key = getKey id
 
             container.setUnderConstruction container, key, instancePromise
+
+            instancePromise = Promise.resolve(dependencyPromises).then (dependencyInstances) ->
+
+                # the dependencies are ready
+                # and we can finally ready to call the factory
+
+                callFactory container, id, factory, dependencyInstances
 
             instancePromise.then (value) ->
                 if isUndefined value
@@ -225,6 +182,56 @@ module.exports.getOrCreateInstance = (
                 container.setInstance container, key, value
                 container.unsetUnderConstruction container, key
                 value
+
+module.exports.callFactory = (
+    Promise
+    isThenable
+    exceptionRejection
+    rejectionRejection
+
+) ->
+    (container, id, factory, dependencyInstances) ->
+        try
+            instanceOrPromise = factory.apply null, dependencyInstances
+        catch err
+            return exceptionRejection
+                exception: err
+                id: id
+                container: container
+
+        unless isThenable instanceOrPromise
+            # instanceOrPromise is not a promise but an instance
+            container.emit container,
+                event: 'instanceCreated',
+                id: id
+                instance: instanceOrPromise
+                factory: factory
+                container: container
+            return Promise.resolve instanceOrPromise
+
+        # instanceOrPromise is a promise
+
+        container.emit container,
+            event: 'promiseCreated'
+            id: id
+            promise: instanceOrPromise
+            container: container
+            factory: factory
+
+        return instanceOrPromise
+            .then (value) ->
+                container.emit container,
+                    event: 'promiseResolved'
+                    id: id
+                    value: value
+                    container: container
+                    factory: factory
+                return value
+            .catch (rejection) ->
+                rejectionRejection
+                    container: container
+                    id: id
+                    rejection: rejection
 
 ###################################################################################
 # path manipulation

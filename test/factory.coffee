@@ -231,12 +231,9 @@ module.exports =
                 fail # cycleRejection
                 fail # findContainerThatCanResolveFactory
                 fail # unresolvableFactoryRejection
-                fail # factoryNotFunctionRejection
                 fail # startingWith
-                fail # isThenable
                 fail # getKey
-                fail # exceptionRejection
-                fail # rejectionRejection
+                fail # callFactory
                 fail # factoryReturnedUndefinedRejection
             )
 
