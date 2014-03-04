@@ -215,17 +215,17 @@ module.exports =
                         test.equals event.resolver, instanceResult.resolver
                         test.equals event.container, instanceResult.container
 
-            findContainerThatCanResolveInstance = (arg1, arg2) ->
+            resolveInstanceInContainers = (arg1, arg2) ->
                 test.equal arg1, containers
                 test.equal arg2, id
-                instanceResult
+                Promise.resolve instanceResult
 
             getOrCreateInstance = factory.getOrCreateInstance(
                 Promise
                 fail # getIdsToInject
                 fail # addToId
                 fail # getOrCreateManyInstances
-                findContainerThatCanResolveInstance
+                resolveInstanceInContainers
                 fail # isCyclic
                 fail # isUndefined
                 fail # cycleRejection

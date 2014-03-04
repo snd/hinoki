@@ -42,7 +42,7 @@ module.exports =
             a: -> throw exception
 
         c.emitter.on 'error', (error) ->
-            test.equals error.type, 'exceptionRejection'
+            test.equals error.type, 'exception'
             test.equals error.id, 'a'
             test.equals error.container, c
             test.equals error.exception, exception
@@ -60,10 +60,28 @@ module.exports =
             a: -> Promise.reject rejection
 
         c.emitter.on 'error', (error) ->
-            test.equals error.type, 'rejectionRejection'
+            test.equals error.type, 'rejection'
             test.equals error.id, 'a'
             test.equals error.container, c
             test.equals error.rejection, rejection
+            test.done()
+
+        hinoki.inject c, (a) ->
+            test.fail()
+
+    'factoryNotFunctionRejection': (test) ->
+        test.expect 4
+
+        factory = {}
+
+        c = hinoki.newContainer
+            a: factory
+
+        c.emitter.on 'error', (error) ->
+            test.equals error.type, 'factoryNotFunction'
+            test.equals error.id, 'a'
+            test.equals error.container, c
+            test.equals error.factory, factory
             test.done()
 
         hinoki.inject c, (a) ->

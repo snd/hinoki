@@ -4,7 +4,11 @@
 
 **magical inversion of control for nodejs**
 
+hinoki is an asynchronous dependency resolver and injection
+
 hinoki can manage complexity in nodejs applications.
+
+its beta
 
 hinoki is a fairly complex piece of software
 

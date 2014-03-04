@@ -70,11 +70,11 @@ module.exports.getOrCreateInstance = (
     getIdsToInject
     addToId
     getOrCreateManyInstances
-    findContainerThatCanResolveInstance
+    resolveInstanceInContainers
     isCyclic
     isUndefined
     cycleRejection
-    findContainerThatCanResolveFactory
+    resolveFactoryInContainers
     unresolvableFactoryRejection
     factoryNotFunctionRejection
     startingWith
@@ -85,16 +85,20 @@ module.exports.getOrCreateInstance = (
     rejectionRejection
 ) ->
     (containers, id) ->
-        instanceResult = findContainerThatCanResolveInstance containers, id
+        # resolveInstanceInContainers has the opportunity
+        # to return an error through a rejected promise that
+        # is returned by getOrCreateManyInstances unchanged
+        instanceResultPromise = resolveInstanceInContainers containers, id
 
-        if instanceResult?
-            instanceResult.container.emit instanceResult.container,
-                event: 'instanceResolved'
-                id: id
-                instance: instanceResult.instance
-                resolver: instanceResult.resolver
-                container: instanceResult.container
-            return Promise.resolve instanceResult.instance
+        if instanceResultPromise?
+            return instanceResultPromise.then (instanceResult) ->
+                instanceResult.container.emit instanceResult.container,
+                    event: 'instanceResolved'
+                    id: id
+                    instance: instanceResult.instance
+                    resolver: instanceResult.resolver
+                    container: instanceResult.container
+                instanceResult.instance
 
         # no instance available. we need a factory.
         # let's check for cycles first since
@@ -108,121 +112,118 @@ module.exports.getOrCreateInstance = (
         # no cycle - yeah!
         # lets find the container that can give us a factory
 
-        factoryResult = findContainerThatCanResolveFactory containers, id
+        # resolveFactoryInContainers has the opportunity
+        # to return an error through a rejected promise that
+        # is returned by getOrCreateManyInstances unchanged
+        factoryResultPromise = resolveFactoryInContainers containers, id
 
-        unless factoryResult?
+        unless factoryResultPromise?
             # we are out of luck: the factory could not be found
             return unresolvableFactoryRejection
                 container: containers[0]
                 id: id
 
-        {factory, resolver, container} = factoryResult
+        # we've got a factory
 
-        unless 'function' is typeof factory
-            # we are out of luck: the resolver didnt return a function
-            return factoryNotFunctionRejection
-                container: container
+        factoryResultPromise.then (factoryResult) ->
+
+            {factory, resolver, container} = factoryResult
+
+            container.emit container,
+                event: 'factoryFound'
                 id: id
                 factory: factory
                 resolver: resolver
-
-        # we've got a factory
-
-        container.emit container,
-            event: 'factoryFound'
-            id: id
-            factory: factory
-            resolver: resolver
-            container: container
-
-        # if the instance is already being constructed
-        # wait for that instead of starting a second construction.
-        # a factory must only be called exactly once per container.
-
-        underConstruction = container.getUnderConstruction container, id
-
-        if underConstruction?
-            container.emit container,
-                event: 'instanceUnderConstruction'
-                id: id
-                value: underConstruction
                 container: container
-            return underConstruction
 
-        # there is no instance under construction. lets make one
+            # if the instance is already being constructed
+            # wait for that instead of starting a second construction.
+            # a factory must only be called exactly once per container.
 
-        # lets resolve the dependencies of the factory
+            underConstruction = container.getUnderConstruction container, id
 
-        remainingContainers = startingWith containers, container
-
-        dependencyIds = getIdsToInject factory
-
-        dependencyIds = dependencyIds.map (x) ->
-            addToId id, x
-
-        dependencyPromises = getOrCreateManyInstances remainingContainers, dependencyIds
-
-        instancePromise = Promise.resolve(dependencyPromises).then (dependencyInstances) ->
-
-            # the dependencies are ready
-            # and we are finally ready to call the factory
-
-            try
-                instanceOrPromise = factory.apply null, dependencyInstances
-            catch err
-                return exceptionRejection
-                    exception: err
-                    id: id
-                    container: container
-
-            unless isThenable instanceOrPromise
-                # instanceOrPromise is not a promise but an instance
+            if underConstruction?
                 container.emit container,
-                    event: 'instanceCreated',
+                    event: 'instanceUnderConstruction'
                     id: id
-                    instance: instanceOrPromise
-                    factory: factory
+                    value: underConstruction
                     container: container
-                return Promise.resolve instanceOrPromise
+                return underConstruction
 
-            # instanceOrPromise is a promise
+            # there is no instance under construction. lets make one
 
-            container.emit container,
-                event: 'promiseCreated'
-                id: id
-                promise: instanceOrPromise
-                container: container
-                factory: factory
+            # lets resolve the dependencies of the factory
 
-            return instanceOrPromise
-                .then (value) ->
+            remainingContainers = startingWith containers, container
+
+            dependencyIds = getIdsToInject factory
+
+            dependencyIds = dependencyIds.map (x) ->
+                addToId id, x
+
+            dependencyPromises = getOrCreateManyInstances remainingContainers, dependencyIds
+
+            instancePromise = Promise.resolve(dependencyPromises).then (dependencyInstances) ->
+
+                # the dependencies are ready
+                # and we are finally ready to call the factory
+
+                try
+                    instanceOrPromise = factory.apply null, dependencyInstances
+                catch err
+                    return exceptionRejection
+                        exception: err
+                        id: id
+                        container: container
+
+                unless isThenable instanceOrPromise
+                    # instanceOrPromise is not a promise but an instance
                     container.emit container,
-                        event: 'promiseResolved'
+                        event: 'instanceCreated',
                         id: id
-                        value: value
-                        container: container
+                        instance: instanceOrPromise
                         factory: factory
-                    return value
-                .catch (rejection) ->
-                    rejectionRejection
+                        container: container
+                    return Promise.resolve instanceOrPromise
+
+                # instanceOrPromise is a promise
+
+                container.emit container,
+                    event: 'promiseCreated'
+                    id: id
+                    promise: instanceOrPromise
+                    container: container
+                    factory: factory
+
+                return instanceOrPromise
+                    .then (value) ->
+                        container.emit container,
+                            event: 'promiseResolved'
+                            id: id
+                            value: value
+                            container: container
+                            factory: factory
+                        return value
+                    .catch (rejection) ->
+                        rejectionRejection
+                            container: container
+                            id: id
+                            rejection: rejection
+
+            key = getKey id
+
+            container.setUnderConstruction container, key, instancePromise
+
+            instancePromise.then (value) ->
+                if isUndefined value
+                    return factoryReturnedUndefinedRejection
                         container: container
                         id: id
-                        rejection: rejection
-
-        key = getKey id
-
-        container.setUnderConstruction container, key, instancePromise
-
-        instancePromise.then (value) ->
-            if isUndefined value
-                return factoryReturnedUndefinedRejection
-                    container: container
-                    id: id
-                    factory: factory
-            # instance is fully constructed
-            container.setInstance container, key, value
-            container.unsetUnderConstruction container, key
-            value
+                        factory: factory
+                # instance is fully constructed
+                container.setInstance container, key, value
+                container.unsetUnderConstruction container, key
+                value
 
 ###################################################################################
 # path manipulation
@@ -257,63 +258,91 @@ module.exports.isCyclic = (
         arrayOfStringsHasDuplicates getKeys id
 
 ###################################################################################
-# functions that resolve factories and instances
+# functions that resolve factories
 
-# returns either null or {resolver: , instance: }
+# returns either null or a promise that resolves to {resolver: , factory: }
 
-module.exports.findResolverThatCanResolveFactory = (
+module.exports.resolveFactoryInContainer = (
+    Promise
+    factoryNotFunctionRejection
     some
     getKey
 ) ->
     (container, id) ->
         some container.factoryResolvers, (resolver) ->
             factory = resolver container, getKey id
-            return unless factory?
-            {
+
+            # this resolver can't resolve the factory
+            unless factory?
+                return
+
+            unless 'function' is typeof factory
+                # we are out of luck: the resolver didnt return a function
+                return factoryNotFunctionRejection
+                    container: container
+                    id: id
+                    factory: factory
+                    resolver: resolver
+
+            Promise.resolve {
                 resolver: resolver
                 factory: factory
             }
+# returns either null or a promise that resolves to {container: , resolver: , factory: }
 
-# returns either null or {resolver: , instance: }
+module.exports.resolveFactoryInContainers = (
+    some
+    resolveFactoryInContainer
+) ->
+    (containers, id) ->
+        some containers, (container) ->
+            promise = resolveFactoryInContainer container, id
 
-module.exports.findResolverThatCanResolveInstance = (
+            unless promise?
+                return
+
+            promise.then (result) ->
+                result.container = container
+                result
+
+###################################################################################
+# functions that resolve instances
+
+# returns either null or a promise that resolves to {resolver: , instance: }
+
+module.exports.resolveInstanceInContainer = (
+    Promise
     some
     getKey
 ) ->
     (container, id) ->
         some container.instanceResolvers, (resolver) ->
             instance = resolver container, getKey id
-            return unless instance?
-            {
+
+            unless instance?
+                return
+
+            Promise.resolve {
                 resolver: resolver
                 instance: instance
             }
 
-# returns either null or {container: , resolver: , factory: }
+# returns either null or a promise that resolves to {container: , resolver: , instance: }
 
-module.exports.findContainerThatCanResolveFactory = (
+module.exports.resolveInstanceInContainers = (
     some
-    findResolverThatCanResolveFactory
+    resolveInstanceInContainer
 ) ->
     (containers, id) ->
         some containers, (container) ->
-            result = findResolverThatCanResolveFactory container, id
-            return unless result?
-            result.container = container
-            result
+            promise = resolveInstanceInContainer container, id
 
-# returns either null or {container: , resolver: , instance: }
+            unless promise?
+                return
 
-module.exports.findContainerThatCanResolveInstance = (
-    some
-    findResolverThatCanResolveInstance
-) ->
-    (containers, id) ->
-        some containers, (container) ->
-            result = findResolverThatCanResolveInstance container, id
-            return unless result?
-            result.container = container
-            result
+            promise.then (result) ->
+                result.container = container
+                result
 
 ###################################################################################
 # util
@@ -360,7 +389,7 @@ module.exports.exceptionRejection = (
     (params) ->
         Promise.reject
             error: "exception in factory '#{getKey(params.id)}': #{params.exception}"
-            type: 'exceptionRejection'
+            type: 'exception'
             id: params.id
             exception: params.exception
             container: params.container
@@ -372,7 +401,7 @@ module.exports.rejectionRejection = (
     (params) ->
         Promise.reject
             error: "promise returned from factory '#{getKey(params.id)}' was rejected with reason: #{params.rejection}"
-            type: 'rejectionRejection'
+            type: 'rejection'
             id: params.id
             rejection: params.rejection
             container: params.container
@@ -445,7 +474,7 @@ module.exports.defaultFactoryResolver = (
             return
 
         # add $inject such that parseFunctionArguments is called only once per factory
-        unless factory.$inject?
+        if not factory.$inject? and 'function' is typeof factory
             factory.$inject = parseFunctionArguments factory
 
         return factory
