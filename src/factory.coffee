@@ -81,6 +81,7 @@ module.exports.getOrCreateInstance = (
     createInstance
     isThenable
     getKey
+    exceptionRejection
 ) ->
     (containers, id) ->
         instanceResult = findContainerThatCanResolveInstance containers, id
@@ -171,6 +172,8 @@ module.exports.getOrCreateInstance = (
             catch err
                 return exceptionRejection
                     exception: err
+                    id: id
+                    container: container
 
             unless isThenable instanceOrPromise
                 # instanceOrPromise is not a promise but an instance

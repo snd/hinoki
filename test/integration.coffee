@@ -100,3 +100,20 @@ module.exports =
 
             hinoki.inject c, (a) ->
                 test.fail()
+
+        'exceptionRejection': (test) ->
+            test.expect 3
+
+            exception = {}
+
+            c = hinoki.newContainer
+                a: -> throw exception
+
+            c.emitter.on 'error', (error) ->
+                test.equals error.type, 'exceptionRejection'
+                test.deepEqual error.id, 'a'
+                test.equals error.container, c
+                test.done()
+
+            hinoki.inject c, (a) ->
+                test.fail()
