@@ -236,6 +236,7 @@ module.exports =
                 fail # isThenable
                 fail # getKey
                 fail # exceptionRejection
+                fail # rejectionRejection
             )
 
             getOrCreateInstance(containers, id).then (result) ->

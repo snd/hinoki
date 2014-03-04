@@ -1,3 +1,5 @@
+Promise = require 'bluebird'
+
 hinoki = require '../src/hinoki'
 
 module.exports =
@@ -32,7 +34,7 @@ module.exports =
             test.fail()
 
     'exceptionRejection': (test) ->
-        test.expect 3
+        test.expect 4
 
         exception = {}
 
@@ -41,8 +43,27 @@ module.exports =
 
         c.emitter.on 'error', (error) ->
             test.equals error.type, 'exceptionRejection'
-            test.deepEqual error.id, 'a'
+            test.equals error.id, 'a'
             test.equals error.container, c
+            test.equals error.exception, exception
+            test.done()
+
+        hinoki.inject c, (a) ->
+            test.fail()
+
+    'rejectionRejection': (test) ->
+        test.expect 4
+
+        rejection = {}
+
+        c = hinoki.newContainer
+            a: -> Promise.reject rejection
+
+        c.emitter.on 'error', (error) ->
+            test.equals error.type, 'rejectionRejection'
+            test.equals error.id, 'a'
+            test.equals error.container, c
+            test.equals error.rejection, rejection
             test.done()
 
         hinoki.inject c, (a) ->

@@ -82,6 +82,7 @@ module.exports.getOrCreateInstance = (
     isThenable
     getKey
     exceptionRejection
+    rejectionRejection
 ) ->
     (containers, id) ->
         instanceResult = findContainerThatCanResolveInstance containers, id
@@ -193,8 +194,8 @@ module.exports.getOrCreateInstance = (
                 container: container
                 factory: factory
 
-            return instanceOrPromise.then(
-                (value) ->
+            return instanceOrPromise
+                .then (value) ->
                     container.emit container,
                         event: 'promiseResolved'
                         id: id
@@ -202,12 +203,11 @@ module.exports.getOrCreateInstance = (
                         container: container
                         factory: factory
                     return value
-                (rejection) ->
+                .catch (rejection) ->
                     rejectionRejection
                         container: container
                         id: id
                         rejection: rejection
-            )
 
         key = getKey id
 
@@ -369,13 +369,13 @@ module.exports.rejectionRejection = (
     Promise
     getKey
 ) ->
-    (container, id, rejection) ->
+    (params) ->
         Promise.reject
-            error: "promise returned from factory '#{getKey(id)}' was rejected with reason: #{rejection}"
+            error: "promise returned from factory '#{getKey(params.id)}' was rejected with reason: #{params.rejection}"
             type: 'rejectionRejection'
-            id: id
-            rejection: rejection
-            container: container
+            id: params.id
+            rejection: params.rejection
+            container: params.container
 
 module.exports.factoryNotFunctionRejection = (
     Promise
