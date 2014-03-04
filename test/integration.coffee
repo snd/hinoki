@@ -86,3 +86,17 @@ module.exports =
 
             hinoki.inject c, (a) ->
                 test.fail()
+
+        'unresolvableFactoryRejection': (test) ->
+            test.expect 3
+
+            c = hinoki.newContainer()
+
+            c.emitter.on 'error', (error) ->
+                test.equals error.type, 'unresolvableFactory'
+                test.deepEqual error.id, 'a'
+                test.equals error.container, c
+                test.done()
+
+            hinoki.inject c, (a) ->
+                test.fail()
