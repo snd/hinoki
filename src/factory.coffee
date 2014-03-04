@@ -1,390 +1,511 @@
-events = require 'events'
-
-Q = require 'q'
-
-# the functions are isolated to be tested in isolation
-
-checkDeps = (deps, names...) ->
-    names.map (name) ->
-        unless deps[name]?
-            throw new Error "missing dependency #{name}"
-
-module.exports =
-
 ###################################################################################
-# interface
+# functions that inject into a factory function
 
-    # callback style decorator
-    #
-    # like _inject but can be called with 2 or three arguments and
-    # does some basic input checking
-    #
-    # example:
-    #
-    # inject [container1, container2], ['id1', 'id2'], (arg1, arg2) ->
-    #
-    # inject [container1, container2], (id1, id2) ->
+# callback style decorator
+#
+# like _inject but can be called with 2 or three arguments and
+# does some basic input checking
+#
+# example:
+#
+# inject [container1, container2], ['id1', 'id2'], (arg1, arg2) ->
+#
+# inject [container1, container2], (id1, id2) ->
 
-    inject: (deps) ->
-        checkDeps deps, 'arrayify', 'parseFunctionArguments', '_inject'
-        ->
-            len = arguments.length
-            unless (len is 2) or (len is 3)
-                throw new Error "2 or 3 arguments required but #{len} were given"
+module.exports.inject = (
+    arrayify
+    getIdsToInject
+    _inject
+) ->
+    ->
+        len = arguments.length
+        unless (len is 2) or (len is 3)
+            throw new Error "2 or 3 arguments required but #{len} were given"
 
-            containers = deps.arrayify arguments[0]
+        containers = arrayify arguments[0]
 
-            if containers.length is 0
-                throw new Error 'at least 1 container is required'
+        if containers.length is 0
+            throw new Error 'at least 1 container is required'
 
-            cb = if len is 2 then arguments[1] else arguments[2]
+        cb = if len is 2 then arguments[1] else arguments[2]
 
-            unless 'function' is typeof cb
-                throw new Error 'cb must be a function'
+        unless 'function' is typeof cb
+            throw new Error 'cb must be a function'
 
-            dependencyIds = if len is 2
-                deps.parseFunctionArguments cb
-            else
-                arguments[1]
+        dependencyIds = if len is 2 then getIdsToInject cb else arguments[1]
 
-            deps._inject containers, dependencyIds, cb
+        _inject containers, dependencyIds, cb
 
-    # this is the place where it goes from promise land to callback land
+# where it goes from promise land to callback land...
 
-    _inject: (deps) ->
-        checkDeps deps, 'emitRejection', 'getOrCreateManyInstances'
-        (containers, ids, cb) ->
-            onResolve = (instances) ->
+# TODO rename
+module.exports._inject = (
+    getOrCreateManyInstances
+) ->
+    (containers, ids, cb) ->
+        promise = getOrCreateManyInstances containers, ids
+        promise
+            .then (instances) ->
                 process.nextTick ->
                     cb.apply null, instances
-            onReject = (rejection) ->
-                deps.emitRejection rejection
-
-            promise = deps.getOrCreateManyInstances containers, ids
-            promise.done onResolve, onReject
+            .catch (error) ->
+                error.event = 'error'
+                unless error.container?
+                    throw new Error "error has no container property. there is probably a bug in hinoki itself. original error: #{error}"
+                error.container.emit error.container, error
 
 ###################################################################################
-# container side effecting functions
+# functions that do the heavy lifting
 
-    getOrCreateManyInstances: (deps) ->
-        checkDeps deps, 'getOrCreateInstance'
-        (containers, ids) ->
-            Q.all ids.map (id) ->
-                deps.getOrCreateInstance containers, id
+module.exports.getOrCreateManyInstances = (
+    getOrCreateInstance
+    Promise
+) ->
+    (containers, ids) ->
+        Promise.all(ids).map (id) ->
+            getOrCreateInstance containers, id
 
-    # mostly concerned with debugging and error handling
-    # delegates all other stuff to functions
+module.exports.getOrCreateInstance = (
+    Promise
+    getIdsToInject
+    addToId
+    getOrCreateManyInstances
+    resolveInstanceInContainers
+    isCyclic
+    isUndefined
+    cycleRejection
+    resolveFactoryInContainers
+    unresolvableFactoryRejection
+    startingWith
+    createInstance
+    getKey
+    callFactory
+    factoryReturnedUndefinedRejection
+) ->
+    (containers, id) ->
+        # resolveInstanceInContainers has the opportunity
+        # to return an error through a rejected promise that
+        # is returned by getOrCreateManyInstances unchanged
+        instanceResultPromise = resolveInstanceInContainers containers, id
 
-    getOrCreateInstance: (deps) ->
-        checkDeps deps,
-            'findInstance'
-            'emitInstanceFound'
-            'isCyclic'
-            'cycleRejection'
-            'findContainerThatContainsFactory'
-            'missingFactoryRejection'
-            'getFactory'
-            'factoryNotFunctionRejection'
-            'startingWith'
-            'getUnderConstruction'
-            'addUnderConstruction'
-            'removeUnderConstruction'
-            'createInstance'
-        (containers, id) ->
-            instance = deps.findInstance containers, id
+        if instanceResultPromise?
+            return instanceResultPromise.then (instanceResult) ->
+                instanceResult.container.emit instanceResult.container,
+                    event: 'instanceResolved'
+                    id: id
+                    instance: instanceResult.instance
+                    resolver: instanceResult.resolver
+                    container: instanceResult.container
+                instanceResult.instance
 
-            if instance?
-                deps.emitInstanceFound containers[0], id, instance
-                return Q.resolve instance
+        # no instance available. we need a factory.
+        # let's check for cycles first since
+        # we can't use a factory if the id contains a cycle.
 
-            if deps.isCyclic id
-                return deps.cycleRejection containers[0], id
+        if isCyclic id
+            return cycleRejection
+                container: containers[0]
+                id: id
 
-            container = deps.findContainerThatContainsFactory containers, id
+        # no cycle - yeah!
+        # lets find the container that can give us a factory
 
-            unless container?
-                return deps.missingFactoryRejection containers[0], id
+        # resolveFactoryInContainers has the opportunity
+        # to return an error through a rejected promise that
+        # is returned by getOrCreateManyInstances unchanged
+        factoryResultPromise = resolveFactoryInContainers containers, id
 
-            # if the instance is already being constructed elsewhere
-            # wait for that instead of starting a second construction
-            # a factory must only be called exactly once per container
+        unless factoryResultPromise?
+            # we are out of luck: the factory could not be found
+            return unresolvableFactoryRejection
+                container: containers[0]
+                id: id
 
-            underConstruction = deps.getUnderConstruction container, id
+        # we've got a factory
+
+        factoryResultPromise.then (factoryResult) ->
+
+            {factory, resolver, container} = factoryResult
+
+            container.emit container,
+                event: 'factoryFound'
+                id: id
+                factory: factory
+                resolver: resolver
+                container: container
+
+            # if the instance is already being constructed
+            # wait for that instead of starting a second construction.
+            # a factory must only be called exactly once per container.
+
+            underConstruction = container.getUnderConstruction container, id
 
             if underConstruction?
+                container.emit container,
+                    event: 'instanceUnderConstruction'
+                    id: id
+                    value: underConstruction
+                    container: container
                 return underConstruction
 
-            factory = deps.getFactory container, id
+            # there is no instance under construction. lets make one
 
-            unless 'function' is typeof factory
-                return deps.factoryNotFunctionRejection container, id, factory
+            # lets resolve the dependencies of the factory
 
-            remainingContainers = deps.startingWith containers, container
+            remainingContainers = startingWith containers, container
 
-            instance = deps.createInstance container, id, remainingContainers
-
-            deps.addUnderConstruction container, id, instance
-
-            instance.then (value) ->
-                # instance is fully constructed
-                deps.removeUnderConstruction container, id
-                value
-
-    # side effects `container` by 
-    # returns a promise that is resolved with the instance
-    # `containers` is a list of containers that will be used
-    # to look up the dependencies of the factory in addition to container.
-    # after `container` has been side effected.
-
-    createInstance: (deps) ->
-        checkDeps deps,
-            'getDependencies'
-            'getOrCreateManyInstances'
-            'callFactory'
-            'setInstance'
-            'addToId'
-            'cacheDependencies'
-        (container, id, containers) ->
-            dependencyIds = deps.getDependencies container, id
+            dependencyIds = getIdsToInject factory
 
             dependencyIds = dependencyIds.map (x) ->
-                deps.addToId id, x
+                addToId id, x
 
-            dependencyInstances = deps.getOrCreateManyInstances containers, dependencyIds
+            dependencyPromises = getOrCreateManyInstances remainingContainers, dependencyIds
 
-            instance = deps.callFactory container, id, dependencyInstances
+            key = getKey id
 
-            instanceSet = deps.setInstance container, id, instance
-            dependenciesCached = deps.cacheDependencies container, id, dependencyInstances
+            container.setUnderConstruction container, key, instancePromise
 
-            Q.all([instanceSet, dependenciesCached]).then ->
-                instance
+            instancePromise = Promise.resolve(dependencyPromises).then (dependencyInstances) ->
 
-    # calls `factory` with `dependencies`.
-    # returns a promise.
+                # the dependencies are ready
+                # and we can finally ready to call the factory
 
-    callFactory: (deps) ->
-        checkDeps deps,
-            'getFactory'
-            'missingFactoryRejection'
-            'exceptionRejection'
-            'emitInstanceCreated'
-            'emitPromiseCreated'
-            'emitPromiseResolved'
-            'rejectionRejection'
-        (container, id, dependencyInstances) ->
-            Q(dependencyInstances).then (dependencyInstances) ->
-                factory = deps.getFactory container, id
+                callFactory container, id, factory, dependencyInstances
 
-                unless factory?
-                    return deps.missingFactoryRejection container, id
+            instancePromise.then (value) ->
+                if isUndefined value
+                    return factoryReturnedUndefinedRejection
+                        container: container
+                        id: id
+                        factory: factory
+                # instance is fully constructed
+                container.setInstance container, key, value
+                container.unsetUnderConstruction container, key
+                value
 
-                try
-                    instanceOrPromise = factory.apply null, dependencyInstances
-                catch err
-                    return deps.exceptionRejection container, id, err
+module.exports.callFactory = (
+    Promise
+    isThenable
+    exceptionRejection
+    rejectionRejection
 
-                # not a promise
-                unless Q.isPromiseAlike instanceOrPromise
-                    instance = instanceOrPromise
-                    deps.emitInstanceCreated container, id, instance
-                    return Q instance
+) ->
+    (container, id, factory, dependencyInstances) ->
+        try
+            instanceOrPromise = factory.apply null, dependencyInstances
+        catch err
+            return exceptionRejection
+                exception: err
+                id: id
+                container: container
 
-                deps.emitPromiseCreated container, id, instanceOrPromise
+        unless isThenable instanceOrPromise
+            # instanceOrPromise is not a promise but an instance
+            container.emit container,
+                event: 'instanceCreated',
+                id: id
+                instance: instanceOrPromise
+                factory: factory
+                container: container
+            return Promise.resolve instanceOrPromise
 
-                onResolve = (value) ->
-                    deps.emitPromiseResolved container, id, value
-                    return value
+        # instanceOrPromise is a promise
 
-                onReject = (rejection) ->
-                    deps.rejectionRejection container, id, rejection
+        container.emit container,
+            event: 'promiseCreated'
+            id: id
+            promise: instanceOrPromise
+            container: container
+            factory: factory
 
-                return instanceOrPromise.then onResolve, onReject
-
-###################################################################################
-# path
-
-    getKey: ->
-        (id) ->
-            if Array.isArray id then id[0] else id
-
-    getKeys: (deps)->
-        checkDeps deps, 'arrayify'
-        (id) ->
-            deps.arrayify id
-
-    idToString: (deps) ->
-        checkDeps deps, 'getKeys'
-        (id) ->
-            deps.getKeys(id).join ' <- '
-
-    addToId: (deps) ->
-        checkDeps deps, 'arrayify'
-        (id, key) ->
-            [key].concat deps.arrayify id
-
-    isCyclic: (deps) ->
-        checkDeps deps, 'arrayOfStringsHasDuplicates', 'getKeys'
-        (id) ->
-            deps.arrayOfStringsHasDuplicates deps.getKeys id
+        return instanceOrPromise
+            .then (value) ->
+                container.emit container,
+                    event: 'promiseResolved'
+                    id: id
+                    value: value
+                    container: container
+                    factory: factory
+                return value
+            .catch (rejection) ->
+                rejectionRejection
+                    container: container
+                    id: id
+                    rejection: rejection
 
 ###################################################################################
-# container getters
+# path manipulation
 
-    getEmitter: ->
-        (container) ->
-            container.emitter ?= new events.EventEmitter
-            container.emitter
+module.exports.getKey = ->
+    (id) ->
+        if Array.isArray id then id[0] else id
 
-    getInstance: (deps) ->
-        checkDeps deps, 'getKey'
-        (container, id) ->
-            container?.instances?[deps.getKey id]
+module.exports.getKeys = (
+    arrayify
+) ->
+    (id) ->
+        arrayify id
 
-    getFactory: (deps) ->
-        checkDeps deps, 'getKey'
-        (container, id) ->
-            container?.factories?[deps.getKey id]
+module.exports.idToString = (
+    getKeys
+) ->
+    (id) ->
+        getKeys(id).join ' <- '
 
-    getDependencies: (deps) ->
-        checkDeps deps, 'getKey', 'getFactory', 'parseFunctionArguments'
-        (container, id) ->
-            key = deps.getKey id
-            if container.dependencies?[key]?
-                return container.dependencies[key]
+module.exports.addToId = (
+    arrayify
+) ->
+    (id, key) ->
+        [key].concat arrayify id
 
-            factory = deps.getFactory container, id
+module.exports.isCyclic = (
+    arrayOfStringsHasDuplicates
+    getKeys
+) ->
+    (id) ->
+        arrayOfStringsHasDuplicates getKeys id
 
+###################################################################################
+# functions that resolve factories
+
+# returns either null or a promise that resolves to {resolver: , factory: }
+
+module.exports.resolveFactoryInContainer = (
+    Promise
+    factoryNotFunctionRejection
+    some
+    getKey
+) ->
+    (container, id) ->
+        some container.factoryResolvers, (resolver) ->
+            factory = resolver container, getKey id
+
+            # this resolver can't resolve the factory
             unless factory?
-                return null
+                return
 
-            deps.parseFunctionArguments factory
+            unless 'function' is typeof factory
+                # we are out of luck: the resolver didnt return a function
+                return factoryNotFunctionRejection
+                    container: container
+                    id: id
+                    factory: factory
+                    resolver: resolver
 
-###################################################################################
-# container find functions
+            Promise.resolve {
+                resolver: resolver
+                factory: factory
+            }
+# returns either null or a promise that resolves to {container: , resolver: , factory: }
 
-    findContainerThatContainsFactory: (deps) ->
-        checkDeps deps, 'find', 'getFactory'
-        (containers, id) ->
-            deps.find containers, (x) ->
-                deps.getFactory(x, id)?
+module.exports.resolveFactoryInContainers = (
+    some
+    resolveFactoryInContainer
+) ->
+    (containers, id) ->
+        some containers, (container) ->
+            promise = resolveFactoryInContainer container, id
 
-    findContainerThatContainsInstance: (deps) ->
-        checkDeps deps, 'find', 'getInstance'
-        (containers, id) ->
-            deps.find containers, (x) ->
-                deps.getInstance(x, id)?
+            unless promise?
+                return
 
-    findInstance: (deps) ->
-        checkDeps deps, 'getInstance', 'findContainerThatContainsInstance'
-        (containers, id) ->
-            container = deps.findContainerThatContainsInstance containers, id
-            deps.getInstance container, id
-
-###################################################################################
-# under construction
-
-    getUnderConstruction: (deps) ->
-        checkDeps deps, 'getKey'
-        (container, id) ->
-            container.underConstruction?[deps.getKey id]
-
-    addUnderConstruction: (deps) ->
-        checkDeps deps, 'getKey'
-        (container, id, promise) ->
-            container.underConstruction ?= {}
-            container.underConstruction[deps.getKey id] = promise
-
-    removeUnderConstruction: (deps) ->
-        checkDeps deps, 'getKey'
-        (container, id) ->
-            container.underConstruction ?= {}
-            promise = container.underConstruction[deps.getKey id]
-            delete container.underConstruction[deps.getKey id]
-            promise
+            promise.then (result) ->
+                result.container = container
+                result
 
 ###################################################################################
-# container setters
+# functions that resolve instances
 
-    # returns promise
-    setInstance: (deps) ->
-        checkDeps deps, 'getKey'
-        (container, id, instance) ->
-            Q(instance).then (value) ->
-                container.instances ?= {}
-                container.instances[deps.getKey id] = value
-                return value
+# returns either null or a promise that resolves to {resolver: , instance: }
 
-    # returns promise
-    cacheDependencies: (deps) ->
-        checkDeps deps, 'getKey'
-        (container, id, dependencies) ->
-            Q(dependencies).then (value) ->
-                container.dependencyCache ?= {}
-                container.dependencyCache[deps.getKey id] = value
-                return value
+module.exports.resolveInstanceInContainer = (
+    Promise
+    some
+    getKey
+) ->
+    (container, id) ->
+        some container.instanceResolvers, (resolver) ->
+            instance = resolver container, getKey id
+
+            unless instance?
+                return
+
+            Promise.resolve {
+                resolver: resolver
+                instance: instance
+            }
+
+# returns either null or a promise that resolves to {container: , resolver: , instance: }
+
+module.exports.resolveInstanceInContainers = (
+    some
+    resolveInstanceInContainer
+) ->
+    (containers, id) ->
+        some containers, (container) ->
+            promise = resolveInstanceInContainer container, id
+
+            unless promise?
+                return
+
+            promise.then (result) ->
+                result.container = container
+                result
 
 ###################################################################################
-# emit
+# util
 
-    # synchronous
-    emit: (deps) ->
-        checkDeps deps, 'getEmitter', 'event'
-        (container) ->
-            deps.getEmitter(container).emit deps.event, Array.prototype.slice.call(arguments, 1)
+module.exports.getIdsToInject = (
+    parseFunctionArguments
+) ->
+    (factory) ->
+        if factory.$inject?
+            factory.$inject
+        else
+            parseFunctionArguments factory
 
 ###################################################################################
 # error
 
-    cycleRejection: (deps) ->
-        checkDeps deps, 'idToString'
-        (container, id) ->
-            error = new Error "circular dependency #{deps.idToString id}"
-            error.name = 'cycle'
-            error.id = id
-            error.container = container
-            return Q.reject error
+module.exports.cycleRejection = (
+    Promise
+    idToString
+) ->
+    (params) ->
+        Promise.reject
+            error: "circular dependency #{idToString(params.id)}"
+            type: 'cycle'
+            id: params.id
+            container: params.container
 
-    missingFactoryRejection: (deps) ->
-        checkDeps deps, 'getKey', 'idToString'
-        (container, id) ->
-            error = new Error "missing factory '#{deps.getKey id}' (#{deps.idToString id})"
-            error.name = 'missingFactory'
-            error.id = id
-            error.container = container
-            return Q.reject error
+module.exports.unresolvableFactoryRejection = (
+    Promise
+    getKey
+    idToString
+) ->
+    (params) ->
+        Promise.reject
+            error: "unresolvable factory '#{getKey(params.id)}' (#{idToString(params.id)})"
+            type: 'unresolvableFactory'
+            id: params.id
+            container: params.container
 
-    exceptionRejection: (deps) ->
-        checkDeps deps, 'getKey'
-        (container, id, exception) ->
-            error = new Error "exception in factory '#{deps.getKey id}': #{exception}"
-            error.name = 'exceptionRejection'
-            error.exception = exception
-            error.id = id
-            error.container = container
-            return Q.reject error
+module.exports.exceptionRejection = (
+    Promise
+    getKey
+) ->
+    (params) ->
+        Promise.reject
+            error: "exception in factory '#{getKey(params.id)}': #{params.exception}"
+            type: 'exception'
+            id: params.id
+            exception: params.exception
+            container: params.container
 
-    rejectionRejection: (deps) ->
-        checkDeps deps, 'getKey'
-        (container, id, rejection) ->
-            error = new Error "promise returned from factory '#{deps.getKey id}' was rejected with: #{rejection}"
-            error.name = 'rejectionRejection'
-            error.rejection = rejection
-            error.id = id
-            error.container = container
-            return Q.reject error
+module.exports.rejectionRejection = (
+    Promise
+    getKey
+) ->
+    (params) ->
+        Promise.reject
+            error: "promise returned from factory '#{getKey(params.id)}' was rejected with reason: #{params.rejection}"
+            type: 'rejection'
+            id: params.id
+            rejection: params.rejection
+            container: params.container
 
-    factoryNotFunctionRejection: (deps) ->
-        checkDeps deps, 'getKey'
-        (container, id, factory) ->
-            error = "factory '#{deps.getKey id}' is not a function: #{factory}"
-            error.name = 'factoryNotFunction'
-            error.factory = factory
-            error.id = id
-            error.container = container
-            return Q.reject error
+module.exports.factoryNotFunctionRejection = (
+    Promise
+    getKey
+) ->
+    (params) ->
+        Promise.reject
+            error: "factory '#{getKey(params.id)}' is not a function: #{params.factory}"
+            type: 'factoryNotFunction'
+            id: params.id
+            factory: params.factory
+            container: params.container
 
-    emitRejection: (deps) ->
-        checkDeps deps, 'emitError'
-        (rejection) ->
-            deps.emitError rejection.container, rejection
+module.exports.factoryReturnedUndefinedRejection = (
+    Promise
+    getKey
+) ->
+    (params) ->
+        Promise.reject
+            error: "factory '#{getKey(params.id)}' returned undefined"
+            type: 'factoryReturnedUndefined'
+            id: params.id
+            factory: params.factory
+            container: params.container
+
+###################################################################################
+# sugar for container construction
+
+module.exports.newContainer = (
+    defaultInstanceResolver
+    defaultFactoryResolver
+    defaultEmit
+    defaultSetInstance
+    defaultSetUnderConstruction
+    defaultUnsetUnderConstruction
+    defaultGetUnderConstruction
+    EventEmitter
+) ->
+    (factories = {}, instances = {}) ->
+        {
+            factories: factories
+            instances: instances
+            factoryResolvers: [defaultFactoryResolver]
+            instanceResolvers: [defaultInstanceResolver]
+            underConstruction: {}
+            setInstance: defaultSetInstance
+            setUnderConstruction: defaultSetUnderConstruction
+            unsetUnderConstruction: defaultUnsetUnderConstruction
+            getUnderConstruction: defaultGetUnderConstruction
+            emit: defaultEmit
+            emitter: new EventEmitter
+        }
+
+###################################################################################
+# defaults
+
+module.exports.defaultInstanceResolver = ->
+    (container, id) ->
+        container.instances?[id]
+
+module.exports.defaultFactoryResolver = (
+    parseFunctionArguments
+) ->
+    (container, id) ->
+        factory = container.factories?[id]
+        unless factory?
+            return
+
+        # add $inject such that parseFunctionArguments is called only once per factory
+        if not factory.$inject? and 'function' is typeof factory
+            factory.$inject = parseFunctionArguments factory
+
+        return factory
+
+module.exports.defaultSetInstance = ->
+    (container, id, instance) ->
+        container.instances[id] = instance
+
+module.exports.defaultEmit = ->
+    (container, event) ->
+        container.emitter.emit event.event, event
+        container.emitter.emit 'any', event
+
+module.exports.defaultSetUnderConstruction = ->
+    (container, id, underConstruction) ->
+        container.underConstruction[id] = underConstruction
+
+module.exports.defaultUnsetUnderConstruction = ->
+    (container, id) ->
+        value = container.underConstruction[id]
+        delete container.underConstruction[id]
+        value
+
+module.exports.defaultGetUnderConstruction = ->
+    (container, id) ->
+        container.underConstruction[id]

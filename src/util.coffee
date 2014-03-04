@@ -1,93 +1,105 @@
-module.exports =
+module.exports.isObject = (x) ->
+    x is Object(x)
 
-    # returns first value in `array` for which `predicate` returns true.
-    #
-    # example:
-    # find ['a', 'ab', 'abc], (s) -> s.length is 2
-    # => 'ab'
+module.exports.isThenable = (x) ->
+    module.exports.isObject(x) and 'function' is typeof x.then
 
-    find: (array, predicate) ->
-        i = 0
-        length = array.length
-        while i < length
-            if predicate array[i]
-                return array[i]
-            i++
-        return null
+module.exports.isUndefined =  (x) ->
+    'undefined' is typeof x
 
-    # returns whether an array of strings contains duplicates.
-    #
-    # complexity: O(n) since hash lookup is O(1)
+module.exports.isNull = (x) ->
+    null is x
 
-    arrayOfStringsHasDuplicates: (array) ->
-        i = 0
-        length = array.length
-        valuesSoFar = {}
-        while i < length
-            value = array[i]
-            if Object.prototype.hasOwnProperty.call valuesSoFar, value
-                return true
-            valuesSoFar[value] = true
-            i++
-        return false
+module.exports.isExisting = (x) ->
+    x?
 
-    # coerces `arg` into an array.
-    #
-    # returns `arg` if it is an array.
-    # returns `[arg]` otherwise.
-    # returns `[]` if `arg` is null.
-    #
-    # example:
-    # arrayify 'a'
-    # => ['a']
+module.exports.identity = (x) ->
+    x
 
-    arrayify: (arg) ->
-        if Array.isArray arg
-            return arg
-        unless arg?
-            return []
-        [arg]
+# calls fun for the values in array. returns the first
+# value returned by transform for which predicate returns true.
+# otherwise returns sentinel.
 
-    # returns the first sequence of elements in `xs` which starts with `x`
-    #
-    # example:
-    # startingWith ['a', 'b', 'c', 'd'], 'c'
-    # => ['c', 'd']
+module.exports.some = (
+    array,
+    iterator = module.exports.identity
+    predicate = module.exports.isExisting
+    sentinel = undefined
+) ->
+    i = 0
+    length = array.length
+    while i < length
+        result = iterator array[i]
+        if predicate result
+            return result
+        i++
+    return sentinel
 
-    startingWith: (xs, x) ->
-        index = xs.indexOf x
-        return [] if index is -1
-        xs.slice index
+# returns whether an array of strings contains duplicates.
+#
+# complexity: O(n) since hash lookup is O(1)
 
-    # example:
-    # parseFunctionArguments (a, b c) ->
-    # => ['a', 'b‘, 'c']
+module.exports.arrayOfStringsHasDuplicates = (array) ->
+    i = 0
+    length = array.length
+    valuesSoFar = {}
+    while i < length
+        value = array[i]
+        if Object.prototype.hasOwnProperty.call valuesSoFar, value
+            return true
+        valuesSoFar[value] = true
+        i++
+    return false
 
-    parseFunctionArguments: (fun) ->
-        unless 'function' is typeof fun
-            throw new Error 'argument must be a function'
+# coerces `arg` into an array.
+#
+# returns `arg` if it is an array.
+# returns `[arg]` otherwise.
+# returns `[]` if `arg` is null.
+#
+# example:
+# arrayify 'a'
+# => ['a']
 
-        string = fun.toString()
+module.exports.arrayify = (arg) ->
+    if Array.isArray arg
+        return arg
+    unless arg?
+        return []
+    [arg]
 
-        argumentPart = string.slice(string.indexOf('(') + 1, string.indexOf(')'))
+# returns the first sequence of elements in `xs` which starts with `x`
+#
+# example:
+# startingWith ['a', 'b', 'c', 'd'], 'c'
+# => ['c', 'd']
 
-        dependencies = argumentPart.match(/([^\s,]+)/g)
+module.exports.startingWith = (xs, x) ->
+    index = xs.indexOf x
+    return [] if index is -1
+    xs.slice index
 
-        return if dependencies? then dependencies else []
+# example:
+# parseFunctionArguments (a, b c) ->
+# => ['a', 'b‘, 'c']
 
-    selectKeys: (object, keys...) ->
-        result = {}
+module.exports.parseFunctionArguments = (fun) ->
+    unless 'function' is typeof fun
+        throw new Error 'argument must be a function'
 
-        keys.forEach (key) ->
+    string = fun.toString()
+
+    argumentPart = string.slice(string.indexOf('(') + 1, string.indexOf(')'))
+
+    dependencies = argumentPart.match(/([^\s,]+)/g)
+
+    return if dependencies? then dependencies else []
+
+module.exports.merge = (objects...) ->
+    result = {}
+
+    objects.forEach (object) ->
+        Object.keys(object).forEach (key) ->
             result[key] = object[key]
 
-        result
-
-    merge: (objects...) ->
-        result = {}
-
-        objects.forEach (object) ->
-            Object.keys(object).forEach (key) ->
-                result[key] = object[key]
-
-        return result
+    return result

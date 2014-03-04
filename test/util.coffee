@@ -2,13 +2,64 @@ util = require '../src/util'
 
 module.exports =
 
-    'find': (test) ->
-        test.equals null, util.find [], -> true
-        test.equals 1, util.find [1], (x) -> x is 1
-        test.equals null, util.find [1], (x) -> x is 2
-        test.equals 2, util.find [1, 2, 3], (x) -> x > 1
-        test.equals null, util.find [1, 2, 3], (x) -> x > 3
+    'isNull': (test) ->
+        test.ok util.isNull null
+        test.ok not util.isNull undefined
+        test.ok not util.isNull 0
+        test.ok not util.isNull false
+        test.ok not util.isNull ''
+
         test.done()
+
+    'isUndefined': (test) ->
+        test.ok util.isUndefined undefined
+        test.ok not util.isUndefined null
+        test.ok not util.isUndefined 0
+        test.ok not util.isUndefined false
+        test.ok not util.isUndefined ''
+
+        test.done()
+
+    'isExisting': (test) ->
+        test.ok util.isExisting {}
+        test.ok util.isExisting false
+        test.ok util.isExisting 0
+        test.ok util.isExisting ''
+
+        test.ok not util.isExisting null
+        test.ok not util.isExisting undefined
+
+        test.done()
+
+    'some':
+
+        'array': (test) ->
+            test.ok util.isUndefined util.some []
+
+            test.equals 1, util.some [1, null, null]
+            test.equals 2, util.some [null, null, 2]
+
+            test.done()
+
+        'array and predicate': (test) ->
+            test.ok util.isUndefined util.some [], util.identity, -> true
+            test.equals 1, util.some [1], util.identity, (x) -> x is 1
+            test.ok util.isUndefined util.some [1], util.identity, (x) -> x is 2
+            test.equals 2, util.some [1, 2, 3], util.identity, (x) -> x > 1
+            test.ok util.isUndefined util.some [1, 2, 3], util.identity, (x) -> x > 3
+            test.ok util.isUndefined util.some [1, 2, 3], util.identity, (x) -> x > 3
+
+            shouldBeNull = util.some [1, 2, null], util.identity, (x) -> x is null
+            test.ok not util.isUndefined shouldBeNull
+            test.ok util.isNull shouldBeNull
+
+            test.done()
+
+        'array, predicate, transform and sentinel': (test) ->
+            test.equals 'sentinel',
+                util.some [], util.identity, util.exists, 'sentinel'
+
+            test.done()
 
     'arrayOfStringsHasDuplicates': (test) ->
         test.ok not util.arrayOfStringsHasDuplicates []
@@ -49,9 +100,4 @@ module.exports =
             util.parseFunctionArguments (first, second) ->
         test.deepEqual ['first', 'second', 'third'],
             util.parseFunctionArguments (first, second, third) ->
-        test.done()
-
-    'selectKeys': (test) ->
-        test.deepEqual {}, util.selectKeys {a: 1, b: 2, c: 3}
-        test.deepEqual {a: 1, b: 2}, util.selectKeys {a: 1, b: 2, c: 3}, 'a', 'b'
         test.done()

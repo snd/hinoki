@@ -1,26 +1,26 @@
+Promise = require 'bluebird'
+
 hinoki = require '../src/hinoki'
 
 factories =
     count: (xs) ->
-        xs.length
+        Promise.delay(xs.length, 100)
     mean: (xs, count) ->
         reducer = (acc, x) ->
             acc + x
-        xs.reduce(reducer, 0) / count
+        Promise.delay(xs.reduce(reducer, 0) / count, 100)
     meanOfSquares: (xs, count) ->
         reducer = (acc, x) ->
             acc + x * x
-        xs.reduce(reducer, 0) / count
+        Promise.delay(xs.reduce(reducer, 0) / count, 100)
     variance: (mean, meanOfSquares) ->
-        meanOfSquares - mean * mean
+        Promise.delay(meanOfSquares - mean * mean, 100)
 
 module.exports =
 
     'ask for count': (test) ->
-        c =
-            factories: factories
-            instances:
-                xs: [1, 2, 3, 6]
+        c = hinoki.newContainer factories,
+            xs: [1, 2, 3, 6]
 
         hinoki.inject c, (count) ->
             test.equals count, 4
@@ -30,10 +30,8 @@ module.exports =
             test.done()
 
     'ask for mean': (test) ->
-        c =
-            factories: factories
-            instances:
-                xs: [1, 2, 3, 6]
+        c = hinoki.newContainer factories,
+            xs: [1, 2, 3, 6]
 
         hinoki.inject c, (mean) ->
             test.equals mean, 3
@@ -44,10 +42,8 @@ module.exports =
             test.done()
 
     'ask for meanOfSquares': (test) ->
-        c =
-            factories: factories
-            instances:
-                xs: [1, 2, 3, 6]
+        c = hinoki.newContainer factories,
+            xs: [1, 2, 3, 6]
 
         hinoki.inject c, (meanOfSquares) ->
             test.equals meanOfSquares, 12.5
@@ -58,10 +54,8 @@ module.exports =
             test.done()
 
     'ask for variance': (test) ->
-        c =
-            factories: factories
-            instances:
-                xs: [1, 2, 3, 6]
+        c = hinoki.newContainer factories,
+            xs: [1, 2, 3, 6]
 
         hinoki.inject c, (variance) ->
             test.equals variance, 3.5
