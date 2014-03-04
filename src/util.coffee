@@ -1,55 +1,55 @@
 module.exports.isObject = (x) ->
-    x is Object(x)
+  x is Object(x)
 
 module.exports.isThenable = (x) ->
-    module.exports.isObject(x) and 'function' is typeof x.then
+  module.exports.isObject(x) and 'function' is typeof x.then
 
 module.exports.isUndefined =  (x) ->
-    'undefined' is typeof x
+  'undefined' is typeof x
 
 module.exports.isNull = (x) ->
-    null is x
+  null is x
 
 module.exports.isExisting = (x) ->
-    x?
+  x?
 
 module.exports.identity = (x) ->
-    x
+  x
 
 # calls fun for the values in array. returns the first
 # value returned by transform for which predicate returns true.
 # otherwise returns sentinel.
 
 module.exports.some = (
-    array,
-    iterator = module.exports.identity
-    predicate = module.exports.isExisting
-    sentinel = undefined
+  array
+  iterator = module.exports.identity
+  predicate = module.exports.isExisting
+  sentinel = undefined
 ) ->
-    i = 0
-    length = array.length
-    while i < length
-        result = iterator array[i]
-        if predicate result
-            return result
-        i++
-    return sentinel
+  i = 0
+  length = array.length
+  while i < length
+    result = iterator array[i]
+    if predicate result
+      return result
+    i++
+  return sentinel
 
 # returns whether an array of strings contains duplicates.
 #
 # complexity: O(n) since hash lookup is O(1)
 
 module.exports.arrayOfStringsHasDuplicates = (array) ->
-    i = 0
-    length = array.length
-    valuesSoFar = {}
-    while i < length
-        value = array[i]
-        if Object.prototype.hasOwnProperty.call valuesSoFar, value
-            return true
-        valuesSoFar[value] = true
-        i++
-    return false
+  i = 0
+  length = array.length
+  valuesSoFar = {}
+  while i < length
+    value = array[i]
+    if Object.prototype.hasOwnProperty.call valuesSoFar, value
+      return true
+    valuesSoFar[value] = true
+    i++
+  return false
 
 # coerces `arg` into an array.
 #
@@ -62,11 +62,11 @@ module.exports.arrayOfStringsHasDuplicates = (array) ->
 # => ['a']
 
 module.exports.arrayify = (arg) ->
-    if Array.isArray arg
-        return arg
-    unless arg?
-        return []
-    [arg]
+  if Array.isArray arg
+    return arg
+  unless arg?
+    return []
+  [arg]
 
 # returns the first sequence of elements in `xs` which starts with `x`
 #
@@ -75,31 +75,35 @@ module.exports.arrayify = (arg) ->
 # => ['c', 'd']
 
 module.exports.startingWith = (xs, x) ->
-    index = xs.indexOf x
-    return [] if index is -1
-    xs.slice index
+  index = xs.indexOf x
+  if index is -1
+    return []
+  xs.slice index
 
 # example:
 # parseFunctionArguments (a, b c) ->
 # => ['a', 'b‘, 'c']
 
 module.exports.parseFunctionArguments = (fun) ->
-    unless 'function' is typeof fun
-        throw new Error 'argument must be a function'
+  unless 'function' is typeof fun
+    throw new Error 'argument must be a function'
 
-    string = fun.toString()
+  string = fun.toString()
 
-    argumentPart = string.slice(string.indexOf('(') + 1, string.indexOf(')'))
+  argumentPart = string.slice(string.indexOf('(') + 1, string.indexOf(')'))
 
-    dependencies = argumentPart.match(/([^\s,]+)/g)
+  dependencies = argumentPart.match(/([^\s,]+)/g)
 
-    return if dependencies? then dependencies else []
+  if dependencies
+    dependencies
+  else
+    []
 
 module.exports.merge = (objects...) ->
-    result = {}
+  result = {}
 
-    objects.forEach (object) ->
-        Object.keys(object).forEach (key) ->
-            result[key] = object[key]
+  objects.forEach (object) ->
+    Object.keys(object).forEach (key) ->
+      result[key] = object[key]
 
-    return result
+  return result
