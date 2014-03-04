@@ -23,6 +23,8 @@ hinoki is used for the dependency injection part of an upcoming web-application-
 
 hinoki is beta software.
 
+it has a large test suite and is already used in production.
+
 the documentation in this readme is incomplete.
 
 the api is going to change.

@@ -1,66 +1,49 @@
 hinoki = require '../src/hinoki'
 
-factories =
-    count: (xs) ->
-        xs.length
-    mean: (xs, count) ->
-        reducer = (acc, x) ->
-            acc + x
-        xs.reduce(reducer, 0) / count
-    meanOfSquares: (xs, count) ->
-        reducer = (acc, x) ->
-            acc + x * x
-        xs.reduce(reducer, 0) / count
-    variance: (mean, meanOfSquares) ->
-        meanOfSquares - mean * mean
-
 module.exports =
 
-    'ask for count': (test) ->
-        c = hinoki.newContainer factories,
-            xs: [1, 2, 3, 6]
+  'containers are tried in order. instances are created in container that resolved factory': (test) ->
+    c1 = hinoki.newContainer
+      a: (b) ->
+        b + 1
 
-        hinoki.inject c, (count) ->
-            test.equals count, 4
-            test.deepEqual c.instances,
-                xs: [1, 2, 3, 6]
-                count: 4
-            test.done()
+    c2 = hinoki.newContainer
+      b: (c) ->
+        c + 1
 
-    'ask for mean': (test) ->
-        c = hinoki.newContainer factories,
-            xs: [1, 2, 3, 6]
+    c3 = hinoki.newContainer
+      c: (d) ->
+        d + 1
+      d: ->
+        1
 
-        hinoki.inject c, (mean) ->
-            test.equals mean, 3
-            test.deepEqual c.instances,
-                xs: [1, 2, 3, 6]
-                count: 4
-                mean: 3
-            test.done()
+    hinoki.inject [c1, c2, c3], (a, d) ->
+      test.equals a, 4
+      test.equals d, 1
 
-    'ask for meanOfSquares': (test) ->
-        c = hinoki.newContainer factories,
-            xs: [1, 2, 3, 6]
+      test.equals c1.instances.a, 4
+      test.equals c2.instances.b, 3
+      test.equals c3.instances.c, 2
+      test.equals c3.instances.d, 1
 
-        hinoki.inject c, (meanOfSquares) ->
-            test.equals meanOfSquares, 12.5
-            test.deepEqual c.instances,
-                xs: [1, 2, 3, 6]
-                count: 4
-                meanOfSquares: 12.5
-            test.done()
+      test.done()
 
-    'ask for variance': (test) ->
-        c = hinoki.newContainer factories,
-            xs: [1, 2, 3, 6]
+  'containers can not depend on previous containers': (test) ->
+    c1 = hinoki.newContainer
+      a: ->
+        1
 
-        hinoki.inject c, (variance) ->
-            test.equals variance, 3.5
-            test.deepEqual c.instances,
-                xs: [1, 2, 3, 6]
-                count: 4
-                mean: 3
-                meanOfSquares: 12.5
-                variance: 3.5
-            test.done()
+    c2 = hinoki.newContainer
+      b: (a) ->
+        a + 1
+
+    c2.emitter.on 'error', (error) ->
+      test.equals error.type, 'unresolvableFactory'
+      test.deepEqual error.id, ['a', 'b']
+      test.done()
+
+    hinoki.inject [c1, c2], (b) ->
+      test.fail()
+
+  'factory resolvers are tried in order': (test) ->
+    test.done()
