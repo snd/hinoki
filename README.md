@@ -11,11 +11,13 @@ hinoki is inspired by [prismatic's graph](https://github.com/Prismatic/plumbing#
 
 hinoki is used for the dependency injection part of an upcoming web-application-library.
 
-*Hinoki takes its name from the hinoki cypress, a tree that only grows in Japan and is the preferred wood for building palaces, temples and shrines.*
+*hinoki takes its name from the hinoki cypress, a tree that only grows in japan and is the preferred wood for building palaces, temples and shrines.*
 
-- [warning](#word-of-warning)
+### index
+
+- [warning](#warning)
 - [install](#install)
-- [quick start](#quick start)
+- [get started](#get-started)
 
 ### warning
 
@@ -47,7 +49,7 @@ then run:
 npm install
 ```
 
-# quick start
+### get started
 
 ```javascript
 var hinoki = require('hinoki');
