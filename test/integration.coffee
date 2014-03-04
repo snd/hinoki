@@ -45,5 +45,26 @@ module.exports =
     hinoki.inject [c1, c2], (b) ->
       test.fail()
 
-  'factory resolvers are tried in order': (test) ->
-    test.done()
+  'factory resolvers are tried in order until one returns a factory': (test) ->
+    test.expect 5
+    c = hinoki.newContainer()
+
+    instance = {}
+
+    c.factoryResolvers = [
+      (container, id) ->
+        test.equals container, c
+        test.equals id, 'a'
+        null
+      (container, id) ->
+        test.equals container, c
+        test.equals id, 'a'
+        ->
+          instance
+      (container, id) ->
+        test.fail()
+    ]
+
+    hinoki.inject c, (a) ->
+      test.equals a, instance
+      test.done()
