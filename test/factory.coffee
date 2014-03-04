@@ -237,6 +237,7 @@ module.exports =
                 fail # getKey
                 fail # exceptionRejection
                 fail # rejectionRejection
+                fail # factoryReturnedUndefinedRejection
             )
 
             getOrCreateInstance(containers, id).then (result) ->

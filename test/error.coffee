@@ -19,7 +19,7 @@ module.exports =
         hinoki.inject c, (a) ->
             test.fail()
 
-    'unresolvableFactoryRejection': (test) ->
+    'unresolvableFactory': (test) ->
         test.expect 3
 
         c = hinoki.newContainer()
@@ -33,7 +33,7 @@ module.exports =
         hinoki.inject c, (a) ->
             test.fail()
 
-    'exceptionRejection': (test) ->
+    'exception': (test) ->
         test.expect 4
 
         exception = {}
@@ -51,7 +51,7 @@ module.exports =
         hinoki.inject c, (a) ->
             test.fail()
 
-    'rejectionRejection': (test) ->
+    'rejection': (test) ->
         test.expect 4
 
         rejection = {}
@@ -69,7 +69,7 @@ module.exports =
         hinoki.inject c, (a) ->
             test.fail()
 
-    'factoryNotFunctionRejection': (test) ->
+    'factoryNotFunction': (test) ->
         test.expect 4
 
         factory = {}
@@ -82,6 +82,21 @@ module.exports =
             test.equals error.id, 'a'
             test.equals error.container, c
             test.equals error.factory, factory
+            test.done()
+
+        hinoki.inject c, (a) ->
+            test.fail()
+
+    'factoryReturnedUndefined': (test) ->
+        test.expect 3
+
+        c = hinoki.newContainer
+            a: ->
+
+        c.emitter.on 'error', (error) ->
+            test.equals error.type, 'factoryReturnedUndefined'
+            test.equals error.id, 'a'
+            test.equals error.container, c
             test.done()
 
         hinoki.inject c, (a) ->

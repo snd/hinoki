@@ -83,6 +83,7 @@ module.exports.getOrCreateInstance = (
     getKey
     exceptionRejection
     rejectionRejection
+    factoryReturnedUndefinedRejection
 ) ->
     (containers, id) ->
         # resolveInstanceInContainers has the opportunity
@@ -424,8 +425,8 @@ module.exports.factoryReturnedUndefinedRejection = (
 ) ->
     (params) ->
         Promise.reject
-            error: "factory '#{getKey(params.id)}' is not a function: #{params.factory}"
-            type: 'factoryNotFunction'
+            error: "factory '#{getKey(params.id)}' returned undefined"
+            type: 'factoryReturnedUndefined'
             id: params.id
             factory: params.factory
             container: params.container
