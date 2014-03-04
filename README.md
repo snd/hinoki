@@ -4,34 +4,28 @@
 
 **magical inversion of control for nodejs**
 
-hinoki is an asynchronous dependency resolver and injection
+hinoki is an asynchronous dependency resolution and injection system
+designed to manage complexity in nodejs applications.
 
-hinoki can manage complexity in nodejs applications.
+hinoki is inspired by [prismatic's graph](https://github.com/Prismatic/plumbing#graph-the-functional-swiss-army-knife) and [angular's dependency injection](http://docs.angularjs.org/guide/di).
 
-its beta
-
-hinoki is a fairly complex piece of software
-
-it is inspired by [prismatic's graph](https://github.com/Prismatic/plumbing#graph-the-functional-swiss-army-knife) and [angular's dependency injection](http://docs.angularjs.org/guide/di).
+hinoki is used for the dependency injection part of an upcoming web-application-library.
 
 *Hinoki takes its name from the hinoki cypress, a tree that only grows in Japan and is the preferred wood for building palaces, temples and shrines.*
 
-## WARNING
-
-work in progress.
-
-this is alpha software.
-it is going to change a lot.
-the documentation is incomplete.
-
-use at your own risk.
-
----
-
-- [introduction](#introduction)
+- [warning](#word-of-warning)
 - [install](#install)
-- [events](#events)
-- [contribution](#contribution)
+- [quick start](#quick start)
+
+### warning
+
+hinoki is beta software.
+
+the documentation in this readme is incomplete.
+
+the api is going to change.
+
+use at your own risk!
 
 ### install
 
@@ -53,17 +47,44 @@ then run:
 npm install
 ```
 
-# the documentation below is work in progress!
-
 # quick start
 
-easy debugging
-
 ```javascript
-container.emitter.on('any', console.log)
-```
+var hinoki = require('hinoki');
 
-hinoki is currently used for the dependency injection part in a framework
+var factories = {
+    count: function(xs) {
+        return xs.length;
+    },
+    mean: function(xs, count) {
+        var reducer = function(acc, x) {
+            return acc + x;
+        };
+        return xs.reduce(reducer, 0) / count;
+    },
+    meanOfSquares: function(xs, count) {
+        var reducer = function(acc, x) {
+            return acc + x * x;
+        };
+        return xs.reduce(reducer, 0) / count;
+    },
+    variance: function(mean, meanOfSquares) {
+        return meanOfSquares - mean * mean;
+    }
+};
+
+var instances = {
+    xs: [1, 2, 3, 6]
+};
+
+var container = hinoki.newContainer(factories, instances);
+
+container.emitter.on('any', console.log);
+
+hinoki.inject(container, function(mean) {
+    console.log(mean);  // -> 3
+});
+```
 
 ### the hinoki model
 
@@ -219,7 +240,5 @@ a container must have the following properties
 - unsetUnderConstruction
 - getUnderConstruction
 - emit
-
-
 
 ### license: MIT
