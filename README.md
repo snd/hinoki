@@ -4,7 +4,7 @@
 
 **magical inversion of control for nodejs**
 
-hinoki is an asynchronous dependency resolution and injection system
+hinoki is a powerful and flexible asynchronous dependency resolution and dependency injection system
 designed to manage complexity in nodejs applications.
 
 hinoki is inspired by [prismatic's graph](https://github.com/Prismatic/plumbing#graph-the-functional-swiss-army-knife) and [angular's dependency injection](http://docs.angularjs.org/guide/di).
@@ -18,6 +18,9 @@ hinoki is used for the dependency injection part of an upcoming web-application-
 - [warning](#warning)
 - [install](#install)
 - [get started](#get-started)
+- [events](#events)
+- [default containers](#default containers)
+- [custom containers](#custom containers)
 
 ### warning
 
@@ -27,7 +30,7 @@ it has a large test suite and is already used in production.
 
 the documentation in this readme is incomplete.
 
-the api is going to change.
+it is most likely going to change a lot.
 
 use at your own risk!
 
@@ -42,7 +45,7 @@ npm install hinoki
 put this line in the dependencies section of your `package.json`:
 
 ```
-"hinoki": "0.3.0-beta.3"
+"hinoki": "0.3.0-beta.4"
 ```
 
 then run:
@@ -92,8 +95,6 @@ hinoki.inject(container, function(mean) {
 
 ### the hinoki model
 
-just explain it in an introduction
-
 hinoki can work with multiple containers
 
 containers are asked in order
@@ -113,27 +114,6 @@ wire up closures on the fly
 
 If a factory returns a thenable (bluebird or q promise) it will 
 
-### containers
-
-```javascript
-var container = hinoki.newContainer();
-```
-
-a container has an event emitter
-
-### instance resolver
-
-```coffeescript
-container.instanceResolvers = []
-```
-
-hinoki will emit various debug events through the emitter
-
-you can subscribe to all by listening on the `any` event
-
-or to specific events individually
-
-
 ### factory resolver
 
 a resolver takes (resolves) an id and returns a factory
@@ -142,42 +122,7 @@ a resolver must be pure and always return the same factory or a factory
 that behaves identically
 of the same id
 
-### container
-
-the central data structure used in hinoki is a container.
-
-a container is an object with the following properties:
-
-#### factories
-
-an object
-
-#### instances
-
-an object
-
-#### 
-
-#### underConstruction
-
-#### emitter
-
-see [events](#events) for more.
-
-the container is a stateful object
-
 ### events
-
-a container has an `emitter` property.
-if no `emitter` property is set one is created
-as soon as the first event would be emitted using `new require('events').EventEmitter()`.
-
-errors are emitted as the `error` event.
-`error` events are treated as a special case in node.
-if there is no listener for it, then the default action is to print a stack
-trace and exit the program.
-
-
 
 #### instanceFound
 
@@ -209,40 +154,65 @@ payload:
 }
 ```
 
-#### promiseCreated
 
-#### promiseResolved
+### default containers
 
+call `hinoki.newContainer()` to get a container with sensible default behaviour:
 
+```javascript
+container = hinoki.newContainer()
+```
 
-#### error
+optionally pass in factories and instances as arguments.
 
-all errors are emitted as the `error` event.
+a container created with `hinoki.newContainer()`:
+has an **emitter** property that is an event emitter.
+emits [events](#events) through it.
 
-##### cycle
+you can subscribe to all events by subscribing to the `any` event.
+this is useful for debugging:
 
-##### missingFactory
+```javascript
+container.emitter.on('any', console.log);
+```
 
-##### exception
+errors are emitted as the `error` event.
+`error` events are treated as a special case in node.
+if there is no listener for it, then the default action is to print a stack
+trace and exit the program.
 
-##### promiseRejected
+a container created with `hinoki.newContainer()`:
+has an **instances** property that is an object.
+sets instances in the **instances** object.
 
-##### factoryNotFunction
+has a single instanceResolver that resolves instances in the **instances** object.
+you can manipulate the resolvers:
 
-##### factoryReturnedUndefined
+```javascript
+container.instanceResolvers.push(myInstanceResolver);
+```
 
-- `any` to listen 
+has a single factoryResolver that resolves factories in the **factories** object.
+you can manipulate the resolvers:
 
-### container internals
+```javascript
+container.factoryResolvers.push(myFactoryResolver);
+```
 
-a container must have the following properties
+### custom containers
 
-- factoryResolvers
-- instanceResolvers
-- setInstance
-- setUnderConstruction
-- unsetUnderConstruction
-- getUnderConstruction
-- emit
+hinoki accepts as a container any object with the following properties that behave as described:
+
+- **factoryResolvers** is an array of functions that each take a *container* and an *id*, return either a *factory function* or *null* and have no side effects
+- **instanceResolvers** is an array of functions that each take a *container* and an *id*, return an *instance value* and have no side effects
+- **setInstance** is a function that takes a *container*, an *id* and an *instance value* and side effects the container
+in such a way that the *instance value* will be returned by an instance resolver for that *id* in the future
+- **setUnderConstruction** is a function that takes a *container*, an *id* and a *promise* and side effects the
+the container in such a way that **getUnderConstruction** will return that *promise* for that *id* in the future
+- **unsetUnderConstruction** is a function that takes a *container* and an *id* and side effects the container in such a way
+that **getUnderConstruction** will return nothing for that *id* in the future
+- **getUnderConstruction** is a function that takes a *container* and an *id* and returns the *promise* that was previously
+set or unset by **setUnderConstruction** or **unsetUnderConstruction**
+- **emit** is a function that takes a container and an event
 
 ### license: MIT
