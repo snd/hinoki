@@ -1,43 +1,43 @@
 {
-    "name": "hinoki",
-    "version": "0.3.0-beta.3",
-    "description": "magical inversion of control",
-    "keywords": ["inversion", "control", "dependency", "injection", "ioc", "container"],
-    "homepage": "http://github.com/snd/hinoki",
-    "author": {
-        "name": "Maximilian Krüger",
-        "email": "kruemaxi@gmail.com",
-        "url": "http://github.com/snd"
-    },
-    "bugs": {
-        "url": "http://github.com/snd/hinoki/issues",
-        "email": "kruemaxi@gmail.com"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git://github.com/snd/hinoki.git"
-    },
-    "licenses": {
-        "type": "MIT",
-        "url": "git://github.com/snd/hinoki/LICENSE"
-    },
-    "engines": {
-        "node": ">=0.8.0"
-    },
-    "dependencies": {
-        "bluebird": "1.0.5"
-    },
-    "devDependencies": {
-        "coffee-script": "1.7.1",
-        "nodeunit": "0.8.4"
-    },
-    "main": "src/hinoki",
-    "scripts": {
-        "prepublish": "coffee --bare --compile --output src src/*.coffee",
-        "postpublish": "rm src/*.js",
-        "pretest": "coffee --bare --compile --output src src/*.coffee && coffee --bare --compile --output test test/*.coffee",
-        "posttest": "rm src/*.js && rm test/*.js",
-        "clean": "rm src/*.js && rm test/*.js",
-        "test": "nodeunit test/*.js"
-    }
+  "name": "hinoki",
+  "version": "0.3.0-beta.3",
+  "description": "magical inversion of control",
+  "keywords": ["inversion", "control", "dependency", "injection", "ioc", "container"],
+  "homepage": "http://github.com/snd/hinoki",
+  "author": {
+    "name": "Maximilian Krüger",
+    "email": "kruemaxi@gmail.com",
+    "url": "http://github.com/snd"
+  },
+  "bugs": {
+    "url": "http://github.com/snd/hinoki/issues",
+    "email": "kruemaxi@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/snd/hinoki.git"
+  },
+  "licenses": {
+    "type": "MIT",
+    "url": "git://github.com/snd/hinoki/LICENSE"
+  },
+  "engines": {
+    "node": ">=0.8.0"
+  },
+  "dependencies": {
+    "bluebird": "1.0.5"
+  },
+  "devDependencies": {
+    "coffee-script": "1.7.1",
+    "nodeunit": "0.8.4"
+  },
+  "main": "src/hinoki",
+  "scripts": {
+    "prepublish": "coffee --bare --compile --output src src/*.coffee",
+    "postpublish": "rm src/*.js",
+    "pretest": "coffee --bare --compile --output src src/*.coffee && coffee --bare --compile --output test test/*.coffee",
+    "posttest": "rm src/*.js && rm test/*.js",
+    "clean": "rm src/*.js && rm test/*.js",
+    "test": "nodeunit test/*.js"
+  }
 }
