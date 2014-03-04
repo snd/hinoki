@@ -100,7 +100,6 @@ module.exports.getOrCreateInstance = (
         # we can't use a factory if the id contains a cycle.
 
         if isCyclic id
-            console.log 'id is cyclic', id
             return cycleRejection
                 container: containers[0]
                 id: id
