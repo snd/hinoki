@@ -168,7 +168,7 @@ module.exports.getOrCreateInstance = (
             instancePromise = Promise.resolve(dependencyPromises).then (dependencyInstances) ->
 
                 # the dependencies are ready
-                # and we can finally ready to call the factory
+                # and we can finally call the factory
 
                 callFactory container, id, factory, dependencyInstances
 
