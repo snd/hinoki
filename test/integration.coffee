@@ -66,8 +66,23 @@ module.exports =
                     meanOfSquares: 12.5
                     variance: 3.5
                 test.done()
-#
+
 #     'async':
 #
 #
-#       'error':
+    'error':
+
+        'cycle': (test) ->
+            test.expect 3
+
+            c = hinoki.newContainer
+                a: (a) ->
+
+            c.emitter.on 'error', (error) ->
+                test.equals error.type, 'cycle'
+                test.deepEqual error.id, ['a', 'a']
+                test.equals error.container, c
+                test.done()
+
+            hinoki.inject c, (a) ->
+                test.fail()

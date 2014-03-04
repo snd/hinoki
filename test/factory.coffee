@@ -159,11 +159,8 @@ module.exports =
                 test.equals arg1, containers
                 test.equals arg2, ids
                 return Promise.resolve instances
-            emitError = (arg1) ->
-                test.fail()
 
             _inject = factory._inject(
-                emitError
                 getOrCreateManyInstances
             )
 
@@ -172,22 +169,23 @@ module.exports =
                 test.done()
 
         'error': (test) ->
-            test.expect 3
+            test.expect 4
 
             containers = {}
             ids = {}
-            rejection = Promise.reject {}
+            rejection =
+                container:
+                    emit: (arg1, arg2) ->
+                        test.equal arg1, rejection.container
+                        test.equal arg2, rejection
+                        test.done()
 
-            emitError = (arg1) ->
-                test.equal arg1, rejection
-                test.done()
             getOrCreateManyInstances = (arg1, arg2) ->
                 test.equal arg1, containers
                 test.equal arg2, ids
                 return Promise.reject rejection
 
             _inject = factory._inject(
-                emitError
                 getOrCreateManyInstances
             )
 

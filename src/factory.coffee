@@ -40,18 +40,19 @@ module.exports.inject = (
 
 # TODO rename
 module.exports._inject = (
-    emitError
     getOrCreateManyInstances
 ) ->
     (containers, ids, cb) ->
-        onResolve = (instances) ->
-            process.nextTick ->
-                cb.apply null, instances
-        onReject = (rejection) ->
-            emitError rejection
-
         promise = getOrCreateManyInstances containers, ids
-        promise.done onResolve, onReject
+        promise
+            .then (instances) ->
+                process.nextTick ->
+                    cb.apply null, instances
+            .catch (error) ->
+                error.event = 'error'
+                unless error.container?
+                    throw new Error "error has no container property. there is probably a bug in hinoki itself. original error: #{error}"
+                error.container.emit error.container, error
 
 ###################################################################################
 # functions that return promises
@@ -98,6 +99,7 @@ module.exports.getOrCreateInstance = (
         # we can't use a factory if the id contains a cycle.
 
         if isCyclic id
+            console.log 'id is cyclic', id
             return cycleRejection
                 container: containers[0]
                 id: id
@@ -322,17 +324,6 @@ module.exports.getIdsToInject = (
             factory.$inject
         else
             parseFunctionArguments factory
-
-###################################################################################
-# emit
-
-module.exports.emitError = ->
-    (error) ->
-        unless error.container?
-            # bug in hinoki itself!
-            # TODO throw a more helpful error message
-            throw error
-        error.container.emit 'error', error
 
 ###################################################################################
 # error
