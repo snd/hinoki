@@ -1,6 +1,44 @@
+Promise = require 'bluebird'
+
 hinoki = require '../src/hinoki'
 
 module.exports =
+
+  'get instance': (test) ->
+    c = hinoki.newContainer {},
+      x: 1
+
+    hinoki.get(c, 'x').then (x) ->
+      test.equals x, 1
+      test.equals c.instances.x, 1
+      test.done()
+
+  'sync get from factory': (test) ->
+    c = hinoki.newContainer
+      x: -> 1
+
+    hinoki.get(c, 'x').then (x) ->
+      test.equals x, 1
+      test.equals c.instances.x, 1
+      test.done()
+
+  'async get from factory': (test) ->
+    c = hinoki.newContainer
+      x: -> Promise.resolve 1
+
+    hinoki.get(c, 'x').then (x) ->
+      test.equals x, 1
+      test.equals c.instances.x, 1
+      test.done()
+
+  'sync get with dependencies': (test) ->
+    c = hinoki.newContainer
+      x: (y) -> 1 + y
+      y: -> 1
+
+    hinoki.get(c, 'x').then (x) ->
+      test.equals x, 2
+      test.done()
 
   'containers are tried in order. instances are created in container that resolved factory': (test) ->
     c1 = hinoki.newContainer
@@ -17,7 +55,7 @@ module.exports =
       d: ->
         1
 
-    hinoki.inject [c1, c2, c3], (a, d) ->
+    hinoki.get([c1, c2, c3], ['a', 'd']).spread (a, d) ->
       test.equals a, 4
       test.equals d, 1
 
@@ -37,13 +75,10 @@ module.exports =
       b: (a) ->
         a + 1
 
-    c2.emitter.on 'error', (error) ->
-      test.equals error.type, 'unresolvableFactory'
-      test.deepEqual error.id, ['a', 'b']
+    hinoki.get([c1, c2], 'b').catch (error) ->
+      test.equals error.name, 'UnresolvableFactoryError'
+      test.deepEqual error.path, ['a', 'b']
       test.done()
-
-    hinoki.inject [c1, c2], (b) ->
-      test.fail()
 
   'factory resolvers are tried in order until one returns a factory': (test) ->
     test.expect 5
@@ -65,6 +100,6 @@ module.exports =
         test.fail()
     ]
 
-    hinoki.inject c, (a) ->
+    hinoki.get(c, 'a').then (a) ->
       test.equals a, instance
       test.done()

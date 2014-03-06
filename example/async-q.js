@@ -20,6 +20,6 @@ var instances = {
 
 var container = hinoki.newContainer(factories, instances);
 
-hinoki.inject(container, function(domains) {
+hinoki.get(container, 'domains', console.log).then(function(domains) {
   console.log(domains);
 });

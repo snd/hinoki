@@ -27,8 +27,6 @@ var instances = {
 
 var container = hinoki.newContainer(factories, instances);
 
-container.emitter.on('any', console.log);
-
-hinoki.inject(container, function(mean) {
+hinoki.get(container, 'mean', console.log).then(function(mean) {
   console.log(mean);  // -> 3
 });

@@ -21,8 +21,6 @@ var instances = {
 
 var container = hinoki.newContainer(factories, instances);
 
-container.emitter.on('any', console.log);
-
-hinoki.inject(container, function(domains) {
+hinoki.get(container, 'domains', console.log).then(function(domains) {
   console.log(domains);
 });

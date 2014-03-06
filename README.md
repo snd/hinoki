@@ -2,37 +2,38 @@
 
 [![Build Status](https://travis-ci.org/snd/hinoki.png)](https://travis-ci.org/snd/hinoki)
 
-**magical inversion of control for nodejs**
+**magical inversion of control for nodejs and the browser**
 
 hinoki is a powerful and flexible asynchronous dependency resolution and dependency injection system
-designed to manage complexity in nodejs applications.
+designed to manage complexity in large nodejs applications.
 
 hinoki is inspired by [prismatic's graph](https://github.com/Prismatic/plumbing#graph-the-functional-swiss-army-knife) and [angular's dependency injection](http://docs.angularjs.org/guide/di).
 
-hinoki is used for the dependency injection part of an upcoming web-application-library.
+[hinoki is used for dependency injection in an upcoming web-application-library](#web-application-development)
 
 *hinoki takes its name from the hinoki cypress, a tree that only grows in japan and is the preferred wood for building palaces, temples and shrines.*
 
+**hinoki is beta software.**
+
+**it has a large test suite and is already used in production.**
+
+**the documentation in this readme is work in progress, incomplete and does not describe
+everything that is possible with hinoki.**
+
 ### index
 
-- [warning](#warning)
 - [install](#install)
-- [get started](#get-started)
-- [events](#events)
-- [default containers](#default containers)
-- [custom containers](#custom containers)
-
-### warning
-
-hinoki is beta software.
-
-it has a large test suite and is already used in production.
-
-the documentation in this readme is incomplete.
-
-it is most likely going to change a lot.
-
-use at your own risk!
+- [tutorial](#tutorial)
+- [example](#example)
+- [api](#api)
+- [use cases](#use-cases)
+  - [structuring computation](#structuring computation)
+  - [structuring async computation]()
+  - [structuring applications]()
+  - [web application development]()
+- [errors](#errors)
+- [containers](#containers)
+- [license](#license-mit)
 
 ### install
 
@@ -54,7 +55,62 @@ then run:
 npm install
 ```
 
-### get started
+### tutorial
+
+hinoki manages ids.
+
+ids
+ids are just strings
+
+names for a piece of data, function
+
+system of such pieces where some depend on others
+
+containers manage ids
+
+ids are either realized or not
+
+
+factories
+
+make, create
+
+get
+
+a factory
+
+$inject
+
+simplifies getting data to where its needed
+
+hinoki can work with multiple containers
+
+containers are asked in order
+
+instances are added to the container that resolved the factory
+
+a container manages names
+
+an instance resolver is a function that takes a container and
+an id and returns an instance.
+
+programming against an interface.
+
+wire up closures on the fly
+
+### instances and factories and stuff
+
+If a factory returns a thenable (bluebird or q promise) it will 
+
+### factory resolver
+
+a resolver takes (resolves) an id and returns a factory
+
+a resolver must be pure and always return the same factory or a factory
+that behaves identically
+of the same id
+
+### example
 
 ```javascript
 var hinoki = require('hinoki');
@@ -86,76 +142,136 @@ var instances = {
 
 var container = hinoki.newContainer(factories, instances);
 
-container.emitter.on('any', console.log);
+var debug = console.log;
 
-hinoki.inject(container, function(mean) {
+hinoki.get(container, 'mean', debug).then(function(mean) {
   console.log(mean);  // -> 3
 });
 ```
 
-### the hinoki model
+### api
 
-hinoki can work with multiple containers
+#### `get`
 
-containers are asked in order
+takes one or many **containers** and one or many **ids**.
 
-instances are added to the container that resolved the factory
-
-a container manages names
-
-an instance resolver is a function that takes a container and
-an id and returns an instance.
-
-programming against an interface.
-
-wire up closures on the fly
-
-### instances and factories and stuff
-
-If a factory returns a thenable (bluebird or q promise) it will 
-
-### factory resolver
-
-a resolver takes (resolves) an id and returns a factory
-
-a resolver must be pure and always return the same factory or a factory
-that behaves identically
-of the same id
-
-### events
-
-#### instanceFound
-
-emitted whenever an instance is requested and already found in the
-`instances` property of a container
+returns a [bluebird](https://github.com/petkaantonov/bluebird) promise that is resolved with an instance (for one id) or an array of instances (for many ids).
 
 ```javascript
-{
-    event: 'instanceFound'
-    id: /* array of strings */,
-    value: /* the instance that was created */,
-    container: /* container */
-}
+hinoki.get(container, 'variance')
+  .then(function(variance) { /* ... */ });
 ```
-
-#### instanceCreated
-
-emitted whenever an instance is requested, was not found, the factory was called
-returns an instance that is not a [thenable](http://promises-aplus.github.io/promises-spec/).
-
-payload:
 
 ```javascript
-{
-  event: 'instanceCreated'
-  id: /* array of strings */,
-  value: /* the instance that was created */,
-  container: /* container */
-}
+hinoki.get(container, ['variance', 'mean'])
+  .spread(function(variance, mean) { /* ... */ });
 ```
 
+```javascript
+hinoki.get([container1, container2], ['variance', 'mean'])
+  .spread(function(variance, mean) { /* ... */ });
+```
 
-### default containers
+the promise is rejected in case of [errors](#errors)
+
+you can pass a function as a third argument which is called
+on various events (to see exactly what is going on under the hood which is useful for debugging).
+
+```javascript
+hinoki.get(container, 'variance', console.log)
+  .then(function(variance) { /* ... */ })
+  .catch(function(error) { /* ... */ });
+```
+
+you can inject into a factory as follows
+
+```javascript
+var factory = function(variance, mean) { /* ... */ };
+
+hinoki.get(container, hinoki.getFunctionArguments(factory)).spread(factory);
+```
+
+#### `parseFunctionArguments`
+
+#### `resolveFactoryInContainers`
+
+#### `resolveInstanceInContainers`
+
+### use cases
+
+
+##### application
+
+load sync example
+
+##### web application development
+
+the thing hinoki was designed for in the first place.
+
+using hinokis capability to use multiple containers
+it is
+
+an implementation is left as an exercise for the reader.
+
+### errors
+
+catch individual error types using bluebirds catch
+
+#### `CircularDependencyError`
+
+when there is a cycle in the dependency graph described by the factory dependencies
+
+```javascript
+hinoki.get(container, 'variance')
+  .catch(hinoki.CircularDependencyError, function(error) { /* ... */ });
+```
+
+#### `UnresolvableFactoryError`
+
+when no resolver returns a factory for an id
+
+```javascript
+hinoki.get(container, 'variance')
+  .catch(hinoki.UnresolvableFactoryError, function(error) { /* ... */ });
+```
+
+#### `ExceptionInFactoryError`
+
+when a factory throws an error
+
+```javascript
+hinoki.get(container, 'variance')
+  .catch(hinoki.ExceptionInFactoryError, function(error) { /* ... */ });
+```
+
+#### `PromiseRejectedError`
+
+when a factory returns a promise and that promise is rejected
+
+```javascript
+hinoki.get(container, 'variance')
+  .catch(hinoki.PromiseRejectedError, function(error) { /* ... */ });
+```
+
+#### `FactoryNotFunctionError`
+
+when a resolver returns a value that is not a function
+
+```javascript
+hinoki.get(container, 'variance')
+  .catch(hinoki.FactoryNotFunctionError, function(error) { /* ... */ });
+```
+
+#### `FactoryReturnedUndefinedError`
+
+when a factory returns undefined
+
+```javascript
+hinoki.get(container, 'variance')
+  .catch(hinoki.FactoryReturnedUndefinedError, function(error) { /* ... */ });
+```
+
+### containers
 
 call `hinoki.newContainer()` to get a container with sensible default behaviour:
 
@@ -165,21 +281,7 @@ container = hinoki.newContainer()
 
 optionally pass in factories and instances as arguments.
 
-a container created with `hinoki.newContainer()`:
-has an **emitter** property that is an event emitter.
-emits [events](#events) through it.
-
-you can subscribe to all events by subscribing to the `any` event.
-this is useful for debugging:
-
-```javascript
-container.emitter.on('any', console.log);
-```
-
-errors are emitted as the `error` event.
-`error` events are treated as a special case in node.
-if there is no listener for it, then the default action is to print a stack
-trace and exit the program.
+add your own factories by sticking them into the factories object.
 
 a container created with `hinoki.newContainer()`:
 has an **instances** property that is an object.
@@ -199,8 +301,6 @@ you can manipulate the resolvers:
 container.factoryResolvers.push(myFactoryResolver);
 ```
 
-### custom containers
-
 hinoki accepts as a container any object with the following properties that behave as described:
 
 - **factoryResolvers** is an array of functions that each take a *container* and an *id*, return either a *factory function* or *null* and have no side effects
@@ -213,6 +313,5 @@ the container in such a way that **getUnderConstruction** will return that *prom
 that **getUnderConstruction** will return nothing for that *id* in the future
 - **getUnderConstruction** is a function that takes a *container* and an *id* and returns the *promise* that was previously
 set or unset by **setUnderConstruction** or **unsetUnderConstruction**
-- **emit** is a function that takes a container and an event
 
 ### license: MIT

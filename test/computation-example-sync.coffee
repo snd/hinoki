@@ -20,18 +20,19 @@ module.exports =
     c = hinoki.newContainer factories,
       xs: [1, 2, 3, 6]
 
-    hinoki.inject c, (count) ->
-      test.equals count, 4
-      test.deepEqual c.instances,
-        xs: [1, 2, 3, 6]
-        count: 4
-      test.done()
+    hinoki.get(c, 'count')
+      .then (count) ->
+        test.equals count, 4
+        test.deepEqual c.instances,
+          xs: [1, 2, 3, 6]
+          count: 4
+        test.done()
 
   'ask for mean': (test) ->
     c = hinoki.newContainer factories,
       xs: [1, 2, 3, 6]
 
-    hinoki.inject c, (mean) ->
+    hinoki.get(c, 'mean').then (mean) ->
       test.equals mean, 3
       test.deepEqual c.instances,
         xs: [1, 2, 3, 6]
@@ -43,7 +44,7 @@ module.exports =
     c = hinoki.newContainer factories,
       xs: [1, 2, 3, 6]
 
-    hinoki.inject c, (meanOfSquares) ->
+    hinoki.get(c, 'meanOfSquares').then (meanOfSquares) ->
       test.equals meanOfSquares, 12.5
       test.deepEqual c.instances,
         xs: [1, 2, 3, 6]
@@ -55,7 +56,7 @@ module.exports =
     c = hinoki.newContainer factories,
       xs: [1, 2, 3, 6]
 
-    hinoki.inject c, (variance) ->
+    hinoki.get(c, 'variance').then (variance) ->
       test.equals variance, 3.5
       test.deepEqual c.instances,
         xs: [1, 2, 3, 6]
