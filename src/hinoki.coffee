@@ -104,14 +104,14 @@ newHinoki = (Promise) ->
 
         dependenciesPromise = hinoki.get remainingContainers, dependencyIds, debug
 
-        container.setUnderConstruction container, path.id(), instancePromise
-
         instancePromise = dependenciesPromise.then (dependencyInstances) ->
 
           # the dependencies are ready
           # and we can finally call the factory
 
           hinoki.callFactory container, path, factory, dependencyInstances, debug
+
+        container.setUnderConstruction container, path.id(), instancePromise
 
         instancePromise.then (value) ->
           if hinoki.isUndefined value
