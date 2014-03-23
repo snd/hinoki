@@ -81,10 +81,10 @@ newHinoki = function(Promise) {
         return hinoki.castPath(x).concat(path);
       });
       dependenciesPromise = hinoki.get(remainingContainers, dependencyIds, debug);
-      container.setUnderConstruction(container, path.id(), instancePromise);
       instancePromise = dependenciesPromise.then(function(dependencyInstances) {
         return hinoki.callFactory(container, path, factory, dependencyInstances, debug);
       });
+      container.setUnderConstruction(container, path.id(), instancePromise);
       return instancePromise.then(function(value) {
         if (hinoki.isUndefined(value)) {
           error = new hinoki.FactoryReturnedUndefinedError(path, container, factory);
