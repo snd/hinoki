@@ -103,3 +103,30 @@ module.exports =
     hinoki.get(c, 'a').then (a) ->
       test.equals a, instance
       test.done()
+
+  'a factory is called no more than once': (test) ->
+    test.expect 5
+
+    callsTo =
+      a: 0
+      b: 0
+      c: 0
+      d: 0
+
+    c = hinoki.newContainer
+      a: (b, c) ->
+        test.ok callsTo.a < 2
+        Promise.delay(b + c, 40)
+      b: (d) ->
+        test.ok callsTo.b < 2
+        Promise.delay(d + 1, 20)
+      c: (d) ->
+        test.ok callsTo.c < 2
+        Promise.delay(d + 2, 30)
+      d: ->
+        test.ok callsTo.d < 2
+        Promise.delay(10, 10)
+
+    hinoki.get(c, 'a').then (a) ->
+      test.equals a, 23
+      test.done()
