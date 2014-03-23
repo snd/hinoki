@@ -46,7 +46,7 @@ npm install hinoki
 put this line in the dependencies section of your `package.json`:
 
 ```
-"hinoki": "0.3.0-beta.4"
+"hinoki": "0.3.0-beta.5"
 ```
 
 then run:
