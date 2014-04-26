@@ -427,8 +427,8 @@ newHinoki = (Promise) ->
     i = 0
     length = array.length
     while i < length
-      result = iterator array[i]
-      if predicate result
+      result = iterator array[i], i
+      if predicate result, i
         return result
       i++
     return sentinel
