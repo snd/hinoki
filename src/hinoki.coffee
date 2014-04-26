@@ -400,7 +400,7 @@ newHinoki = (Promise) ->
     x is Object(x)
 
   hinoki.isThenable = (x) ->
-    module.exports.isObject(x) and 'function' is typeof x.then
+    hinoki.isObject(x) and 'function' is typeof x.then
 
   hinoki.isUndefined =  (x) ->
     'undefined' is typeof x
@@ -420,8 +420,8 @@ newHinoki = (Promise) ->
 
   hinoki.some = (
     array
-    iterator = module.exports.identity
-    predicate = module.exports.isExisting
+    iterator = hinoki.identity
+    predicate = hinoki.isExisting
     sentinel = undefined
   ) ->
     i = 0

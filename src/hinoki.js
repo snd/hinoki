@@ -370,7 +370,7 @@ newHinoki = function(Promise) {
     return x === Object(x);
   };
   hinoki.isThenable = function(x) {
-    return module.exports.isObject(x) && 'function' === typeof x.then;
+    return hinoki.isObject(x) && 'function' === typeof x.then;
   };
   hinoki.isUndefined = function(x) {
     return 'undefined' === typeof x;
@@ -387,10 +387,10 @@ newHinoki = function(Promise) {
   hinoki.some = function(array, iterator, predicate, sentinel) {
     var i, length, result;
     if (iterator == null) {
-      iterator = module.exports.identity;
+      iterator = hinoki.identity;
     }
     if (predicate == null) {
-      predicate = module.exports.isExisting;
+      predicate = hinoki.isExisting;
     }
     if (sentinel == null) {
       sentinel = void 0;
