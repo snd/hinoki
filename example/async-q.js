@@ -15,7 +15,7 @@ var factories = {
 };
 
 var instances = {
-  domain: 'www.google.com'
+  domain: 'google.com'
 };
 
 var container = hinoki.newContainer(factories, instances);
