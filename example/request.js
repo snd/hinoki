@@ -49,7 +49,6 @@ var requestLifetimeInstances = {
   }
 };
 
-
 var requestLifetimeFactories = {
   url: function(req) {
     return req.url;
