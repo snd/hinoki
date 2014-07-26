@@ -25,11 +25,11 @@
     "node": ">=0.8.0"
   },
   "dependencies": {
-    "bluebird": "1.0.5"
+    "bluebird": "2.2.2"
   },
   "devDependencies": {
     "coffee-script": "1.7.1",
-    "nodeunit": "0.8.4"
+    "nodeunit": "0.9.0"
   },
   "main": "src/hinoki",
   "scripts": {
