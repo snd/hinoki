@@ -2,6 +2,7 @@
 
 [![NPM version](https://badge.fury.io/js/hinoki.svg)](http://badge.fury.io/js/hinoki)
 [![Build Status](https://travis-ci.org/snd/hinoki.svg?branch=master)](https://travis-ci.org/snd/hinoki)
+[![Dependencies](https://david-dm.org/snd/hinoki.svg)](https://david-dm.org/snd/hinoki)
 
 **magical inversion of control for nodejs and the browser**
 
