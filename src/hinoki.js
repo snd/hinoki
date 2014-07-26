@@ -4,7 +4,7 @@
   hinoki = {};
   if (typeof window !== "undefined" && window !== null) {
     if (window.Promise == null) {
-      throw new Error('hinoki requires Promise global by bluebird');
+      throw new Error('hinoki requires Promise global by bluebird to be present');
     }
     Promise = window.Promise;
     window.hinoki = hinoki;
@@ -12,7 +12,7 @@
     Promise = require('bluebird');
     module.exports = hinoki;
   } else {
-    throw new Error('either the `window` global or the `module.exports` global must be defined');
+    throw new Error('either the `window` global or the `module.exports` global must be present');
   }
   hinoki.get = function(oneOrManyContainers, oneOrManyIdsOrPaths, debug) {
     var containers;
@@ -39,7 +39,7 @@
       return instanceResultPromise.then(function(instanceResult) {
         if (typeof debug === "function") {
           debug({
-            event: 'instanceResolved',
+            event: 'instanceFound',
             id: path.id(),
             path: path.segments(),
             instance: instanceResult.instance,

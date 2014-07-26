@@ -2,16 +2,19 @@
 do ->
   hinoki = {}
 
+  ###################################################################################
+  # node.js or browser?
+
   if window?
     unless window.Promise?
-      throw new Error 'hinoki requires Promise global by bluebird'
+      throw new Error 'hinoki requires Promise global by bluebird to be present'
     Promise = window.Promise
     window.hinoki = hinoki
   else if module?.exports?
     Promise = require 'bluebird'
     module.exports = hinoki
   else
-    throw new Error 'either the `window` global or the `module.exports` global must be defined'
+    throw new Error 'either the `window` global or the `module.exports` global must be present'
 
   ###################################################################################
   # get
@@ -42,7 +45,7 @@ do ->
     if instanceResultPromise?
       return instanceResultPromise.then (instanceResult) ->
         debug? {
-          event: 'instanceResolved'
+          event: 'instanceFound'
           id: path.id()
           path: path.segments()
           instance: instanceResult.instance
