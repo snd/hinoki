@@ -93,7 +93,7 @@ do ->
       # wait for that instead of starting a second construction.
       # a factory must only be called exactly once per container.
 
-      underConstruction = container.getUnderConstruction container, path.id()
+      underConstruction = container.underConstruction?[path.id()]
 
       if underConstruction?
         debug? {
@@ -125,15 +125,17 @@ do ->
 
         hinoki.callFactory container, path, factory, dependencyInstances, debug
 
-      container.setUnderConstruction container, path.id(), instancePromise
+      container.underConstruction ?= {}
+      container.underConstruction[path.id()] = instancePromise
 
       instancePromise.then (value) ->
         if hinoki.isUndefined value
           error = new hinoki.FactoryReturnedUndefinedError path, container, factory
           return Promise.reject error
         # instance is fully constructed
-        container.setInstance container, path.id(), value
-        container.unsetUnderConstruction container, path.id()
+        container.instances ?= {}
+        container.instances[path.id()] = value
+        delete container.underConstruction[path.id()]
         value
 
   ###################################################################################
@@ -193,7 +195,10 @@ do ->
   hinoki.resolveFactoryInContainer = (container, idOrPath) ->
     path = hinoki.castPath idOrPath
 
-    hinoki.some container.factoryResolvers, (resolver) ->
+    factoryResolvers = (container.factoryResolvers or [])
+      .concat([hinoki.defaultFactoryResolver])
+
+    hinoki.some factoryResolvers, (resolver) ->
       factory = resolver container, path.id()
 
       # this resolver can't resolve the factory
@@ -232,7 +237,10 @@ do ->
   hinoki.resolveInstanceInContainer = (container, idOrPath) ->
     path = hinoki.castPath idOrPath
 
-    hinoki.some container.instanceResolvers, (resolver) ->
+    instanceResolvers = (container.instanceResolvers or [])
+      .concat([hinoki.defaultInstanceResolver])
+
+    hinoki.some instanceResolvers, (resolver) ->
       instance = resolver container, path.id()
 
       unless instance?
@@ -258,21 +266,16 @@ do ->
         result
 
   ###################################################################################
-  # sugar for container construction
+  # shorthand for container construction
 
-  hinoki.newContainer = (factories = {}, instances = {}) ->
-    factories: factories
-    instances: instances
-    factoryResolvers: [hinoki.defaultFactoryResolver]
-    instanceResolvers: [hinoki.defaultInstanceResolver]
-    underConstruction: {}
-    setInstance: hinoki.defaultSetInstance
-    setUnderConstruction: hinoki.defaultSetUnderConstruction
-    unsetUnderConstruction: hinoki.defaultUnsetUnderConstruction
-    getUnderConstruction: hinoki.defaultGetUnderConstruction
+  hinoki.newContainer = (factories, instances) ->
+    {
+      factories: factories
+      instances: instances
+    }
 
   ###################################################################################
-  # defaults
+  # default resolvers
 
   hinoki.defaultInstanceResolver = (container, id) ->
     container.instances?[id]
@@ -287,20 +290,6 @@ do ->
       factory.$inject = hinoki.parseFunctionArguments factory
 
     return factory
-
-  hinoki.defaultSetInstance = (container, id, instance) ->
-    container.instances[id] = instance
-
-  hinoki.defaultSetUnderConstruction = (container, id, underConstruction) ->
-    container.underConstruction[id] = underConstruction
-
-  hinoki.defaultUnsetUnderConstruction = (container, id) ->
-    value = container.underConstruction[id]
-    delete container.underConstruction[id]
-    value
-
-  hinoki.defaultGetUnderConstruction = (container, id) ->
-    container.underConstruction[id]
 
   ###################################################################################
   # errors

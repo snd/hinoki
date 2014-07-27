@@ -60,7 +60,7 @@
       return Promise.reject(error);
     }
     return factoryResultPromise.then(function(factoryResult) {
-      var container, dependenciesPromise, dependencyIds, factory, instancePromise, remainingContainers, resolver, underConstruction;
+      var container, dependenciesPromise, dependencyIds, factory, instancePromise, remainingContainers, resolver, underConstruction, _ref;
       factory = factoryResult.factory, resolver = factoryResult.resolver, container = factoryResult.container;
       if (typeof debug === "function") {
         debug({
@@ -72,7 +72,7 @@
           container: container
         });
       }
-      underConstruction = container.getUnderConstruction(container, path.id());
+      underConstruction = (_ref = container.underConstruction) != null ? _ref[path.id()] : void 0;
       if (underConstruction != null) {
         if (typeof debug === "function") {
           debug({
@@ -94,14 +94,20 @@
       instancePromise = dependenciesPromise.then(function(dependencyInstances) {
         return hinoki.callFactory(container, path, factory, dependencyInstances, debug);
       });
-      container.setUnderConstruction(container, path.id(), instancePromise);
+      if (container.underConstruction == null) {
+        container.underConstruction = {};
+      }
+      container.underConstruction[path.id()] = instancePromise;
       return instancePromise.then(function(value) {
         if (hinoki.isUndefined(value)) {
           error = new hinoki.FactoryReturnedUndefinedError(path, container, factory);
           return Promise.reject(error);
         }
-        container.setInstance(container, path.id(), value);
-        container.unsetUnderConstruction(container, path.id());
+        if (container.instances == null) {
+          container.instances = {};
+        }
+        container.instances[path.id()] = value;
+        delete container.underConstruction[path.id()];
         return value;
       });
     });
@@ -157,9 +163,10 @@
     });
   };
   hinoki.resolveFactoryInContainer = function(container, idOrPath) {
-    var path;
+    var factoryResolvers, path;
     path = hinoki.castPath(idOrPath);
-    return hinoki.some(container.factoryResolvers, function(resolver) {
+    factoryResolvers = (container.factoryResolvers || []).concat([hinoki.defaultFactoryResolver]);
+    return hinoki.some(factoryResolvers, function(resolver) {
       var error, factory;
       factory = resolver(container, path.id());
       if (factory == null) {
@@ -191,9 +198,10 @@
     });
   };
   hinoki.resolveInstanceInContainer = function(container, idOrPath) {
-    var path;
+    var instanceResolvers, path;
     path = hinoki.castPath(idOrPath);
-    return hinoki.some(container.instanceResolvers, function(resolver) {
+    instanceResolvers = (container.instanceResolvers || []).concat([hinoki.defaultInstanceResolver]);
+    return hinoki.some(instanceResolvers, function(resolver) {
       var instance;
       instance = resolver(container, path.id());
       if (instance == null) {
@@ -221,22 +229,9 @@
     });
   };
   hinoki.newContainer = function(factories, instances) {
-    if (factories == null) {
-      factories = {};
-    }
-    if (instances == null) {
-      instances = {};
-    }
     return {
       factories: factories,
-      instances: instances,
-      factoryResolvers: [hinoki.defaultFactoryResolver],
-      instanceResolvers: [hinoki.defaultInstanceResolver],
-      underConstruction: {},
-      setInstance: hinoki.defaultSetInstance,
-      setUnderConstruction: hinoki.defaultSetUnderConstruction,
-      unsetUnderConstruction: hinoki.defaultUnsetUnderConstruction,
-      getUnderConstruction: hinoki.defaultGetUnderConstruction
+      instances: instances
     };
   };
   hinoki.defaultInstanceResolver = function(container, id) {
@@ -253,21 +248,6 @@
       factory.$inject = hinoki.parseFunctionArguments(factory);
     }
     return factory;
-  };
-  hinoki.defaultSetInstance = function(container, id, instance) {
-    return container.instances[id] = instance;
-  };
-  hinoki.defaultSetUnderConstruction = function(container, id, underConstruction) {
-    return container.underConstruction[id] = underConstruction;
-  };
-  hinoki.defaultUnsetUnderConstruction = function(container, id) {
-    var value;
-    value = container.underConstruction[id];
-    delete container.underConstruction[id];
-    return value;
-  };
-  hinoki.defaultGetUnderConstruction = function(container, id) {
-    return container.underConstruction[id];
   };
   hinoki.CircularDependencyError = function(path, container) {
     this.message = "circular dependency " + (path.toString());
