@@ -1,9 +1,9 @@
 module.exports.startServer = function(
   console,
-  database,
+  getUserWhereId,
   configPort
 ) {
   return function() {
-    console.log('starting server on port', configPort, 'using database', database);
+    console.log('starting server on port', configPort);
   };
 };

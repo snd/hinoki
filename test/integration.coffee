@@ -4,13 +4,13 @@ hinoki = require '../src/hinoki'
 
 module.exports =
 
-  'get instance': (test) ->
+  'get value': (test) ->
     c = hinoki.newContainer {},
       x: 1
 
     hinoki.get(c, 'x').then (x) ->
       test.equals x, 1
-      test.equals c.instances.x, 1
+      test.equals c.values.x, 1
       test.done()
 
   'sync get from factory': (test) ->
@@ -19,7 +19,7 @@ module.exports =
 
     hinoki.get(c, 'x').then (x) ->
       test.equals x, 1
-      test.equals c.instances.x, 1
+      test.equals c.values.x, 1
       test.done()
 
   'async get from factory': (test) ->
@@ -28,7 +28,7 @@ module.exports =
 
     hinoki.get(c, 'x').then (x) ->
       test.equals x, 1
-      test.equals c.instances.x, 1
+      test.equals c.values.x, 1
       test.done()
 
   'sync get with dependencies': (test) ->
@@ -40,7 +40,7 @@ module.exports =
       test.equals x, 2
       test.done()
 
-  'containers are tried in order. instances are created in container that resolved factory': (test) ->
+  'containers are tried in order. values are created in container that resolved factory': (test) ->
     c1 = hinoki.newContainer
       a: (b) ->
         b + 1
@@ -59,10 +59,10 @@ module.exports =
       test.equals a, 4
       test.equals d, 1
 
-      test.equals c1.instances.a, 4
-      test.equals c2.instances.b, 3
-      test.equals c3.instances.c, 2
-      test.equals c3.instances.d, 1
+      test.equals c1.values.a, 4
+      test.equals c2.values.b, 3
+      test.equals c3.values.c, 2
+      test.equals c3.values.d, 1
 
       test.done()
 
@@ -84,7 +84,7 @@ module.exports =
     test.expect 5
     c = hinoki.newContainer()
 
-    instance = {}
+    value = {}
 
     c.factoryResolvers = [
       (container, id, inner) ->
@@ -96,23 +96,23 @@ module.exports =
         test.equals container, c
         test.equals id, 'a'
         ->
-          instance
+          value
       # this resolver is not called by the one above
       (container, id) ->
         test.fail()
     ]
 
     hinoki.get(c, 'a').then (a) ->
-      test.equals a, instance
+      test.equals a, value
       test.done()
 
-  'instance resolvers wrap around default resolver': (test) ->
+  'value resolvers wrap around default resolver': (test) ->
     test.expect 5
     c = hinoki.newContainer()
 
-    instance = {}
+    value = {}
 
-    c.instanceResolvers = [
+    c.valueResolvers = [
       (container, id, inner) ->
         test.equals container, c
         test.equals id, 'a'
@@ -121,14 +121,14 @@ module.exports =
       (container, id) ->
         test.equals container, c
         test.equals id, 'a'
-        instance
+        value
       # this resolver is not called by the one above
       (container, id) ->
         test.fail()
     ]
 
     hinoki.get(c, 'a').then (a) ->
-      test.equals a, instance
+      test.equals a, value
       test.done()
 
   'a factory is called no more than once': (test) ->

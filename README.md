@@ -15,14 +15,24 @@ hinoki is inspired by [prismatic's graph](https://github.com/Prismatic/plumbing#
 
 ### hinoki features
 
+in a nutshell
+
 - [large test suite](test)
 - [just ~500 lines of code](src/hinoki.coffee)
 - battle-tested in production
-- [a functional approach with localized mutable state](#containers)
-- containers are just data
+- [a functional data-driven approach with localized mutable state](#containers)
 - a simple carefully-designed (underlying) model
 flexible core
 a simple, carefully-designed and flexible core with many useful qualities
+
+Use multiple Containers with different lifetimes that reference each Other
+
+containers with lower lifetimes can depend on containers with higher lifetimes
+
+A is active during a request but depends on some Things in b which lives through the entire process
+
+containers can depend on other containers
+granular control over
 that allows functionality/features to emerge around it
 that enables a lot of emerging functionality to be build with it.
 - decomplected
@@ -54,20 +64,19 @@ if you use hinoki i am very happy to hear from you.
 - [browser setup](#browser-setup)
 - [getting started](#getting-started)
 - [usage](#usage)
+  - [containers](#containers)
   - [asynchronous dependencies](#asynchronous-dependencies)
   - [parsing dependencies from function arguments](#parsing-dependencies-from-function-arguments)
   - [dependencies of factory functions](#dependencies-of-factory-functions)
   - [multiple containers](#multiple-containers)
-  - [resolvers](#resolvers)
   - [logging & debugging](#logging-debugging)
   - [error handling](#error-handling)
-  - [containers](#containers)
+  - [resolvers](#resolvers)
 - [reference](#reference)
   - [API](#api)
     - [`hinoki.get`](#hinokiget)
   - [errors](#errors)
-  - [container spec](#container-spec)
-- [collaboration](#license-mit)
+- [changelog](#changelog)
 - [license](#license-mit)
 
 ## why hinoki?
@@ -97,6 +106,12 @@ depend on each other and can then resolve the dependencies automatically.
 mock
 
 self contained units
+
+separation of concerns
+
+very testable
+
+[see the example app](example-app) [(entry point is main.js)](example-app/main.js)
 
 ## node.js setup
 
@@ -134,12 +149,13 @@ a build system like [gulp](http://gulpjs.com/) to bring everything together*
 
 ## getting started
 
-in the world of hinoki an **ID** is the name for a building block of the application
-and an **INSTANCE** is the value of an **ID**:
+in the world of hinoki an **ID** is the name
+for a part of the application.
+an **ID** might have a **VALUE**:
 it could be a function, a piece of data, an object, a module, a library...
 
 ```javascript
-var instances = {
+var values = {
   xs: [1, 2, 3, 6]
 };
 ```
@@ -147,8 +163,8 @@ var instances = {
 an **ID** can depend on other **IDs**, its dependencies.
 
 a **FACTORY** for an **ID** is a function that takes
-the **INSTANCES** of the **ID's** dependencies
-and returns the **INSTANCE** of the **ID**:
+the **VALUES** of the **ID's** dependencies
+and returns the **VALUE** of the **ID**:
 
 ```javascript
 var factories = {
@@ -173,18 +189,18 @@ var factories = {
 };
 ```
 
-a **CONTAINER** manages the **FACTORIES** and **INSTANCES** for a set of **IDS**:
+a **CONTAINER** manages the **FACTORIES** and **VALUES** for a set of **IDS**:
 
 ```javascript
 var container = {
   factories: factories,
-  instances: instances
+  values: values
 };
 ```
 
 [**CONTAINERS** are just a plain old javascript objects](#containers)
 
-a **CONTAINER** can be asked for the **INSTANCE** of an **ID**:
+a **CONTAINER** can be asked for the **VALUE** of an **ID**:
 
 ```javascript
 hinoki.get(container, 'mean').then(function(mean) {
@@ -192,17 +208,22 @@ hinoki.get(container, 'mean').then(function(mean) {
 });
 ```
 
-the instances will be created and cached in the container
+hinoki always returns a promise: to normalize synchronous and asynchronous
+dependencies and to simplify error handling.
+
+asking for an uncached **ID** will ask for its dependencies (and their dependencies...),
+call its **FACTORY** to get the **VALUE** and cache the new **VALUES** in
+the **CONTAINER**:
 
 ```javascript
-console.log(container.instances);
+console.log(container.values);
 // ->
 // { xs: [ 1, 2, 3, 6 ],
 //   count: 4,
 //   mean: 3 }
 ```
 
-asking for a cached **ID** again will return the cached **INSTANCE**.
+asking for a cached **ID** again will return the cached **VALUE**.
 
 ```javascript
 hinoki.get(container, 'count').then(function(count) {
@@ -210,15 +231,11 @@ hinoki.get(container, 'count').then(function(count) {
 });
 ```
 
-asking for an uncached **ID** will ask for its dependencies (and their dependencies...),
-call its **FACTORY** to get the **INSTANCE** and cache the new **INSTANCES** in
-the **CONTAINER**:
-
 ```javascript
 hinoki.get(container, 'variance').then(function(variance) {
   console.log(variance);  // -> 3.5
 
-  console.log(container.instances);
+  console.log(container.values);
   // ->
   // { xs: [ 1, 2, 3, 6 ],
   //   count: 4,
@@ -237,38 +254,48 @@ hinoki.get(container, 'variance').then(function(variance) {
 
 hinoki itself uses no global or module-level mutable state.
 
-its side effects (instance caching) are restricted to and localized in containers.
+its side effects are localized in containers:
+hinoki adds values to containers.
 containers are just data (plain old javascript objects).
-they can easily be inspected and manipulated using standard javascript.
+inspect and manipulate them easily using standard javascript.
 
 scope
 
 lifetime
 
+think about containers as tuples of **VALUES** and **FACTORIES**
+that belong together in a specific combination.
+
+feel free to mix and match.
+
+feel free to tear them apart.
+
 it's often useful for multiple **CONTAINERS** to use the same **FACTORIES**
-but different **INSTANCES**
+but different **VALUES**
 
 ```javascript
-var anotherInstances = {
+var otherValues = {
   xs: [2, 3, 4, 5]
 };
 
-var anotherContainer = {
+var otherContainer = {
   factories: factories,
-  instances: instances
+  values: otherValues
 };
 
-hinoki.get(anotherContainer, 'mean').then(function(mean) {
+hinoki.get(otherContainer, 'mean').then(function(mean) {
   console.log(mean);  // -> 3.5
-});
+  console.log(otherContainer.values);
+  // ->
+  // { xs: [ 2, 3, 4, 5 ],
+  //   count: 4,
+  //   mean: 3.5 }
+  });
 ```
 
-a **CONTAINER** owns **INSTANCES**.
-
-use **CONTAINERS** to control scope and lifetime of **INSTANCES**.
+a **CONTAINER** owns **VALUES** and controls their scope and lifetime.
 
 just use a new **CONTAINER** whenever you need a fresh scope.
-
 
 ### asynchronous dependencies
 
@@ -303,7 +330,7 @@ asks container for `variance` and `mean` and calls `factory` with them.
 ### dependencies of factory functions
 
 if a factory function has the `$inject` property containing an
-array of dependency ids then hinoki will ask for instances of those ids
+array of dependency ids then hinoki will ask for values of those ids
 and inject them into the factory.
 
 otherwise hinoki will parse the dependency ids from the factory
@@ -343,13 +370,16 @@ hinoki supports multiple containers.
 
 containers are asked in order from first to last.
 
-instances are added to the container that resolved the factory.
+values are added to the container that resolved the factory.
 
 factories can depend on dependencies in succeeding containers.
 
 [see example](example/request.js) ...you get the idea ;-)
 
 this opens new possibilities for web development - demo application coming soon!
+
+### scope
+
 
 ### logging & debugging
 
@@ -365,14 +395,13 @@ hinoki.get(container, 'variance', console.log)
 
 the callback will be called with an event object which has the following properties:
 
-- `event` = one of `instanceFound`, `factoryFound`, `instanceUnderConstruction`, `instanceCreated`,
+- `event` = one of `valueFound`, `factoryFound`, `valueUnderConstruction`, `valueCreated`,
 `promiseCreated`, `promiseResolved`
 - `id` = id of the dependency that caused the event
 - `path` = full dependency path
 (call `path.toString() -> 'a <- b <- c'` or `path.segments() -> ['a', 'b', 'c']`)
 - `container` = the container on which the event occured
-- `value` = the value the promise was resolved to (just for `promiseResolved`)
-- `instance` = the instance (just for `instanceFound` and `instanceCreated`)
+- `value` = the value (just for `valueFound`, `valueCreated` and `promiseResolved`)
 - `factory` = the factory (just for `factoryFound`)
 - `promise` = the promise returned by the factory (just for `promiseCreated`)
 
@@ -397,23 +426,27 @@ hinoki.get(container, 'variance')
 
 **~~ RESOLVERS ARE LIKELY TO CHANGE IN THE FUTURE ~~**
 
-resolvers add a level of indirection to the lookup of factories and instances
+resolvers add a level of indirection that allows you to
+intercept the lookup of factories and values
 in containers.
 
-this allows you to intercept 
+there are 
+but the same is true for value resolvers -
+just replace **FACTORY** with **VALUE** in your mind.
 
-an instance resolver is a function that takes a container and
-an id and returns an instance.
+a factory resolver is just a function that takes a container and an
+id and returns a factory or `null`.
 
-a resolver takes (resolves) an id and returns a factory
+by default hinoki uses the `hinoki.defaultFactoryResolver` that simply
+looks up the id in the containers `factories` property.
+
+by adding `
+
+those take an additional third argument
 
 a resolver must be pure and always return the same factory or a factory
 that behaves identically
 of the same id
-
-```javascript
-container.instanceResolvers.push(myInstanceResolver);
-```
 
 has a single factoryResolver that resolves factories in the **factories** object.
 you can manipulate the resolvers:
@@ -424,11 +457,15 @@ container.factoryResolvers.push(myFactoryResolver);
 
 resolvers can be used to 
 
-resolvers can be used to generate factories and instances on the fly.
+resolvers can be used to generate factories and values on the fly.
 they can return factories without them being in `container.factories`.
 a resolver could respond to `getUserWhereId` with a function
 
 interesting alternative to rubys method missing
+
+### application architecture with hinoki
+
+example of how to create a factories object from dependencies in
 
 ## reference
 
@@ -438,7 +475,7 @@ interesting alternative to rubys method missing
 
 takes one or many **CONTAINERS** and one or many **IDS**.
 
-returns a [bluebird](https://github.com/petkaantonov/bluebird) promise that is resolved with an instance (for one id) or an array of instances (for many ids).
+returns a [bluebird](https://github.com/petkaantonov/bluebird) promise that is resolved with an value (for one id) or an array of values (for many ids).
 the promise is rejected in case of [errors](#errors).
 side effect the container
 
@@ -476,7 +513,7 @@ hinoki.get(container, 'variance', console.log)
 
 #### `hinoki.resolveFactoryInContainers`
 
-#### `hinoki.resolveInstanceInContainers`
+#### `hinoki.resolveValueInContainers`
 
 ### errors
 
@@ -533,5 +570,7 @@ when a factory returns undefined
 hinoki.get(container, 'variance')
   .catch(hinoki.FactoryReturnedUndefinedError, function(error) { /* ... */ });
 ```
+
+## changelog
 
 ## license: MIT

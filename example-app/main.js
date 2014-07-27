@@ -41,7 +41,7 @@ container.factories = {};
 // to the factories object
 loadFolderSync(path.resolve(__dirname, './services'), container.factories)
 
-container.instances = {
+container.values = {
   // lets mock out the console
   console: {
     log: function() {

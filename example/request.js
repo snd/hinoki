@@ -6,7 +6,7 @@ var Promise = require('bluebird');
 
 processContainer = {};
 
-processContainer.instances = {
+processContainer.values = {
   env: {
     IS_ADMIN_REQUIRED: 'true'
   }
@@ -30,7 +30,7 @@ processContainer.factories = {
 // assume this to be created for every request
 requestContainer = {};
 
-requestContainer.instances = {
+requestContainer.values = {
   // assume this is a nodejs request object
   req: {
     url: '/protected',
@@ -89,8 +89,8 @@ var factory = function(
     sendForbidden();
   }
 
-  console.log('processContainer.instances', processContainer.instances);
-  console.log('requestContainer.instances', requestContainer.instances);
+  console.log('processContainer.values', processContainer.values);
+  console.log('requestContainer.values', requestContainer.values);
 };
 
 hinoki.get(containers, hinoki.parseFunctionArguments(factory)).spread(factory);

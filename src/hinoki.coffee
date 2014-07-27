@@ -37,24 +37,24 @@ do ->
   hinoki.getOne = (containers, idOrPath, debug) ->
     path = hinoki.castPath idOrPath
 
-    # resolveInstanceInContainers has the opportunity
+    # resolveValueInContainers has the opportunity
     # to return an error through a rejected promise that
-    # is returned by getOrCreateManyInstances unchanged
-    instanceResultPromise = hinoki.resolveInstanceInContainers containers, path
+    # is returned by getOrCreateManyValues unchanged
+    valueResultPromise = hinoki.resolveValueInContainers containers, path
 
-    if instanceResultPromise?
-      return instanceResultPromise.then (instanceResult) ->
+    if valueResultPromise?
+      return valueResultPromise.then (valueResult) ->
         debug? {
-          event: 'instanceFound'
+          event: 'valueFound'
           id: path.id()
           path: path.segments()
-          instance: instanceResult.instance
-          resolver: instanceResult.resolver
-          container: instanceResult.container
+          value: valueResult.value
+          resolver: valueResult.resolver
+          container: valueResult.container
         }
-        instanceResult.instance
+        valueResult.value
 
-    # no instance available. we need a factory.
+    # no value available. we need a factory.
     # let's check for cycles first since
     # we can't use a factory if the id contains a cycle.
 
@@ -67,7 +67,7 @@ do ->
 
     # resolveFactoryInContainers has the opportunity
     # to return an error through a rejected promise that
-    # is returned by getOrCreateManyInstances unchanged
+    # is returned by getOrCreateManyValues unchanged
     factoryResultPromise = hinoki.resolveFactoryInContainers containers, path
 
     unless factoryResultPromise?
@@ -89,7 +89,7 @@ do ->
         container: container
       }
 
-      # if the instance is already being constructed
+      # if the value is already being constructed
       # wait for that instead of starting a second construction.
       # a factory must only be called exactly once per container.
 
@@ -97,7 +97,7 @@ do ->
 
       if underConstruction?
         debug? {
-          event: 'instanceUnderConstruction'
+          event: 'valueUnderConstruction'
           id: path.id()
           path: path.segments()
           value: underConstruction
@@ -105,7 +105,7 @@ do ->
         }
         return underConstruction
 
-      # there is no instance under construction. lets make one!
+      # there is no value under construction. lets make one!
 
       # lets resolve the dependencies of the factory
 
@@ -118,61 +118,61 @@ do ->
 
       dependenciesPromise = hinoki.get remainingContainers, dependencyIds, debug
 
-      instancePromise = dependenciesPromise.then (dependencyInstances) ->
+      valuePromise = dependenciesPromise.then (dependencyValues) ->
 
         # the dependencies are ready
         # and we can finally call the factory
 
-        hinoki.callFactory container, path, factory, dependencyInstances, debug
+        hinoki.callFactory container, path, factory, dependencyValues, debug
 
       container.underConstruction ?= {}
-      container.underConstruction[path.id()] = instancePromise
+      container.underConstruction[path.id()] = valuePromise
 
-      instancePromise.then (value) ->
+      valuePromise.then (value) ->
         if hinoki.isUndefined value
           error = new hinoki.FactoryReturnedUndefinedError path, container, factory
           return Promise.reject error
-        # instance is fully constructed
-        container.instances ?= {}
-        container.instances[path.id()] = value
+        # value is fully constructed
+        container.values ?= {}
+        container.values[path.id()] = value
         delete container.underConstruction[path.id()]
         value
 
   ###################################################################################
   # call factory
 
-  hinoki.callFactory = (container, idOrPath, factory, dependencyInstances, debug) ->
+  hinoki.callFactory = (container, idOrPath, factory, dependencyValues, debug) ->
     path = hinoki.castPath idOrPath
     try
-      instanceOrPromise = factory.apply null, dependencyInstances
+      valueOrPromise = factory.apply null, dependencyValues
     catch exception
       error = new hinoki.ExceptionInFactoryError path, container, exception
       return Promise.reject error
 
-    unless hinoki.isThenable instanceOrPromise
-      # instanceOrPromise is not a promise but an instance
+    unless hinoki.isThenable valueOrPromise
+      # valueOrPromise is not a promise but an value
       debug? {
-        event: 'instanceCreated',
+        event: 'valueCreated',
         id: path.id()
         path: path.segments()
-        instance: instanceOrPromise
+        value: valueOrPromise
         factory: factory
         container: container
       }
-      return Promise.resolve instanceOrPromise
+      return Promise.resolve valueOrPromise
 
-    # instanceOrPromise is a promise
+    # valueOrPromise is a promise
 
     debug? {
       event: 'promiseCreated'
       id: path.id()
       path: path.segments()
-      promise: instanceOrPromise
+      promise: valueOrPromise
       container: container
       factory: factory
     }
 
-    Promise.resolve(instanceOrPromise)
+    Promise.resolve(valueOrPromise)
       .then (value) ->
         debug? {
           event: 'promiseResolved'
@@ -237,40 +237,40 @@ do ->
         result
 
   ###################################################################################
-  # functions that resolve instances
+  # functions that resolve values
 
-  # returns either null or a promise that resolves to {instance: }
+  # returns either null or a promise that resolves to {value: }
 
-  hinoki.resolveInstanceInContainer = (container, idOrPath) ->
+  hinoki.resolveValueInContainer = (container, idOrPath) ->
     path = hinoki.castPath idOrPath
     id = path.id()
 
     defaultResolve = ->
-      hinoki.defaultInstanceResolver container, id
+      hinoki.defaultValueResolver container, id
 
     resolve =
-      if container.instanceResolvers?
+      if container.valueResolvers?
         accum = (inner, resolver) ->
           -> resolver container, id, inner
-        container.instanceResolvers.reduceRight accum, defaultResolve
+        container.valueResolvers.reduceRight accum, defaultResolve
       else
         defaultResolve
 
-    instance = resolve()
+    value = resolve()
 
-    unless instance?
+    unless value?
       return
 
     Promise.resolve
-      instance: instance
+      value: value
 
-  # returns either null or a promise that resolves to {container: , instance: }
+  # returns either null or a promise that resolves to {container: , value: }
 
-  hinoki.resolveInstanceInContainers = (containers, idOrPath) ->
+  hinoki.resolveValueInContainers = (containers, idOrPath) ->
     path = hinoki.castPath idOrPath
 
     hinoki.some containers, (container) ->
-      promise = hinoki.resolveInstanceInContainer container, path
+      promise = hinoki.resolveValueInContainer container, path
 
       unless promise?
         return
@@ -282,17 +282,17 @@ do ->
   ###################################################################################
   # shorthand for container construction
 
-  hinoki.newContainer = (factories, instances) ->
+  hinoki.newContainer = (factories, values) ->
     {
       factories: factories
-      instances: instances
+      values: values
     }
 
   ###################################################################################
   # default resolvers
 
-  hinoki.defaultInstanceResolver = (container, id) ->
-    container.instances?[id]
+  hinoki.defaultValueResolver = (container, id) ->
+    container.values?[id]
 
   hinoki.defaultFactoryResolver = (container, id) ->
     factory = container.factories?[id]

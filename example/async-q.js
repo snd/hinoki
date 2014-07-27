@@ -14,13 +14,13 @@ var factories = {
   }
 };
 
-var instances = {
+var values = {
   domain: 'google.com'
 };
 
 var container = {
   factories: factories,
-  instances: instances
+  values: values
 };
 
 hinoki.get(container, 'domains', console.log).then(function(domains) {

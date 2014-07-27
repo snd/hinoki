@@ -21,13 +21,13 @@ var factories = {
   }
 };
 
-var instances = {
+var values = {
   xs: [1, 2, 3, 6]
 };
 
 var container = {
   factories: factories,
-  instances: instances
+  values: values
 };
 
 hinoki.get(container, 'mean', console.log).then(function(mean) {
