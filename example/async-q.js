@@ -18,7 +18,10 @@ var instances = {
   domain: 'google.com'
 };
 
-var container = hinoki.newContainer(factories, instances);
+var container = {
+  factories: factories,
+  instances: instances
+};
 
 hinoki.get(container, 'domains', console.log).then(function(domains) {
   console.log(domains);

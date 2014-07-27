@@ -4,33 +4,33 @@ var Promise = require('bluebird');
 ////////////////////////////////////////////////////////////////////////////////
 // process lifetime
 
-var processLifetimeInstances = {
+processContainer = {};
+
+processContainer.instances = {
   env: {
     IS_ADMIN_REQUIRED: 'true'
   }
 };
 
-var processLifetimeFactories = {
+processContainer.factories = {
   configIsAdminRequired: function(env) {
     return env.IS_ADMIN_REQUIRED === 'true'
   },
   isUserAdminWhereId: function() {
     return function(userId) {
     // would usually depend on the database connection and access the database...
-      return Promise.delay(userId === 9000, 100);
+      return Promise.delay(userId === 8000, 100);
     };
   }
 };
 
-var processLifetimeContainer = hinoki.newContainer(
-  processLifetimeFactories,
-  processLifetimeInstances
-);
-
 ////////////////////////////////////////////////////////////////////////////////
 // request lifetime
 
-var requestLifetimeInstances = {
+// assume this to be created for every request
+requestContainer = {};
+
+requestContainer.instances = {
   // let's assume this is a nodejs request object
   req: {
     url: '/protected',
@@ -49,7 +49,7 @@ var requestLifetimeInstances = {
   }
 };
 
-var requestLifetimeFactories = {
+requestContainer.factories = {
   url: function(req) {
     return req.url;
   },
@@ -71,18 +71,12 @@ var requestLifetimeFactories = {
   }
 };
 
-// created for every request
-var requestLifetimeContainer = hinoki.newContainer(
-  requestLifetimeFactories,
-  requestLifetimeInstances
-);
-
 ////////////////////////////////////////////////////////////////////////////////
 // injection
 
 var containers = [
-  requestLifetimeContainer,
-  processLifetimeContainer
+  requestContainer,
+  processContainer
 ];
 
 var factory = function(
@@ -95,8 +89,8 @@ var factory = function(
     sendForbidden();
   }
 
-  console.log('processLifetimeInstances', processLifetimeInstances);
-  console.log('requestLifetimeInstances', requestLifetimeInstances);
+  console.log('processContainer.instances', processContainer.instances);
+  console.log('requestContainer.instances', requestContainer.instances);
 };
 
 hinoki.get(containers, hinoki.parseFunctionArguments(factory)).spread(factory);

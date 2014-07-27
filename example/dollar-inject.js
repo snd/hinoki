@@ -12,7 +12,9 @@ var factories = {
 
 factories.ac.$inject = ['a', 'c'];
 
-var container = hinoki.newContainer(factories);
+var container = {
+  factories: factories
+};
 
 hinoki.get(container, 'acd', console.log).then(function(acd) {
   console.log(acd);  // -> 'acd'

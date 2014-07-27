@@ -25,7 +25,10 @@ var instances = {
   xs: [1, 2, 3, 6]
 };
 
-var container = hinoki.newContainer(factories, instances);
+var container = {
+  factories: factories,
+  instances: instances
+};
 
 hinoki.get(container, 'mean', console.log).then(function(mean) {
   console.log(mean);  // -> 3
