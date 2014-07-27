@@ -7,7 +7,7 @@
 >  magical inversion of control for nodejs and the browser
 
 hinoki is a powerful and flexible asynchronous dependency injection system
-designed to manage complexity in large applications.
+designed to manage complexity in large applications
 
 hinoki is inspired by [prismatic's graph](https://github.com/Prismatic/plumbing#graph-the-functional-swiss-army-knife) and [angular's dependency injection](http://docs.angularjs.org/guide/di).
 
@@ -17,35 +17,35 @@ hinoki is inspired by [prismatic's graph](https://github.com/Prismatic/plumbing#
 
 - [large test suite](test)
 - [just ~500 lines of code](src/hinoki.coffee)
-- containers are just data plain old javascript objects and can be
-manipulated at will
-- restricted mutable state
+- battle-tested in production
+- [a functional approach with localized mutable state](#containers)
+- containers are just data
 - a simple carefully-designed (underlying) model
 flexible core
 a simple, carefully-designed and flexible core with many useful qualities
 that allows functionality/features to emerge around it
 that enables a lot of emerging functionality to be build with it.
-- no global / module-level state (state only lives in containers)
 - decomplected
-- completely asynchronous
-- battle-tested on production
-- data all the things
+- [asynchronous dependencies through promises](#asynchronous)
 - works in [node.js](#nodejs-setup) and in the [browser](#browser-setup)
-- powerful error handling and catching using bluebirds catch
-- introspection
-- powerful debugging
+- [powerful error handling](#error-handling)
+- [powerful logging & debugging for every step of the dependency injection process](#logging-debugging)
 - multiple containers
-- ability to intercept
+- [ability to intercept](#resolvers)
 
 #### ~~ HINOKI IS A WORK IN PROGRESS ~~
 
-it is used in production and growing with the challenges encountered there.
+it is used in production and growing with the challenges encountered there
 
 hinoki will always stay true to its core principles.
 
 - a functional data-driven rather than object oriented approach
 - small elegant codebase
 - simple, well-thought-out carefully-designed
+
+if you would like to
+
+if you use hinoki i am very happy to hear from you.
 
 ### index
 
@@ -134,11 +134,9 @@ a build system like [gulp](http://gulpjs.com/) to bring everything together*
 
 ## getting started
 
-in the world of hinoki an **ID** is the name for a piece of the system, a contract.
-building block.
-
-an **INSTANCE** is the value of an **ID**:
-it could be a function, a piece of data, an object, a library...
+in the world of hinoki an **ID** is the name for a building block of the application
+and an **INSTANCE** is the value of an **ID**:
+it could be a function, a piece of data, an object, a module, a library...
 
 ```javascript
 var instances = {
@@ -146,9 +144,11 @@ var instances = {
 };
 ```
 
+an **ID** can depend on other **IDs**, its dependencies.
+
 a **FACTORY** for an **ID** is a function that takes
 the **INSTANCES** of the **ID's** dependencies
-and returns an **INSTANCE** of the **ID**:
+and returns the **INSTANCE** of the **ID**:
 
 ```javascript
 var factories = {
@@ -176,8 +176,13 @@ var factories = {
 a **CONTAINER** manages the **FACTORIES** and **INSTANCES** for a set of **IDS**:
 
 ```javascript
-var container = hinoki.newContainer(factories, instances);
+var container = {
+  factories: factories,
+  instances: instances
+};
 ```
+
+[**CONTAINERS** are just a plain old javascript objects](#containers)
 
 a **CONTAINER** can be asked for the **INSTANCE** of an **ID**:
 
@@ -205,8 +210,9 @@ hinoki.get(container, 'count').then(function(count) {
 });
 ```
 
-asking for an uncached **ID** will ask for the 
-and cache all that are not already cached.
+asking for an uncached **ID** will ask for its dependencies (and their dependencies...),
+call its **FACTORY** to get the **INSTANCE** and cache the new **INSTANCES** in
+the **CONTAINER**:
 
 ```javascript
 hinoki.get(container, 'variance').then(function(variance) {
@@ -223,6 +229,22 @@ hinoki.get(container, 'variance').then(function(variance) {
 
 ```
 
+[see the whole example again](example/computation.js)
+
+## usage
+
+### containers
+
+hinoki itself uses no global or module-level mutable state.
+
+its side effects (instance caching) are restricted to and localized in containers.
+containers are just data (plain old javascript objects).
+they can easily be inspected and manipulated using standard javascript.
+
+scope
+
+lifetime
+
 it's often useful for multiple **CONTAINERS** to use the same **FACTORIES**
 but different **INSTANCES**
 
@@ -231,7 +253,10 @@ var anotherInstances = {
   xs: [2, 3, 4, 5]
 };
 
-var anotherContainer = hinoki.newContainer(factories, anotherInstances);
+var anotherContainer = {
+  factories: factories,
+  instances: instances
+};
 
 hinoki.get(anotherContainer, 'mean').then(function(mean) {
   console.log(mean);  // -> 3.5
@@ -244,9 +269,6 @@ use **CONTAINERS** to control scope and lifetime of **INSTANCES**.
 
 just use a new **CONTAINER** whenever you need a fresh scope.
 
-[see the whole example again](example/computation.js)
-
-## usage
 
 ### asynchronous dependencies
 
@@ -281,7 +303,7 @@ asks container for `variance` and `mean` and calls `factory` with them.
 ### dependencies of factory functions
 
 if a factory function has the `$inject` property containing an
-array of dependency ids then hinoki will resolve those ids
+array of dependency ids then hinoki will ask for instances of those ids
 and inject them into the factory.
 
 otherwise hinoki will parse the dependency ids from the factory
@@ -301,7 +323,9 @@ var factories = {
 
 factories.ac.$inject = ['a', 'c'];
 
-var container = hinoki.newContainer(factories);
+var container = {
+  factories: factories
+};
 
 hinoki.get(container, 'acd', console.log).then(function(acd) {
   console.log(acd);  // -> 'acd'
@@ -325,7 +349,7 @@ factories can depend on dependencies in succeeding containers.
 
 [see example](example/request.js) ...you get the idea ;-)
 
-this enables new possibilities for web development. **demo application coming soon!!**
+this opens new possibilities for web development - demo application coming soon!
 
 ### logging & debugging
 
@@ -387,25 +411,6 @@ a resolver takes (resolves) an id and returns a factory
 a resolver must be pure and always return the same factory or a factory
 that behaves identically
 of the same id
-
-### containers
-
-call `hinoki.newContainer()` to get a container with sensible default behaviour:
-
-```javascript
-container = hinoki.newContainer()
-```
-
-optionally pass in factories and instances as arguments.
-
-add your own factories by sticking them into the factories object.
-
-a container created with `hinoki.newContainer()`:
-has an **instances** property that is an object.
-sets instances in the **instances** object.
-
-has a single instanceResolver that resolves instances in the **instances** object.
-you can manipulate the resolvers:
 
 ```javascript
 container.instanceResolvers.push(myInstanceResolver);
@@ -521,24 +526,5 @@ when a factory returns undefined
 hinoki.get(container, 'variance')
   .catch(hinoki.FactoryReturnedUndefinedError, function(error) { /* ... */ });
 ```
-
-### container spec
-
-**~~ THIS IS LIKELY TO CHANGE IN THE FUTURE ~~**
-
-hinoki accepts as a container any object with the following properties that behave as described:
-
-- **factoryResolvers** is an array of functions that each take a *container* and an *id*, return either a *factory function* or *null* and have no side effects
-- **instanceResolvers** is an array of functions that each take a *container* and an *id*, return an *instance value* and have no side effects
-- **setInstance** is a function that takes a *container*, an *id* and an *instance value* and side effects the container
-in such a way that the *instance value* will be returned by an instance resolver for that *id* in the future
-- **setUnderConstruction** is a function that takes a *container*, an *id* and a *promise* and side effects the
-the container in such a way that **getUnderConstruction** will return that *promise* for that *id* in the future
-- **unsetUnderConstruction** is a function that takes a *container* and an *id* and side effects the container in such a way
-that **getUnderConstruction** will return nothing for that *id* in the future
-- **getUnderConstruction** is a function that takes a *container* and an *id* and returns the *promise* that was previously
-set or unset by **setUnderConstruction** or **unsetUnderConstruction**
-
-## collaboration
 
 ## license: MIT
