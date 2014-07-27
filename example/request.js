@@ -31,14 +31,14 @@ processContainer.factories = {
 requestContainer = {};
 
 requestContainer.instances = {
-  // let's assume this is a nodejs request object
+  // assume this is a nodejs request object
   req: {
     url: '/protected',
     session: {
       userId: 9000
     }
   },
-  // let's assume this is a nodejs response object
+  // assume this is a nodejs response object
   res: {
     write: function(string) {
       console.log('req.write:', string);
