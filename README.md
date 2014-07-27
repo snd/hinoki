@@ -30,7 +30,7 @@ that enables a lot of emerging functionality to be build with it.
 - works in [node.js](#nodejs-setup) and in the [browser](#browser-setup)
 - [powerful error handling](#error-handling)
 - [powerful logging & debugging for every step of the dependency injection process](#logging-debugging)
-- multiple containers
+- [the ability to use multiple containers opens up interesting possibilities](#multiple-containers)
 - [ability to intercept](#resolvers)
 
 #### ~~ HINOKI IS A WORK IN PROGRESS ~~
@@ -371,7 +371,6 @@ the callback will be called with an event object which has the following propert
 - `path` = full dependency path
 (call `path.toString() -> 'a <- b <- c'` or `path.segments() -> ['a', 'b', 'c']`)
 - `container` = the container on which the event occured
-- `resolver` = the resolver that returned the factory or instance (just for `instanceFound` or `factoryFound`)
 - `value` = the value the promise was resolved to (just for `promiseResolved`)
 - `instance` = the instance (just for `instanceFound` and `instanceCreated`)
 - `factory` = the factory (just for `factoryFound`)
@@ -422,6 +421,14 @@ you can manipulate the resolvers:
 ```javascript
 container.factoryResolvers.push(myFactoryResolver);
 ```
+
+resolvers can be used to 
+
+resolvers can be used to generate factories and instances on the fly.
+they can return factories without them being in `container.factories`.
+a resolver could respond to `getUserWhereId` with a function
+
+interesting alternative to rubys method missing
 
 ## reference
 
