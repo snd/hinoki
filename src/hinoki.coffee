@@ -190,31 +190,38 @@ do ->
   ###################################################################################
   # functions that resolve factories
 
-  # returns either null or a promise that resolves to {resolver: , factory: }
+  # returns either null or a promise that resolves to {factory: }
 
   hinoki.resolveFactoryInContainer = (container, idOrPath) ->
     path = hinoki.castPath idOrPath
+    id = path.id()
 
-    factoryResolvers = (container.factoryResolvers or [])
-      .concat([hinoki.defaultFactoryResolver])
+    defaultResolve = ->
+      hinoki.defaultFactoryResolver container, id
 
-    hinoki.some factoryResolvers, (resolver) ->
-      factory = resolver container, path.id()
+    resolve =
+      if container.factoryResolvers?
+        accum = (inner, resolver) ->
+          -> resolver container, id, inner
+        container.factoryResolvers.reduceRight accum, defaultResolve
+      else
+        defaultResolve
 
-      # this resolver can't resolve the factory
-      unless factory?
-        return
+    factory = resolve()
 
-      unless 'function' is typeof factory
-        # we are out of luck: the resolver didnt return a function
-        error = new hinoki.FactoryNotFunctionError path, container, factory
-        return Promise.reject error
+    # this resolver can't resolve the factory
+    unless factory?
+      return
 
-      Promise.resolve
-        resolver: resolver
-        factory: factory
+    unless 'function' is typeof factory
+      # we are out of luck: the resolver didn't return a function
+      error = new hinoki.FactoryNotFunctionError path, container, factory
+      return Promise.reject error
 
-  # returns either null or a promise that resolves to {container: , resolver: , factory: }
+    Promise.resolve
+      factory: factory
+
+  # returns either null or a promise that resolves to {container: , factory: }
 
   hinoki.resolveFactoryInContainers = (containers, idOrPath) ->
     path = hinoki.castPath idOrPath
@@ -232,25 +239,32 @@ do ->
   ###################################################################################
   # functions that resolve instances
 
-  # returns either null or a promise that resolves to {resolver: , instance: }
+  # returns either null or a promise that resolves to {instance: }
 
   hinoki.resolveInstanceInContainer = (container, idOrPath) ->
     path = hinoki.castPath idOrPath
+    id = path.id()
 
-    instanceResolvers = (container.instanceResolvers or [])
-      .concat([hinoki.defaultInstanceResolver])
+    defaultResolve = ->
+      hinoki.defaultInstanceResolver container, id
 
-    hinoki.some instanceResolvers, (resolver) ->
-      instance = resolver container, path.id()
+    resolve =
+      if container.instanceResolvers?
+        accum = (inner, resolver) ->
+          -> resolver container, id, inner
+        container.instanceResolvers.reduceRight accum, defaultResolve
+      else
+        defaultResolve
 
-      unless instance?
-        return
+    instance = resolve()
 
-      Promise.resolve
-        resolver: resolver
-        instance: instance
+    unless instance?
+      return
 
-  # returns either null or a promise that resolves to {container: , resolver: , instance: }
+    Promise.resolve
+      instance: instance
+
+  # returns either null or a promise that resolves to {container: , instance: }
 
   hinoki.resolveInstanceInContainers = (containers, idOrPath) ->
     path = hinoki.castPath idOrPath

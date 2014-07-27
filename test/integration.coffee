@@ -80,22 +80,49 @@ module.exports =
       test.deepEqual error.path, ['a', 'b']
       test.done()
 
-  'factory resolvers are tried in order until one returns a factory': (test) ->
+  'factory resolvers wrap around default resolver': (test) ->
     test.expect 5
     c = hinoki.newContainer()
 
     instance = {}
 
     c.factoryResolvers = [
-      (container, id) ->
+      (container, id, inner) ->
         test.equals container, c
         test.equals id, 'a'
-        null
+        inner()
+      # this resolver is called by the one above
       (container, id) ->
         test.equals container, c
         test.equals id, 'a'
         ->
           instance
+      # this resolver is not called by the one above
+      (container, id) ->
+        test.fail()
+    ]
+
+    hinoki.get(c, 'a').then (a) ->
+      test.equals a, instance
+      test.done()
+
+  'instance resolvers wrap around default resolver': (test) ->
+    test.expect 5
+    c = hinoki.newContainer()
+
+    instance = {}
+
+    c.instanceResolvers = [
+      (container, id, inner) ->
+        test.equals container, c
+        test.equals id, 'a'
+        inner()
+      # this resolver is called by the one above
+      (container, id) ->
+        test.equals container, c
+        test.equals id, 'a'
+        instance
+      # this resolver is not called by the one above
       (container, id) ->
         test.fail()
     ]

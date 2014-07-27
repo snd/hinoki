@@ -163,23 +163,27 @@
     });
   };
   hinoki.resolveFactoryInContainer = function(container, idOrPath) {
-    var factoryResolvers, path;
+    var accum, defaultResolve, error, factory, id, path, resolve;
     path = hinoki.castPath(idOrPath);
-    factoryResolvers = (container.factoryResolvers || []).concat([hinoki.defaultFactoryResolver]);
-    return hinoki.some(factoryResolvers, function(resolver) {
-      var error, factory;
-      factory = resolver(container, path.id());
-      if (factory == null) {
-        return;
-      }
-      if ('function' !== typeof factory) {
-        error = new hinoki.FactoryNotFunctionError(path, container, factory);
-        return Promise.reject(error);
-      }
-      return Promise.resolve({
-        resolver: resolver,
-        factory: factory
-      });
+    id = path.id();
+    defaultResolve = function() {
+      return hinoki.defaultFactoryResolver(container, id);
+    };
+    resolve = container.factoryResolvers != null ? (accum = function(inner, resolver) {
+      return function() {
+        return resolver(container, id, inner);
+      };
+    }, container.factoryResolvers.reduceRight(accum, defaultResolve)) : defaultResolve;
+    factory = resolve();
+    if (factory == null) {
+      return;
+    }
+    if ('function' !== typeof factory) {
+      error = new hinoki.FactoryNotFunctionError(path, container, factory);
+      return Promise.reject(error);
+    }
+    return Promise.resolve({
+      factory: factory
     });
   };
   hinoki.resolveFactoryInContainers = function(containers, idOrPath) {
@@ -198,19 +202,23 @@
     });
   };
   hinoki.resolveInstanceInContainer = function(container, idOrPath) {
-    var instanceResolvers, path;
+    var accum, defaultResolve, id, instance, path, resolve;
     path = hinoki.castPath(idOrPath);
-    instanceResolvers = (container.instanceResolvers || []).concat([hinoki.defaultInstanceResolver]);
-    return hinoki.some(instanceResolvers, function(resolver) {
-      var instance;
-      instance = resolver(container, path.id());
-      if (instance == null) {
-        return;
-      }
-      return Promise.resolve({
-        resolver: resolver,
-        instance: instance
-      });
+    id = path.id();
+    defaultResolve = function() {
+      return hinoki.defaultInstanceResolver(container, id);
+    };
+    resolve = container.instanceResolvers != null ? (accum = function(inner, resolver) {
+      return function() {
+        return resolver(container, id, inner);
+      };
+    }, container.instanceResolvers.reduceRight(accum, defaultResolve)) : defaultResolve;
+    instance = resolve();
+    if (instance == null) {
+      return;
+    }
+    return Promise.resolve({
+      instance: instance
     });
   };
   hinoki.resolveInstanceInContainers = function(containers, idOrPath) {
