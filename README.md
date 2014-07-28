@@ -144,7 +144,8 @@ your markup should look something like the following
 
 [hinoki.js](src/hinoki.js) makes the global variable `hinoki` available
 
-*its best to fetch bluebird with [bower](http://bower.io/), [hinoki with npm](https://www.npmjs.org/package/hinoki) and then use
+*its best to fetch bluebird with [bower](http://bower.io/),
+[hinoki with npm](https://www.npmjs.org/package/hinoki) and then use
 a build system like [gulp](http://gulpjs.com/) to bring everything together*
 
 ## getting started
@@ -573,4 +574,4 @@ hinoki.get(container, 'variance')
 
 ## changelog
 
-## license: MIT
+## [license: MIT](LICENSE)
