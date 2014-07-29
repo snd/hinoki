@@ -19,23 +19,23 @@ do ->
   ###################################################################################
   # get
 
-  hinoki.get = (oneOrManyContainers, oneOrManyIdsOrPaths, debug) ->
+  hinoki.get = (oneOrManyContainers, oneOrManyNamesOrPaths, debug) ->
     containers = hinoki.arrayify oneOrManyContainers
 
     if containers.length is 0
       throw new Error 'at least 1 container is required'
 
-    if Array.isArray oneOrManyIdsOrPaths
-      hinoki.getMany containers, oneOrManyIdsOrPaths, debug
+    if Array.isArray oneOrManyNamesOrPaths
+      hinoki.getMany containers, oneOrManyNamesOrPaths, debug
     else
-      hinoki.getOne containers, oneOrManyIdsOrPaths, debug
+      hinoki.getOne containers, oneOrManyNamesOrPaths, debug
 
-  hinoki.getMany = (containers, idsOrPaths, debug) ->
-    Promise.all(idsOrPaths).map (idOrPath) ->
-      hinoki.getOne containers, idOrPath, debug
+  hinoki.getMany = (containers, namesOrPaths, debug) ->
+    Promise.all(namesOrPaths).map (nameOrPath) ->
+      hinoki.getOne containers, nameOrPath, debug
 
-  hinoki.getOne = (containers, idOrPath, debug) ->
-    path = hinoki.castPath idOrPath
+  hinoki.getOne = (containers, nameOrPath, debug) ->
+    path = hinoki.castPath nameOrPath
 
     # resolveValueInContainers has the opportunity
     # to return an error through a rejected promise that
@@ -46,7 +46,7 @@ do ->
       return valueResultPromise.then (valueResult) ->
         debug? {
           event: 'valueFound'
-          id: path.id()
+          name: path.name()
           path: path.segments()
           value: valueResult.value
           resolver: valueResult.resolver
@@ -56,7 +56,7 @@ do ->
 
     # no value available. we need a factory.
     # let's check for cycles first since
-    # we can't use a factory if the id contains a cycle.
+    # we can't use a factory if the path contains a cycle.
 
     if path.isCyclic()
       error = new hinoki.CircularDependencyError path, containers[0]
@@ -82,7 +82,7 @@ do ->
 
       debug? {
         event: 'factoryFound'
-        id: path.id()
+        name: path.name()
         path: path.segments()
         factory: factory
         resolver: resolver
@@ -93,12 +93,12 @@ do ->
       # wait for that instead of starting a second construction.
       # a factory must only be called exactly once per container.
 
-      underConstruction = container.underConstruction?[path.id()]
+      underConstruction = container.underConstruction?[path.name()]
 
       if underConstruction?
         debug? {
           event: 'valueUnderConstruction'
-          id: path.id()
+          name: path.name()
           path: path.segments()
           value: underConstruction
           container: container
@@ -111,12 +111,12 @@ do ->
 
       remainingContainers = hinoki.startingWith containers, container
 
-      dependencyIds = hinoki.getIdsToInject factory
+      dependencyNames = hinoki.getNamesToInject factory
 
-      dependencyIds = dependencyIds.map (x) ->
+      dependencyPaths = dependencyNames.map (x) ->
         hinoki.castPath(x).concat path
 
-      dependenciesPromise = hinoki.get remainingContainers, dependencyIds, debug
+      dependenciesPromise = hinoki.get remainingContainers, dependencyPaths, debug
 
       valuePromise = dependenciesPromise.then (dependencyValues) ->
 
@@ -126,7 +126,7 @@ do ->
         hinoki.callFactory container, path, factory, dependencyValues, debug
 
       container.underConstruction ?= {}
-      container.underConstruction[path.id()] = valuePromise
+      container.underConstruction[path.name()] = valuePromise
 
       valuePromise.then (value) ->
         if hinoki.isUndefined value
@@ -134,15 +134,15 @@ do ->
           return Promise.reject error
         # value is fully constructed
         container.values ?= {}
-        container.values[path.id()] = value
-        delete container.underConstruction[path.id()]
+        container.values[path.name()] = value
+        delete container.underConstruction[path.name()]
         value
 
   ###################################################################################
   # call factory
 
-  hinoki.callFactory = (container, idOrPath, factory, dependencyValues, debug) ->
-    path = hinoki.castPath idOrPath
+  hinoki.callFactory = (container, nameOrPath, factory, dependencyValues, debug) ->
+    path = hinoki.castPath nameOrPath
     try
       valueOrPromise = factory.apply null, dependencyValues
     catch exception
@@ -153,7 +153,7 @@ do ->
       # valueOrPromise is not a promise but an value
       debug? {
         event: 'valueCreated',
-        id: path.id()
+        name: path.name()
         path: path.segments()
         value: valueOrPromise
         factory: factory
@@ -165,7 +165,7 @@ do ->
 
     debug? {
       event: 'promiseCreated'
-      id: path.id()
+      name: path.name()
       path: path.segments()
       promise: valueOrPromise
       container: container
@@ -176,7 +176,7 @@ do ->
       .then (value) ->
         debug? {
           event: 'promiseResolved'
-          id: path.id()
+          name: path.name()
           path: path.segments()
           value: value
           container: container
@@ -192,18 +192,18 @@ do ->
 
   # returns either null or a promise that resolves to {factory: }
 
-  hinoki.resolveFactoryInContainer = (container, idOrPath) ->
-    path = hinoki.castPath idOrPath
-    id = path.id()
+  hinoki.resolveFactoryInContainer = (container, nameOrPath) ->
+    path = hinoki.castPath nameOrPath
+    name = path.name()
 
     defaultResolve = ->
-      hinoki.defaultFactoryResolver container, id
+      hinoki.defaultFactoryResolver container, name
 
     resolve =
       if container.factoryResolvers?
         accum = (inner, resolver) ->
-          (innerContainer = container, innerId = id) ->
-            resolver innerContainer, innerId, inner
+          (innerContainer = container, innerName = name) ->
+            resolver innerContainer, innerName, inner
         container.factoryResolvers.reduceRight accum, defaultResolve
       else
         defaultResolve
@@ -224,8 +224,8 @@ do ->
 
   # returns either null or a promise that resolves to {container: , factory: }
 
-  hinoki.resolveFactoryInContainers = (containers, idOrPath) ->
-    path = hinoki.castPath idOrPath
+  hinoki.resolveFactoryInContainers = (containers, nameOrPath) ->
+    path = hinoki.castPath nameOrPath
 
     hinoki.some containers, (container) ->
       promise = hinoki.resolveFactoryInContainer container, path
@@ -242,18 +242,18 @@ do ->
 
   # returns either null or a promise that resolves to {value: }
 
-  hinoki.resolveValueInContainer = (container, idOrPath) ->
-    path = hinoki.castPath idOrPath
-    id = path.id()
+  hinoki.resolveValueInContainer = (container, nameOrPath) ->
+    path = hinoki.castPath nameOrPath
+    name = path.name()
 
     defaultResolve = ->
-      hinoki.defaultValueResolver container, id
+      hinoki.defaultValueResolver container, name
 
     resolve =
       if container.valueResolvers?
         accum = (inner, resolver) ->
-          (innerContainer = container, innerId = id) ->
-            resolver innerContainer, innerId, inner
+          (innerContainer = container, innerName = name) ->
+            resolver innerContainer, innerName, inner
         container.valueResolvers.reduceRight accum, defaultResolve
       else
         defaultResolve
@@ -268,8 +268,8 @@ do ->
 
   # returns either null or a promise that resolves to {container: , value: }
 
-  hinoki.resolveValueInContainers = (containers, idOrPath) ->
-    path = hinoki.castPath idOrPath
+  hinoki.resolveValueInContainers = (containers, nameOrPath) ->
+    path = hinoki.castPath nameOrPath
 
     hinoki.some containers, (container) ->
       promise = hinoki.resolveValueInContainer container, path
@@ -293,11 +293,11 @@ do ->
   ###################################################################################
   # default resolvers
 
-  hinoki.defaultValueResolver = (container, id) ->
-    container.values?[id]
+  hinoki.defaultValueResolver = (container, name) ->
+    container.values?[name]
 
-  hinoki.defaultFactoryResolver = (container, id) ->
-    factory = container.factories?[id]
+  hinoki.defaultFactoryResolver = (container, name) ->
+    factory = container.factories?[name]
     unless factory?
       return
 
@@ -314,8 +314,8 @@ do ->
 
   hinoki.CircularDependencyError = (path, container) ->
     this.message = "circular dependency #{path.toString()}"
-    this.name = 'CircularDependencyError'
-    this.id = path.id()
+    this.type = 'CircularDependencyError'
+    this.name = path.name()
     this.path = path.segments()
     this.container = container
     if Error.captureStackTrace
@@ -323,9 +323,9 @@ do ->
   hinoki.CircularDependencyError.prototype = new Error
 
   hinoki.UnresolvableFactoryError = (path, container) ->
-    this.message = "unresolvable factory '#{path.id()}' (#{path.toString()})"
-    this.name = 'UnresolvableFactoryError'
-    this.id = path.id()
+    this.message = "unresolvable factory '#{path.name()}' (#{path.toString()})"
+    this.type = 'UnresolvableFactoryError'
+    this.name = path.name()
     this.path = path.segments()
     this.container = container
     if Error.captureStackTrace
@@ -333,9 +333,9 @@ do ->
   hinoki.UnresolvableFactoryError.prototype = new Error
 
   hinoki.ExceptionInFactoryError = (path, container, exception) ->
-    this.message = "exception in factory '#{path.id()}': #{exception}"
-    this.name = 'ExceptionInFactoryError'
-    this.id = path.id()
+    this.message = "exception in factory '#{path.name()}': #{exception}"
+    this.type = 'ExceptionInFactoryError'
+    this.name = path.name()
     this.path = path.segments()
     this.container = container
     this.exception = exception
@@ -344,9 +344,9 @@ do ->
   hinoki.ExceptionInFactoryError.prototype = new Error
 
   hinoki.PromiseRejectedError = (path, container, rejection) ->
-    this.message = "promise returned from factory '#{path.id()}' was rejected with reason: #{rejection}"
-    this.name = 'PromiseRejectedError'
-    this.id = path.id()
+    this.message = "promise returned from factory '#{path.name()}' was rejected with reason: #{rejection}"
+    this.type = 'PromiseRejectedError'
+    this.name = path.name()
     this.path = path.segments()
     this.container = container
     this.rejection = rejection
@@ -355,9 +355,9 @@ do ->
   hinoki.PromiseRejectedError.prototype = new Error
 
   hinoki.FactoryNotFunctionError = (path, container, factory) ->
-    this.message = "factory '#{path.id()}' is not a function: #{factory}"
-    this.name = 'FactoryNotFunctionError'
-    this.id = path.id()
+    this.message = "factory '#{path.name()}' is not a function: #{factory}"
+    this.type = 'FactoryNotFunctionError'
+    this.name = path.name()
     this.path = path.segments()
     this.container = container
     this.factory = factory
@@ -366,9 +366,9 @@ do ->
   hinoki.FactoryNotFunctionError.prototype = new Error
 
   hinoki.FactoryReturnedUndefinedError = (path, container, factory) ->
-    this.message = "factory '#{path.id()}' returned undefined"
-    this.name = 'FactoryReturnedUndefinedError'
-    this.id = path.id()
+    this.message = "factory '#{path.name()}' returned undefined"
+    this.type = 'FactoryReturnedUndefinedError'
+    this.name = path.name()
     this.path = path.segments()
     this.container = container
     this.factory = factory
@@ -383,7 +383,7 @@ do ->
     toString: ->
       this.$segments.join ' <- '
 
-    id: ->
+    name: ->
       this.$segments[0]
 
     segments: ->
@@ -398,9 +398,9 @@ do ->
       hinoki.arrayOfStringsHasDuplicates this.$segments
 
   hinoki.newPath = (segments) ->
-    id = Object.create hinoki.PathPrototype
-    id.$segments = segments
-    id
+    path = Object.create hinoki.PathPrototype
+    path.$segments = segments
+    path
 
   hinoki.castPath = (value) ->
     if hinoki.PathPrototype.isPrototypeOf value
@@ -410,7 +410,7 @@ do ->
     else if Array.isArray value
       hinoki.newPath value
     else
-      throw new Error "value #{value} can not be cast to id"
+      throw new Error "value #{value} can not be cast to name"
 
   ###################################################################################
   # util
@@ -516,7 +516,7 @@ do ->
     else
       []
 
-  hinoki.getIdsToInject = (factory) ->
+  hinoki.getNamesToInject = (factory) ->
     if factory.$inject?
       factory.$inject
     else

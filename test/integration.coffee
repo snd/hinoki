@@ -76,7 +76,7 @@ module.exports =
         a + 1
 
     hinoki.get([c1, c2], 'b').catch (error) ->
-      test.equals error.name, 'UnresolvableFactoryError'
+      test.equals error.type, 'UnresolvableFactoryError'
       test.deepEqual error.path, ['a', 'b']
       test.done()
 
@@ -87,18 +87,18 @@ module.exports =
     value = {}
 
     c.factoryResolvers = [
-      (container, id, inner) ->
+      (container, name, inner) ->
         test.equals container, c
-        test.equals id, 'a'
+        test.equals name, 'a'
         inner()
       # this resolver is called by the one above
-      (container, id) ->
+      (container, name) ->
         test.equals container, c
-        test.equals id, 'a'
+        test.equals name, 'a'
         ->
           value
       # this resolver is not called by the one above
-      (container, id) ->
+      (container, name) ->
         test.fail()
     ]
 
@@ -115,11 +115,11 @@ module.exports =
     value = {}
 
     c.factoryResolvers = [
-      (container, id, inner) ->
+      (container, name, inner) ->
         inner c2, 'b'
-      (container, id) ->
+      (container, name) ->
         test.equals container, c2
-        test.equals id, 'b'
+        test.equals name, 'b'
         ->
           value
     ]
@@ -135,17 +135,17 @@ module.exports =
     value = {}
 
     c.valueResolvers = [
-      (container, id, inner) ->
+      (container, name, inner) ->
         test.equals container, c
-        test.equals id, 'a'
+        test.equals name, 'a'
         inner()
       # this resolver is called by the one above
-      (container, id) ->
+      (container, name) ->
         test.equals container, c
-        test.equals id, 'a'
+        test.equals name, 'a'
         value
       # this resolver is not called by the one above
-      (container, id) ->
+      (container, name) ->
         test.fail()
     ]
 
@@ -162,11 +162,11 @@ module.exports =
     value = {}
 
     c.valueResolvers = [
-      (container, id, inner) ->
+      (container, name, inner) ->
         inner c2, 'b'
-      (container, id) ->
+      (container, name) ->
         test.equals container, c2
-        test.equals id, 'b'
+        test.equals name, 'b'
         value
     ]
 

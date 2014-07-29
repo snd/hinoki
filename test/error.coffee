@@ -11,7 +11,7 @@ module.exports =
       a: (a) ->
 
     hinoki.get(c, 'a').catch hinoki.CircularDependencyError, (error) ->
-      test.equals error.name, 'CircularDependencyError'
+      test.equals error.type, 'CircularDependencyError'
       test.deepEqual error.path, ['a', 'a']
       test.equals error.container, c
       test.done()
@@ -22,7 +22,7 @@ module.exports =
     c = hinoki.newContainer()
 
     hinoki.get(c, 'a').catch hinoki.UnresolvableFactoryError, (error) ->
-      test.equals error.name, 'UnresolvableFactoryError'
+      test.equals error.type, 'UnresolvableFactoryError'
       test.deepEqual error.path, ['a']
       test.equals error.container, c
       test.done()
@@ -36,7 +36,7 @@ module.exports =
       a: -> throw exception
 
     hinoki.get(c, 'a').catch hinoki.ExceptionInFactoryError, (error) ->
-      test.equals error.name, 'ExceptionInFactoryError'
+      test.equals error.type, 'ExceptionInFactoryError'
       test.deepEqual error.path, ['a']
       test.equals error.container, c
       test.equals error.exception, exception
@@ -51,7 +51,7 @@ module.exports =
       a: -> Promise.reject rejection
 
     hinoki.get(c, 'a').catch hinoki.PromiseRejectedError, (error) ->
-      test.equals error.name, 'PromiseRejectedError'
+      test.equals error.type, 'PromiseRejectedError'
       test.deepEqual error.path, ['a']
       test.equals error.container, c
       test.equals error.rejection, rejection
@@ -66,7 +66,7 @@ module.exports =
       a: factory
 
     hinoki.get(c, 'a').catch hinoki.FactoryNotFunctionError, (error) ->
-      test.equals error.name, 'FactoryNotFunctionError'
+      test.equals error.type, 'FactoryNotFunctionError'
       test.deepEqual error.path, ['a']
       test.equals error.container, c
       test.equals error.factory, factory
@@ -79,7 +79,7 @@ module.exports =
       a: ->
 
     hinoki.get(c, 'a').catch hinoki.FactoryReturnedUndefinedError, (error) ->
-      test.equals error.name, 'FactoryReturnedUndefinedError'
+      test.equals error.type, 'FactoryReturnedUndefinedError'
       test.deepEqual error.path, ['a']
       test.equals error.container, c
       test.done()

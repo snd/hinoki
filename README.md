@@ -150,9 +150,8 @@ a build system like [gulp](http://gulpjs.com/) to bring everything together*
 
 ## getting started
 
-in the world of hinoki an **ID** is the name
-for a part of the application.
-an **ID** might have a **VALUE**:
+in the world of hinoki a **NAME** uniquely identifies a part of a system.
+a **NAME** can have a **VALUE**:
 it could be a function, a piece of data, an object, a module, a library...
 
 ```javascript
@@ -161,11 +160,11 @@ var values = {
 };
 ```
 
-an **ID** can depend on other **IDs**, its dependencies.
+a **NAME** can depend on other **NAMES**, its dependencies.
 
-a **FACTORY** for an **ID** is a function that takes
-the **VALUES** of the **ID's** dependencies
-and returns the **VALUE** of the **ID**:
+a **FACTORY** for an **NAME** is a function that takes
+the **VALUES** of the **NAMES** dependencies
+and returns the **VALUE** of the **NAME**:
 
 ```javascript
 var factories = {
@@ -190,7 +189,7 @@ var factories = {
 };
 ```
 
-a **CONTAINER** manages the **FACTORIES** and **VALUES** for a set of **IDS**:
+a **CONTAINER** manages the **FACTORIES** and **VALUES** for a set of **NAMES**:
 
 ```javascript
 var container = {
@@ -201,7 +200,7 @@ var container = {
 
 [**CONTAINERS** are just a plain old javascript objects](#containers)
 
-a **CONTAINER** can be asked for the **VALUE** of an **ID**:
+a **CONTAINER** can be asked for the **VALUE** of a **NAME**:
 
 ```javascript
 hinoki.get(container, 'mean').then(function(mean) {
@@ -212,7 +211,7 @@ hinoki.get(container, 'mean').then(function(mean) {
 hinoki always returns a promise: to normalize synchronous and asynchronous
 dependencies and to simplify error handling.
 
-asking for an uncached **ID** will ask for its dependencies (and their dependencies...),
+asking for an uncached **NAME** will ask for its dependencies (and their dependencies...),
 call its **FACTORY** to get the **VALUE** and cache the new **VALUES** in
 the **CONTAINER**:
 
@@ -224,7 +223,7 @@ console.log(container.values);
 //   mean: 3 }
 ```
 
-asking for a cached **ID** again will return the cached **VALUE**.
+asking for a cached **NAME** again will return the cached **VALUE**.
 
 ```javascript
 hinoki.get(container, 'count').then(function(count) {
@@ -320,10 +319,10 @@ var factory = function(variance, mean) {
   /* ... */
 };
 
-var dependencyIds = hinoki.getFunctionArguments(factory);
+var dependencyNames = hinoki.getFunctionArguments(factory);
 // -> ['variance', 'mean']
 
-hinoki.get(container, dependencyIds).spread(factory);
+hinoki.get(container, dependencyNames).spread(factory);
 ```
 
 asks container for `variance` and `mean` and calls `factory` with them.
@@ -331,10 +330,10 @@ asks container for `variance` and `mean` and calls `factory` with them.
 ### dependencies of factory functions
 
 if a factory function has the `$inject` property containing an
-array of dependency ids then hinoki will ask for values of those ids
+array of dependency names then hinoki will ask for values of those names
 and inject them into the factory.
 
-otherwise hinoki will parse the dependency ids from the factory
+otherwise hinoki will parse the dependency names from the factory
 function arguments and cache them in the `$inject` property of the factory
 function:
 
@@ -357,7 +356,7 @@ var container = {
 
 hinoki.get(container, 'acd', console.log).then(function(acd) {
   console.log(acd);  // -> 'acd'
-  // dependency ids have been cached
+  // dependency names have been cached
   console.log(factories.a.$inject); // -> []
   console.log(factories.acd.$inject); // -> ['ac', 'd']
 });
@@ -398,7 +397,7 @@ the callback will be called with an event object which has the following propert
 
 - `event` = one of `valueFound`, `factoryFound`, `valueUnderConstruction`, `valueCreated`,
 `promiseCreated`, `promiseResolved`
-- `id` = id of the dependency that caused the event
+- `name` = name of the dependency that caused the event
 - `path` = full dependency path
 (call `path.toString() -> 'a <- b <- c'` or `path.segments() -> ['a', 'b', 'c']`)
 - `container` = the container on which the event occured
@@ -431,23 +430,22 @@ resolvers add a level of indirection that allows you to
 intercept the lookup of factories and values
 in containers.
 
+resolvers must be pure (deterministic) functions: given the same inputs they must return the same outputs.
+they must not depend on uncontrollably changing factors like randomness or time or external services
+
 there are 
 but the same is true for value resolvers -
 just replace **FACTORY** with **VALUE** in your mind.
 
-a factory resolver is just a function that takes a container and an
-id and returns a factory or `null`.
+a factory resolver is just a function that takes a container and a
+name and returns a factory or `null`.
 
 by default hinoki uses the `hinoki.defaultFactoryResolver` that simply
-looks up the id in the containers `factories` property.
+looks up the name in the containers `factories` property.
 
 by adding `
 
 those take an additional third argument
-
-a resolver must be pure and always return the same factory or a factory
-that behaves identically
-of the same id
 
 has a single factoryResolver that resolves factories in the **factories** object.
 you can manipulate the resolvers:
@@ -470,9 +468,9 @@ interesting alternative to rubys method missing
 
 #### `hinoki.get`
 
-takes one or many **CONTAINERS** and one or many **IDS**.
+takes one or many **CONTAINERS** and one or many **NAMES**.
 
-returns a [bluebird](https://github.com/petkaantonov/bluebird) promise that is resolved with an value (for one id) or an array of values (for many ids).
+returns a [bluebird](https://github.com/petkaantonov/bluebird) promise that is resolved with an value (for one name) or an array of values (for many names).
 the promise is rejected in case of [errors](#errors).
 side effect the container
 
@@ -508,6 +506,8 @@ hinoki.get(container, 'variance', console.log)
 
 #### `hinoki.parseFunctionArguments`
 
+#### `hinoki.getNamesToInject`
+
 #### `hinoki.resolveFactoryInContainers`
 
 #### `hinoki.resolveValueInContainers`
@@ -525,7 +525,7 @@ hinoki.get(container, 'variance')
 
 #### `hinoki.UnresolvableFactoryError`
 
-when no resolver returns a factory for an id
+when no resolver returns a factory for a name
 
 ```javascript
 hinoki.get(container, 'variance')
