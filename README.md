@@ -1,7 +1,7 @@
 # hinoki
 
 [![NPM version](https://badge.fury.io/js/hinoki.svg)](http://badge.fury.io/js/hinoki)
-[![Build Status](https://travis-ci.org/snd/hinoki.svg?branch=master)](https://travis-ci.org/snd/hinoki)
+[![Build Status](https://travis-ci.org/snd/hinoki.svg?branch=master)](https://travis-ci.org/snd/hinoki/branches)
 [![Dependencies](https://david-dm.org/snd/hinoki.svg)](https://david-dm.org/snd/hinoki)
 
 >  magical inversion of control for nodejs and the browser
@@ -463,10 +463,6 @@ they can return factories without them being in `container.factories`.
 a resolver could respond to `getUserWhereId` with a function
 
 interesting alternative to rubys method missing
-
-### application architecture with hinoki
-
-example of how to create a factories object from dependencies in
 
 ## reference
 
