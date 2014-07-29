@@ -106,6 +106,28 @@ module.exports =
       test.equals a, value
       test.done()
 
+  'factory resolvers can pass different arguments to inner resolvers': (test) ->
+    test.expect 3
+    c = hinoki.newContainer()
+
+    c2 = {}
+
+    value = {}
+
+    c.factoryResolvers = [
+      (container, id, inner) ->
+        inner c2, 'b'
+      (container, id) ->
+        test.equals container, c2
+        test.equals id, 'b'
+        ->
+          value
+    ]
+
+    hinoki.get(c, 'a').then (a) ->
+      test.equals a, value
+      test.done()
+
   'value resolvers wrap around default resolver': (test) ->
     test.expect 5
     c = hinoki.newContainer()
@@ -125,6 +147,27 @@ module.exports =
       # this resolver is not called by the one above
       (container, id) ->
         test.fail()
+    ]
+
+    hinoki.get(c, 'a').then (a) ->
+      test.equals a, value
+      test.done()
+
+  'value resolvers can pass different arguments to inner resolvers': (test) ->
+    test.expect 3
+    c = hinoki.newContainer()
+
+    c2 = {}
+
+    value = {}
+
+    c.valueResolvers = [
+      (container, id, inner) ->
+        inner c2, 'b'
+      (container, id) ->
+        test.equals container, c2
+        test.equals id, 'b'
+        value
     ]
 
     hinoki.get(c, 'a').then (a) ->

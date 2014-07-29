@@ -202,7 +202,8 @@ do ->
     resolve =
       if container.factoryResolvers?
         accum = (inner, resolver) ->
-          -> resolver container, id, inner
+          (innerContainer = container, innerId = id) ->
+            resolver innerContainer, innerId, inner
         container.factoryResolvers.reduceRight accum, defaultResolve
       else
         defaultResolve
@@ -251,7 +252,8 @@ do ->
     resolve =
       if container.valueResolvers?
         accum = (inner, resolver) ->
-          -> resolver container, id, inner
+          (innerContainer = container, innerId = id) ->
+            resolver innerContainer, innerId, inner
         container.valueResolvers.reduceRight accum, defaultResolve
       else
         defaultResolve

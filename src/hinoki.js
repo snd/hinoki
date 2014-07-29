@@ -170,8 +170,14 @@
       return hinoki.defaultFactoryResolver(container, id);
     };
     resolve = container.factoryResolvers != null ? (accum = function(inner, resolver) {
-      return function() {
-        return resolver(container, id, inner);
+      return function(innerContainer, innerId) {
+        if (innerContainer == null) {
+          innerContainer = container;
+        }
+        if (innerId == null) {
+          innerId = id;
+        }
+        return resolver(innerContainer, innerId, inner);
       };
     }, container.factoryResolvers.reduceRight(accum, defaultResolve)) : defaultResolve;
     factory = resolve();
@@ -209,8 +215,14 @@
       return hinoki.defaultValueResolver(container, id);
     };
     resolve = container.valueResolvers != null ? (accum = function(inner, resolver) {
-      return function() {
-        return resolver(container, id, inner);
+      return function(innerContainer, innerId) {
+        if (innerContainer == null) {
+          innerContainer = container;
+        }
+        if (innerId == null) {
+          innerId = id;
+        }
+        return resolver(innerContainer, innerId, inner);
       };
     }, container.valueResolvers.reduceRight(accum, defaultResolve)) : defaultResolve;
     value = resolve();
