@@ -63,7 +63,7 @@ if you use hinoki i am very happy to hear from you.
 - [node.js setup](#nodejs-setup)
 - [browser setup](#browser-setup)
 - [getting started](#getting-started)
-- [usage](#usage)
+- [in depth](#in-depth)
   - [containers](#containers)
   - [asynchronous dependencies](#asynchronous-dependencies)
   - [parsing dependencies from function arguments](#parsing-dependencies-from-function-arguments)
@@ -162,8 +162,8 @@ var values = {
 
 a **NAME** can depend on other **NAMES**, its dependencies.
 
-a **FACTORY** for an **NAME** is a function that takes
-the **VALUES** of the **NAMES** dependencies
+a **FACTORY** for a **NAME** is a function that takes
+the **VALUES** of the **NAME's** dependencies
 and returns the **VALUE** of the **NAME**:
 
 ```javascript
@@ -248,7 +248,7 @@ hinoki.get(container, 'variance').then(function(variance) {
 
 [see the whole example again](example/computation.js)
 
-## usage
+## in depth
 
 ### containers
 
@@ -397,13 +397,13 @@ the callback will be called with an event object which has the following propert
 
 - `event` = one of `valueFound`, `factoryFound`, `valueUnderConstruction`, `valueCreated`,
 `promiseCreated`, `promiseResolved`
-- `name` = name of the dependency that caused the event
+- `name` = **NAME** of the dependency that caused the event
 - `path` = full dependency path
 (call `path.toString() -> 'a <- b <- c'` or `path.segments() -> ['a', 'b', 'c']`)
-- `container` = the container on which the event occured
+- `container` = the **CONTAINER** on which the event occured
 - `value` = the value (just for `valueFound`, `valueCreated` and `promiseResolved`)
-- `factory` = the factory (just for `factoryFound`)
-- `promise` = the promise returned by the factory (just for `promiseCreated`)
+- `factory` = the **FACTORY** (just for `factoryFound`)
+- `promise` = the promise returned by the **FACTORY** (just for `promiseCreated`)
 
 ### error handling
 
