@@ -1,3 +1,5 @@
+Promise = require 'bluebird'
+
 hinoki = require '../src/hinoki'
 
 module.exports =
@@ -45,3 +47,10 @@ module.exports =
     test.ok hinoki.isUndefined d.test
 
     test.done()
+
+  'promise null or undefined': (test) ->
+    Promise.resolve().then (v) ->
+      test.ok not hinoki.isNull v
+      test.ok hinoki.isUndefined v
+
+      test.done()
