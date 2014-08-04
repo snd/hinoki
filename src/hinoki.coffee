@@ -37,22 +37,17 @@ do ->
   hinoki.getOne = (containers, nameOrPath, debug) ->
     path = hinoki.castPath nameOrPath
 
-    # resolveValueInContainers has the opportunity
-    # to return an error through a rejected promise that
-    # is returned by getOrCreateManyValues unchanged
-    valueResultPromise = hinoki.resolveValueInContainers containers, path
+    valueResult = hinoki.resolveValueInContainers containers, path
 
-    if valueResultPromise?
-      return valueResultPromise.then (valueResult) ->
-        debug? {
-          event: 'valueFound'
-          name: path.name()
-          path: path.segments()
-          value: valueResult.value
-          resolver: valueResult.resolver
-          container: valueResult.container
-        }
-        valueResult.value
+    if valueResult?
+      debug? {
+        event: 'valueFound'
+        name: path.name()
+        path: path.segments()
+        value: valueResult.value
+        container: valueResult.container
+      }
+      return Promise.resolve valueResult.value
 
     # no value available. we need a factory.
     # let's check for cycles first since
@@ -68,75 +63,81 @@ do ->
     # resolveFactoryInContainers has the opportunity
     # to return an error through a rejected promise that
     # is returned by getOrCreateManyValues unchanged
-    factoryResultPromise = hinoki.resolveFactoryInContainers containers, path
+    factoryResult = hinoki.resolveFactoryInContainers containers, path
 
-    unless factoryResultPromise?
+    if factoryResult instanceof Error
+      return Promise.reject factoryResult
+
+    unless factoryResult?
       # we are out of luck: the factory could not be found
       error = new hinoki.UnresolvableFactoryError path, containers[0]
       return Promise.reject error
 
     # we've got a factory
 
-    factoryResultPromise.then (factoryResult) ->
-      {factory, resolver, container} = factoryResult
+    {factory, container} = factoryResult
 
+    debug? {
+      event: 'factoryFound'
+      name: path.name()
+      path: path.segments()
+      factory: factory
+      container: container
+    }
+
+    # if the value is already being constructed
+    # wait for that instead of starting a second construction.
+    # a factory must only be called exactly once per container.
+
+    underConstruction = container.underConstruction?[path.name()]
+
+    if underConstruction?
       debug? {
-        event: 'factoryFound'
+        event: 'valueUnderConstruction'
         name: path.name()
         path: path.segments()
-        factory: factory
-        resolver: resolver
+        value: underConstruction
         container: container
       }
+      return underConstruction
 
-      # if the value is already being constructed
-      # wait for that instead of starting a second construction.
-      # a factory must only be called exactly once per container.
+    # there is no value under construction. lets make one!
 
-      underConstruction = container.underConstruction?[path.name()]
+    # lets resolve the dependencies of the factory
 
-      if underConstruction?
-        debug? {
-          event: 'valueUnderConstruction'
-          name: path.name()
-          path: path.segments()
-          value: underConstruction
-          container: container
-        }
-        return underConstruction
+    remainingContainers = hinoki.startingWith containers, container
 
-      # there is no value under construction. lets make one!
+    dependencyNames = hinoki.getNamesToInject factory
 
-      # lets resolve the dependencies of the factory
+    dependencyPaths = dependencyNames.map (x) ->
+      hinoki.castPath(x).concat path
 
-      remainingContainers = hinoki.startingWith containers, container
+    # TODO handle optional dependencies here
+    # maybe through the paths?
+    # return nulls
 
-      dependencyNames = hinoki.getNamesToInject factory
+    dependenciesPromise = hinoki.get remainingContainers, dependencyPaths, debug
 
-      dependencyPaths = dependencyNames.map (x) ->
-        hinoki.castPath(x).concat path
+    factoryCallResultPromise = dependenciesPromise.then (dependencyValues) ->
 
-      dependenciesPromise = hinoki.get remainingContainers, dependencyPaths, debug
+      # the dependencies are ready
+      # and we can finally call the factory
 
-      valuePromise = dependenciesPromise.then (dependencyValues) ->
+      hinoki.callFactory container, path, factory, dependencyValues, debug
 
-        # the dependencies are ready
-        # and we can finally call the factory
+    container.underConstruction ?= {}
+    container.underConstruction[path.name()] = factoryCallResultPromise
 
-        hinoki.callFactory container, path, factory, dependencyValues, debug
-
-      container.underConstruction ?= {}
-      container.underConstruction[path.name()] = valuePromise
-
-      valuePromise.then (value) ->
-        if hinoki.isUndefined value
-          error = new hinoki.FactoryReturnedUndefinedError path, container, factory
-          return Promise.reject error
-        # value is fully constructed
-        container.values ?= {}
-        container.values[path.name()] = value
-        delete container.underConstruction[path.name()]
-        value
+    factoryCallResultPromise.then (value) ->
+      # note that a null value is allowed!
+      if hinoki.isUndefined value
+        error = new hinoki.FactoryReturnedUndefinedError path, container, factory
+        return Promise.reject error
+      # value is fully constructed
+      container.values ?= {}
+      container.values[path.name()] = value
+      delete container.underConstruction[path.name()]
+      value
 
   ###################################################################################
   # call factory
@@ -208,19 +209,7 @@ do ->
       else
         defaultResolve
 
-    factory = resolve()
-
-    # this resolver can't resolve the factory
-    unless factory?
-      return
-
-    unless 'function' is typeof factory
-      # we are out of luck: the resolver didn't return a function
-      error = new hinoki.FactoryNotFunctionError path, container, factory
-      return Promise.reject error
-
-    Promise.resolve
-      factory: factory
+    resolve()
 
   # returns either null or a promise that resolves to {container: , factory: }
 
@@ -228,14 +217,19 @@ do ->
     path = hinoki.castPath nameOrPath
 
     hinoki.some containers, (container) ->
-      promise = hinoki.resolveFactoryInContainer container, path
+      factory = hinoki.resolveFactoryInContainer container, path
 
-      unless promise?
+      unless factory?
         return
 
-      promise.then (result) ->
-        result.container = container
-        result
+      unless 'function' is typeof factory
+        # we are out of luck: the resolver didn't return a function
+        return new hinoki.FactoryNotFunctionError path, container, factory
+
+      {
+        factory: factory
+        container: container
+      }
 
   ###################################################################################
   # functions that resolve values
@@ -258,13 +252,7 @@ do ->
       else
         defaultResolve
 
-    value = resolve()
-
-    unless value?
-      return
-
-    Promise.resolve
-      value: value
+    resolve()
 
   # returns either null or a promise that resolves to {container: , value: }
 
@@ -272,14 +260,16 @@ do ->
     path = hinoki.castPath nameOrPath
 
     hinoki.some containers, (container) ->
-      promise = hinoki.resolveValueInContainer container, path
+      value = hinoki.resolveValueInContainer container, path
 
-      unless promise?
+      # note that null values are passed on
+      if hinoki.isUndefined value
         return
 
-      promise.then (result) ->
-        result.container = container
-        result
+      {
+        value: value
+        container: container
+      }
 
   ###################################################################################
   # shorthand for container construction

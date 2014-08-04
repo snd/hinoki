@@ -13,6 +13,14 @@ module.exports =
       test.equals c.values.x, 1
       test.done()
 
+  'get null value': (test) ->
+    c = hinoki.newContainer {},
+      x: null
+
+    hinoki.get(c, 'x').then (x) ->
+      test.ok hinoki.isNull x
+      test.done()
+
   'sync get from factory': (test) ->
     c = hinoki.newContainer
       x: -> 1
@@ -20,6 +28,15 @@ module.exports =
     hinoki.get(c, 'x').then (x) ->
       test.equals x, 1
       test.equals c.values.x, 1
+      test.done()
+
+  'sync get null from factory': (test) ->
+    c = hinoki.newContainer
+      x: -> null
+
+    hinoki.get(c, 'x').then (x) ->
+      test.ok hinoki.isNull x
+      test.ok hinoki.isNull c.values.x
       test.done()
 
   'async get from factory': (test) ->
@@ -31,6 +48,15 @@ module.exports =
       test.equals c.values.x, 1
       test.done()
 
+  'async get null from factory': (test) ->
+    c = hinoki.newContainer
+      x: -> Promise.resolve null
+
+    hinoki.get(c, 'x').then (x) ->
+      test.ok hinoki.isNull x
+      test.ok hinoki.isNull c.values.x
+      test.done()
+
   'sync get with dependencies': (test) ->
     c = hinoki.newContainer
       x: (y) -> 1 + y
@@ -38,6 +64,16 @@ module.exports =
 
     hinoki.get(c, 'x').then (x) ->
       test.equals x, 2
+      test.done()
+
+  'sync get null with dependencies': (test) ->
+    c = hinoki.newContainer
+      x: (y) -> null
+      y: -> 1
+
+    hinoki.get(c, 'x').then (x) ->
+      test.ok hinoki.isNull x
+      test.ok hinoki.isNull c.values.x
       test.done()
 
   'containers are tried in order. values are created in container that resolved factory': (test) ->
