@@ -68,6 +68,7 @@ if you use hinoki i am very happy to hear from you.
   - [asynchronous dependencies](#asynchronous-dependencies)
   - [parsing dependencies from function arguments](#parsing-dependencies-from-function-arguments)
   - [dependencies of factory functions](#dependencies-of-factory-functions)
+  - [null and undefined](#null-and-undefined)
   - [multiple containers](#multiple-containers)
   - [logging & debugging](#logging-debugging)
   - [error handling](#error-handling)
@@ -87,6 +88,8 @@ software systems are composed of many pieces that depend on
 each other in various ways.
 
 libraries, functions for accessing the database
+
+hinoki solves the problem of composing all those parts
 
 dependency injection is a 
 
@@ -110,6 +113,15 @@ self contained units
 separation of concerns
 
 very testable
+
+dont use hinoki dependencies for libraries
+
+use them for application code!!!
+
+By making it very easy to 
+Get a hold of a Part of the system 
+
+Don't repeat yourself is encouraged
 
 [see the example app](example-app) [(entry point is main.js)](example-app/main.js)
 
@@ -364,6 +376,18 @@ hinoki.get(container, 'acd', console.log).then(function(acd) {
 
 [source](example/dollar-inject.js)
 
+### null and undefined
+
+a **VALUE** can be `null`
+
+if a factory returns `undefined` the promise is rejected with a
+
+
+
+if a factory returns `null` then the value `null` is cached and returned.
+
+
+
 ### multiple containers
 
 hinoki supports multiple containers.
@@ -429,6 +453,22 @@ hinoki.get(container, 'variance')
 resolvers add a level of indirection that allows you to
 intercept the lookup of factories and values
 in containers.
+
+... in a structured fashion
+
+```javascript
+container = {
+  factoryResolvers: [
+    function(container, name, inner) {
+      var factory = inner();
+      if (factory) {
+        return factory;
+      }
+      if name is '
+    }
+  ]
+};
+```
 
 resolvers must be pure (deterministic) functions: given the same inputs they must return the same outputs.
 they must not depend on uncontrollably changing factors like randomness or time or external services
