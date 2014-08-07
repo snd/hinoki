@@ -429,6 +429,8 @@ the callback will be called with an event object which has the following propert
 - `factory` = the **FACTORY** (just for `factoryFound`)
 - `promise` = the promise returned by the **FACTORY** (just for `promiseCreated`)
 
+filter on event type
+
 ### error handling
 
 ```javascript
