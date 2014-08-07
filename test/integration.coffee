@@ -117,32 +117,29 @@ module.exports =
       test.done()
 
   'factory resolvers wrap around default resolver': (test) ->
-    test.expect 5
-    c = hinoki.newContainer()
+    test.expect 3
 
-    value = {}
+    a = {}
+    b = {}
+
+    c = hinoki.newContainer
+      a: -> a
+
+    c2 = hinoki.newContainer
+      b: -> b
 
     c.factoryResolvers = [
       (container, name, inner) ->
         test.equals container, c
         test.equals name, 'a'
-        inner()
-      # this resolver is called by the one above
-      (container, name) ->
-        test.equals container, c
-        test.equals name, 'a'
-        ->
-          value
-      # this resolver is not called by the one above
-      (container, name) ->
-        test.fail()
+        inner c2, 'b'
     ]
 
-    hinoki.get(c, 'a').then (a) ->
-      test.equals a, value
+    hinoki.get(c, 'a').then (value) ->
+      test.equals b, value
       test.done()
 
-  'factory resolvers can pass different arguments to inner resolvers': (test) ->
+  'factory resolvers wrap around inner resolvers': (test) ->
     test.expect 3
     c = hinoki.newContainer()
 

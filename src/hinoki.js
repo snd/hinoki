@@ -51,7 +51,7 @@
       error = new hinoki.CircularDependencyError(path, containers[0]);
       return Promise.reject(error);
     }
-    factoryResult = hinoki.resolveFactoryInContainers(containers, path);
+    factoryResult = hinoki.resolveFactoryInContainers(containers, path, debug);
     if (factoryResult instanceof Error) {
       return Promise.reject(factoryResult);
     }
@@ -158,32 +158,49 @@
       return Promise.reject(error);
     });
   };
-  hinoki.resolveFactoryInContainer = function(container, nameOrPath) {
-    var accum, defaultResolve, name, path, resolve;
+  hinoki.resolveFactoryInContainer = function(container, nameOrPath, debug) {
+    var accum, defaultResolver, name, path, resolve, resolvers;
     path = hinoki.castPath(nameOrPath);
     name = path.name();
-    defaultResolve = function() {
-      return hinoki.defaultFactoryResolver(container, name);
+    defaultResolver = function(container, name) {
+      var factory;
+      factory = hinoki.defaultFactoryResolver(container, name);
+      if (typeof debug === "function") {
+        debug({
+          event: 'defaultFactoryResolverCalled',
+          calledWithName: name,
+          calledWithContainer: container,
+          returnedFactory: factory
+        });
+      }
+      return factory;
     };
-    resolve = container.factoryResolvers != null ? (accum = function(inner, resolver) {
-      return function(innerContainer, innerName) {
-        if (innerContainer == null) {
-          innerContainer = container;
+    resolvers = container.factoryResolvers || [];
+    accum = function(inner, resolver) {
+      return function(container, name) {
+        var factory;
+        factory = resolver(container, name, inner);
+        if (typeof debug === "function") {
+          debug({
+            event: 'factoryResolverCalled',
+            resolver: resolver,
+            calledWithName: name,
+            calledWithContainer: container,
+            returnedFactory: factory
+          });
         }
-        if (innerName == null) {
-          innerName = name;
-        }
-        return resolver(innerContainer, innerName, inner);
+        return factory;
       };
-    }, container.factoryResolvers.reduceRight(accum, defaultResolve)) : defaultResolve;
-    return resolve();
+    };
+    resolve = resolvers.reduceRight(accum, defaultResolver);
+    return resolve(container, name);
   };
-  hinoki.resolveFactoryInContainers = function(containers, nameOrPath) {
+  hinoki.resolveFactoryInContainers = function(containers, nameOrPath, debug) {
     var path;
     path = hinoki.castPath(nameOrPath);
     return hinoki.some(containers, function(container) {
       var factory;
-      factory = hinoki.resolveFactoryInContainer(container, path);
+      factory = hinoki.resolveFactoryInContainer(container, path, debug);
       if (factory == null) {
         return;
       }
@@ -232,6 +249,12 @@
     });
   };
   hinoki.newContainer = function(factories, values) {
+    if (factories == null) {
+      factories = {};
+    }
+    if (values == null) {
+      values = {};
+    }
     return {
       factories: factories,
       values: values

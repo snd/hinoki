@@ -63,7 +63,7 @@ do ->
     # resolveFactoryInContainers has the opportunity
     # to return an error through a rejected promise that
     # is returned by getOrCreateManyValues unchanged
-    factoryResult = hinoki.resolveFactoryInContainers containers, path
+    factoryResult = hinoki.resolveFactoryInContainers containers, path, debug
 
     if factoryResult instanceof Error
       return Promise.reject factoryResult
@@ -191,33 +191,40 @@ do ->
   ###################################################################################
   # functions that resolve factories
 
-  # returns either null or a promise that resolves to {factory: }
-
-  hinoki.resolveFactoryInContainer = (container, nameOrPath) ->
+  hinoki.resolveFactoryInContainer = (container, nameOrPath, debug) ->
     path = hinoki.castPath nameOrPath
     name = path.name()
 
-    defaultResolve = ->
-      hinoki.defaultFactoryResolver container, name
+    defaultResolver = (container, name) ->
+      factory = hinoki.defaultFactoryResolver container, name
+      debug? {
+        event: 'defaultFactoryResolverCalled'
+        calledWithName: name
+        calledWithContainer: container
+        returnedFactory: factory
+      }
+      return factory
 
-    resolve =
-      if container.factoryResolvers?
-        accum = (inner, resolver) ->
-          (innerContainer = container, innerName = name) ->
-            resolver innerContainer, innerName, inner
-        container.factoryResolvers.reduceRight accum, defaultResolve
-      else
-        defaultResolve
+    resolvers = container.factoryResolvers || []
+    accum = (inner, resolver) ->
+      (container, name) ->
+        factory = resolver container, name, inner
+        debug? {
+          event: 'factoryResolverCalled'
+          resolver: resolver
+          calledWithName: name
+          calledWithContainer: container
+          returnedFactory: factory
+        }
+        return factory
+    resolve = resolvers.reduceRight accum, defaultResolver
+    return resolve container, name
 
-    resolve()
-
-  # returns either null or a promise that resolves to {container: , factory: }
-
-  hinoki.resolveFactoryInContainers = (containers, nameOrPath) ->
+  hinoki.resolveFactoryInContainers = (containers, nameOrPath, debug) ->
     path = hinoki.castPath nameOrPath
 
     hinoki.some containers, (container) ->
-      factory = hinoki.resolveFactoryInContainer container, path
+      factory = hinoki.resolveFactoryInContainer container, path, debug
 
       unless factory?
         return
@@ -233,8 +240,6 @@ do ->
 
   ###################################################################################
   # functions that resolve values
-
-  # returns either null or a promise that resolves to {value: }
 
   hinoki.resolveValueInContainer = (container, nameOrPath) ->
     path = hinoki.castPath nameOrPath
@@ -254,8 +259,6 @@ do ->
 
     resolve()
 
-  # returns either null or a promise that resolves to {container: , value: }
-
   hinoki.resolveValueInContainers = (containers, nameOrPath) ->
     path = hinoki.castPath nameOrPath
 
@@ -274,7 +277,7 @@ do ->
   ###################################################################################
   # shorthand for container construction
 
-  hinoki.newContainer = (factories, values) ->
+  hinoki.newContainer = (factories = {}, values = {}) ->
     {
       factories: factories
       values: values
