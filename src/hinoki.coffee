@@ -208,7 +208,7 @@ do ->
     resolvers = container.factoryResolvers || []
     accum = (inner, resolver) ->
       (container, name) ->
-        factory = resolver container, name, inner
+        factory = resolver container, name, inner, debug
         debug? {
           event: 'factoryResolverCalled'
           resolver: resolver
@@ -241,29 +241,40 @@ do ->
   ###################################################################################
   # functions that resolve values
 
-  hinoki.resolveValueInContainer = (container, nameOrPath) ->
+  hinoki.resolveValueInContainer = (container, nameOrPath, debug) ->
     path = hinoki.castPath nameOrPath
     name = path.name()
 
-    defaultResolve = ->
-      hinoki.defaultValueResolver container, name
+    defaultResolver = (container, name) ->
+      value = hinoki.defaultValueResolver container, name
+      debug? {
+        event: 'defaultValueResolverCalled'
+        calledWithName: name
+        calledWithContainer: container
+        returnedValue: value
+      }
+      return value
 
-    resolve =
-      if container.valueResolvers?
-        accum = (inner, resolver) ->
-          (innerContainer = container, innerName = name) ->
-            resolver innerContainer, innerName, inner
-        container.valueResolvers.reduceRight accum, defaultResolve
-      else
-        defaultResolve
+    resolvers = container.valueResolvers || []
+    accum = (inner, resolver) ->
+      (container, name) ->
+        value = resolver container, name, inner, debug
+        debug? {
+          event: 'valueResolverCalled'
+          resolver: resolver
+          calledWithName: name
+          calledWithContainer: container
+          returnedValue: value
+        }
+        return value
+    resolve = resolvers.reduceRight accum, defaultResolver
+    return resolve container, name
 
-    resolve()
-
-  hinoki.resolveValueInContainers = (containers, nameOrPath) ->
+  hinoki.resolveValueInContainers = (containers, nameOrPath, debug) ->
     path = hinoki.castPath nameOrPath
 
     hinoki.some containers, (container) ->
-      value = hinoki.resolveValueInContainer container, path
+      value = hinoki.resolveValueInContainer container, path, debug
 
       # note that null values are passed on
       if hinoki.isUndefined value

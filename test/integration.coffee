@@ -162,31 +162,31 @@ module.exports =
       test.done()
 
   'value resolvers wrap around default resolver': (test) ->
-    test.expect 5
-    c = hinoki.newContainer()
+    test.expect 3
 
-    value = {}
+    a = {}
+    b = {}
+
+    c =
+      values:
+        a: a
+
+    c2 =
+      values:
+        b: b
 
     c.valueResolvers = [
       (container, name, inner) ->
         test.equals container, c
         test.equals name, 'a'
-        inner()
-      # this resolver is called by the one above
-      (container, name) ->
-        test.equals container, c
-        test.equals name, 'a'
-        value
-      # this resolver is not called by the one above
-      (container, name) ->
-        test.fail()
+        inner c2, 'b'
     ]
 
-    hinoki.get(c, 'a').then (a) ->
-      test.equals a, value
+    hinoki.get(c, 'a').then (value) ->
+      test.equals b, value
       test.done()
 
-  'value resolvers can pass different arguments to inner resolvers': (test) ->
+  'value resolvers wrap around inner resolvers': (test) ->
     test.expect 3
     c = hinoki.newContainer()
 
@@ -205,6 +205,21 @@ module.exports =
 
     hinoki.get(c, 'a').then (a) ->
       test.equals a, value
+      test.done()
+
+  'value resolvers pass on null values': (test) ->
+    test.expect 1
+    c = hinoki.newContainer()
+
+    c2 = {}
+
+    c.valueResolvers = [
+      (container, name, inner) ->
+        null
+    ]
+
+    hinoki.get(c, 'a').then (a) ->
+      test.ok null is a
       test.done()
 
   'a factory is called no more than once': (test) ->

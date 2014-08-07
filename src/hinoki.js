@@ -179,7 +179,7 @@
     accum = function(inner, resolver) {
       return function(container, name) {
         var factory;
-        factory = resolver(container, name, inner);
+        factory = resolver(container, name, inner, debug);
         if (typeof debug === "function") {
           debug({
             event: 'factoryResolverCalled',
@@ -213,32 +213,49 @@
       };
     });
   };
-  hinoki.resolveValueInContainer = function(container, nameOrPath) {
-    var accum, defaultResolve, name, path, resolve;
+  hinoki.resolveValueInContainer = function(container, nameOrPath, debug) {
+    var accum, defaultResolver, name, path, resolve, resolvers;
     path = hinoki.castPath(nameOrPath);
     name = path.name();
-    defaultResolve = function() {
-      return hinoki.defaultValueResolver(container, name);
+    defaultResolver = function(container, name) {
+      var value;
+      value = hinoki.defaultValueResolver(container, name);
+      if (typeof debug === "function") {
+        debug({
+          event: 'defaultValueResolverCalled',
+          calledWithName: name,
+          calledWithContainer: container,
+          returnedValue: value
+        });
+      }
+      return value;
     };
-    resolve = container.valueResolvers != null ? (accum = function(inner, resolver) {
-      return function(innerContainer, innerName) {
-        if (innerContainer == null) {
-          innerContainer = container;
+    resolvers = container.valueResolvers || [];
+    accum = function(inner, resolver) {
+      return function(container, name) {
+        var value;
+        value = resolver(container, name, inner, debug);
+        if (typeof debug === "function") {
+          debug({
+            event: 'valueResolverCalled',
+            resolver: resolver,
+            calledWithName: name,
+            calledWithContainer: container,
+            returnedValue: value
+          });
         }
-        if (innerName == null) {
-          innerName = name;
-        }
-        return resolver(innerContainer, innerName, inner);
+        return value;
       };
-    }, container.valueResolvers.reduceRight(accum, defaultResolve)) : defaultResolve;
-    return resolve();
+    };
+    resolve = resolvers.reduceRight(accum, defaultResolver);
+    return resolve(container, name);
   };
-  hinoki.resolveValueInContainers = function(containers, nameOrPath) {
+  hinoki.resolveValueInContainers = function(containers, nameOrPath, debug) {
     var path;
     path = hinoki.castPath(nameOrPath);
     return hinoki.some(containers, function(container) {
       var value;
-      value = hinoki.resolveValueInContainer(container, path);
+      value = hinoki.resolveValueInContainer(container, path, debug);
       if (hinoki.isUndefined(value)) {
         return;
       }
