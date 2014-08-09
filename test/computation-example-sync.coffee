@@ -17,8 +17,10 @@ factories =
 module.exports =
 
   'ask for count': (test) ->
-    c = hinoki.newContainer factories,
-      xs: [1, 2, 3, 6]
+    c =
+      factories: factories
+      values:
+        xs: [1, 2, 3, 6]
 
     hinoki.get(c, 'count')
       .then (count) ->
@@ -29,8 +31,10 @@ module.exports =
         test.done()
 
   'ask for mean': (test) ->
-    c = hinoki.newContainer factories,
-      xs: [1, 2, 3, 6]
+    c =
+      factories: factories
+      values:
+        xs: [1, 2, 3, 6]
 
     hinoki.get(c, 'mean').then (mean) ->
       test.equals mean, 3
@@ -41,8 +45,10 @@ module.exports =
       test.done()
 
   'ask for meanOfSquares': (test) ->
-    c = hinoki.newContainer factories,
-      xs: [1, 2, 3, 6]
+    c =
+      factories: factories
+      values:
+        xs: [1, 2, 3, 6]
 
     hinoki.get(c, 'meanOfSquares').then (meanOfSquares) ->
       test.equals meanOfSquares, 12.5
@@ -53,8 +59,10 @@ module.exports =
       test.done()
 
   'ask for variance': (test) ->
-    c = hinoki.newContainer factories,
-      xs: [1, 2, 3, 6]
+    c =
+      factories: factories
+      values:
+        xs: [1, 2, 3, 6]
 
     hinoki.get(c, 'variance').then (variance) ->
       test.equals variance, 3.5

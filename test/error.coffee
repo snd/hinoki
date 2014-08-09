@@ -5,10 +5,9 @@ hinoki = require '../src/hinoki'
 module.exports =
 
   'CircularDependencyError': (test) ->
-    test.expect 3
-
-    c = hinoki.newContainer
-      a: (a) ->
+    c =
+      factories:
+        a: (a) ->
 
     hinoki.get(c, 'a').catch hinoki.CircularDependencyError, (error) ->
       test.equals error.type, 'CircularDependencyError'
@@ -19,7 +18,7 @@ module.exports =
   'UnresolvableFactoryError': (test) ->
     test.expect 3
 
-    c = hinoki.newContainer()
+    c = {}
 
     hinoki.get(c, 'a').catch hinoki.UnresolvableFactoryError, (error) ->
       test.equals error.type, 'UnresolvableFactoryError'
@@ -32,8 +31,9 @@ module.exports =
 
     exception = {}
 
-    c = hinoki.newContainer
-      a: -> throw exception
+    c =
+      factories:
+        a: -> throw exception
 
     hinoki.get(c, 'a').catch hinoki.ExceptionInFactoryError, (error) ->
       test.equals error.type, 'ExceptionInFactoryError'
@@ -47,8 +47,9 @@ module.exports =
 
     rejection = {}
 
-    c = hinoki.newContainer
-      a: -> Promise.reject rejection
+    c =
+      factories:
+        a: -> Promise.reject rejection
 
     hinoki.get(c, 'a').catch hinoki.PromiseRejectedError, (error) ->
       test.equals error.type, 'PromiseRejectedError'
@@ -62,8 +63,9 @@ module.exports =
 
     factory = {}
 
-    c = hinoki.newContainer
-      a: factory
+    c =
+      factories:
+        a: factory
 
     hinoki.get(c, 'a').catch hinoki.FactoryNotFunctionError, (error) ->
       test.equals error.type, 'FactoryNotFunctionError'
@@ -75,8 +77,9 @@ module.exports =
   'FactoryReturnedUndefinedError': (test) ->
     test.expect 3
 
-    c = hinoki.newContainer
-      a: ->
+    c =
+      factories:
+        a: ->
 
     hinoki.get(c, 'a').catch hinoki.FactoryReturnedUndefinedError, (error) ->
       test.equals error.type, 'FactoryReturnedUndefinedError'

@@ -26,70 +26,63 @@ do ->
       throw new Error 'at least 1 container is required'
 
     if Array.isArray oneOrManyNamesOrPaths
-      hinoki.getMany containers, oneOrManyNamesOrPaths, debug
+      Promise.all(oneOrManyNamesOrPaths).map (nameOrPath) ->
+        hinoki.getOne containers, nameOrPath, debug
     else
       hinoki.getOne containers, oneOrManyNamesOrPaths, debug
-
-  hinoki.getMany = (containers, namesOrPaths, debug) ->
-    Promise.all(namesOrPaths).map (nameOrPath) ->
-      hinoki.getOne containers, nameOrPath, debug
 
   hinoki.getOne = (containers, nameOrPath, debug) ->
     path = hinoki.castPath nameOrPath
 
-    valueResult = hinoki.resolveValueInContainers containers, path
+    # TODO rename to resolved
+    result = hinoki.resolveInContainers containers, path, debug
 
-    if valueResult?
-      debug? {
-        event: 'valueFound'
-        name: path.name()
-        path: path.segments()
-        value: valueResult.value
-        container: valueResult.container
-      }
-      return Promise.resolve valueResult.value
-
-    # no value available. we need a factory.
-    # let's check for cycles first since
-    # we can't use a factory if the path contains a cycle.
-
-    if path.isCyclic()
-      error = new hinoki.CircularDependencyError path, containers[0]
-      return Promise.reject error
-
-    # no cycle - yeah!
-    # lets find the container that can give us a factory
-
-    # resolveFactoryInContainers has the opportunity
-    # to return an error through a rejected promise that
-    # is returned by getOrCreateManyValues unchanged
-    factoryResult = hinoki.resolveFactoryInContainers containers, path, debug
-
-    if factoryResult instanceof Error
-      return Promise.reject factoryResult
-
-    unless factoryResult?
+    unless result?
       # we are out of luck: the factory could not be found
       error = new hinoki.UnresolvableFactoryError path, containers[0]
       return Promise.reject error
 
-    # we've got a factory
+    if result instanceof Error
+      return Promise.reject result
 
-    {factory, container} = factoryResult
+    unless hinoki.isUndefined result.value
+      debug? {
+        event: 'valueFound'
+        path: path.segments()
+        result: result
+      }
+      return Promise.resolve result.value
+
+    # no value available.
+    # we've got a factory.
+    # let's check for cycles first since
+    # we can't use the factory if the path contains a cycle.
+
+    if path.isCyclic()
+      error = new hinoki.CircularDependencyError path, result.container
+      return Promise.reject error
+
+    # no cycle - yeah!
+
+    unless 'function' is typeof result.factory
+      # we are out of luck: the resolver didn't return a function
+      # TODO call with result.name here
+      return Promise.reject new hinoki.FactoryNotFunctionError path, result.container, result.factory
 
     debug? {
-      event: 'factoryFound'
-      name: path.name()
+      event: 'factoryResolved'
       path: path.segments()
-      factory: factory
-      container: container
+      result: result
     }
 
     # if the value is already being constructed
     # wait for that instead of starting a second construction.
     # a factory must only be called exactly once per container.
 
-    underConstruction = container.underConstruction?[path.name()]
+    # from here on we use the name and container returned by the resolver
+    # which might differ from what was originally searched
+
+    underConstruction = result.container.underConstruction?[result.name]
 
     if underConstruction?
       debug? {
@@ -97,7 +90,7 @@ do ->
         name: path.name()
         path: path.segments()
         value: underConstruction
-        container: container
+        container: result.container
       }
       return underConstruction
 
@@ -105,16 +98,14 @@ do ->
 
     # lets resolve the dependencies of the factory
 
-    remainingContainers = hinoki.startingWith containers, container
+    remainingContainers = hinoki.startingWith containers, result.container
+    if remainingContainers.length is 0
+      remainingContainers = [result.container]
 
-    dependencyNames = hinoki.getNamesToInject factory
+    dependencyNames = hinoki.getNamesToInject result.factory
 
     dependencyPaths = dependencyNames.map (x) ->
       hinoki.castPath(x).concat path
-
-    # TODO handle optional dependencies here
-    # maybe through the paths?
-    # return nulls
 
     dependenciesPromise = hinoki.get remainingContainers, dependencyPaths, debug
 
@@ -123,25 +114,29 @@ do ->
       # the dependencies are ready
       # and we can finally call the factory
 
-      hinoki.callFactory container, path, factory, dependencyValues, debug
+      hinoki.callFactory result.container, path, result.factory, dependencyValues, debug
 
-    container.underConstruction ?= {}
-    container.underConstruction[path.name()] = factoryCallResultPromise
+    result.container.underConstruction ?= {}
+    result.container.underConstruction[result.name] = factoryCallResultPromise
 
     factoryCallResultPromise.then (value) ->
       # note that a null value is allowed!
       if hinoki.isUndefined value
-        error = new hinoki.FactoryReturnedUndefinedError path, container, factory
+        error = new hinoki.FactoryReturnedUndefinedError path, result.container, result.factory
         return Promise.reject error
       # value is fully constructed
-      container.values ?= {}
-      container.values[path.name()] = value
-      delete container.underConstruction[path.name()]
-      value
+      cache = result.container.cache or hinoki.defaultCache
+      cache
+        container: result.container
+        name: result.name
+        value: value
+      delete result.container.underConstruction[path.name()]
+      return value
 
   ###################################################################################
   # call factory
 
+  # normalizes sync and async values returned by factories
   hinoki.callFactory = (container, nameOrPath, factory, dependencyValues, debug) ->
     path = hinoki.castPath nameOrPath
     try
@@ -191,125 +186,70 @@ do ->
   ###################################################################################
   # functions that resolve factories
 
-  hinoki.resolveFactoryInContainer = (container, nameOrPath, debug) ->
+  hinoki.resolveInContainer = (container, nameOrPath, debug) ->
     path = hinoki.castPath nameOrPath
     name = path.name()
 
-    defaultResolver = (container, name) ->
-      factory = hinoki.defaultFactoryResolver container, name
+    defaultResolver = (query) ->
+      result = hinoki.defaultResolver query
       debug? {
-        event: 'defaultFactoryResolverCalled'
-        calledWithName: name
-        calledWithContainer: container
-        returnedFactory: factory
+        event: 'defaultResolverCalled'
+        query: query
+        result: result
       }
-      return factory
+      return result
 
-    resolvers = container.factoryResolvers || []
+    resolvers = container.resolvers || []
     accum = (inner, resolver) ->
-      (container, name) ->
-        factory = resolver container, name, inner, debug
+      (query) ->
+        result = resolver query, inner, debug
         debug? {
-          event: 'factoryResolverCalled'
-          resolver: resolver
-          calledWithName: name
-          calledWithContainer: container
-          returnedFactory: factory
+          event: 'resolverCalled'
+          query: query
+          result: result
         }
-        return factory
+        return result
     resolve = resolvers.reduceRight accum, defaultResolver
-    return resolve container, name
+    return resolve {
+      container: container
+      name: name
+    }
 
-  hinoki.resolveFactoryInContainers = (containers, nameOrPath, debug) ->
+  hinoki.resolveInContainers = (containers, nameOrPath, debug) ->
     path = hinoki.castPath nameOrPath
 
     hinoki.some containers, (container) ->
-      factory = hinoki.resolveFactoryInContainer container, path, debug
+      hinoki.resolveInContainer container, path, debug
 
+  ###################################################################################
+  # default
+
+  hinoki.defaultResolver = (query) ->
+      value = query.container.values?[query.name]
+      unless hinoki.isUndefined value
+        return {
+          value: value
+          name: query.name
+          container: query.container
+        }
+
+      factory = query.container.factories?[query.name]
       unless factory?
         return
 
-      unless 'function' is typeof factory
-        # we are out of luck: the resolver didn't return a function
-        return new hinoki.FactoryNotFunctionError path, container, factory
+      # add $inject such that parseFunctionArguments is called only once per factory
+      if not factory.$inject? and 'function' is typeof factory
+        factory.$inject = hinoki.parseFunctionArguments factory
 
-      {
+      return {
         factory: factory
-        container: container
+        name: query.name
+        container: query.container
       }
 
-  ###################################################################################
-  # functions that resolve values
-
-  hinoki.resolveValueInContainer = (container, nameOrPath, debug) ->
-    path = hinoki.castPath nameOrPath
-    name = path.name()
-
-    defaultResolver = (container, name) ->
-      value = hinoki.defaultValueResolver container, name
-      debug? {
-        event: 'defaultValueResolverCalled'
-        calledWithName: name
-        calledWithContainer: container
-        returnedValue: value
-      }
-      return value
-
-    resolvers = container.valueResolvers || []
-    accum = (inner, resolver) ->
-      (container, name) ->
-        value = resolver container, name, inner, debug
-        debug? {
-          event: 'valueResolverCalled'
-          resolver: resolver
-          calledWithName: name
-          calledWithContainer: container
-          returnedValue: value
-        }
-        return value
-    resolve = resolvers.reduceRight accum, defaultResolver
-    return resolve container, name
-
-  hinoki.resolveValueInContainers = (containers, nameOrPath, debug) ->
-    path = hinoki.castPath nameOrPath
-
-    hinoki.some containers, (container) ->
-      value = hinoki.resolveValueInContainer container, path, debug
-
-      # note that null values are passed on
-      if hinoki.isUndefined value
-        return
-
-      {
-        value: value
-        container: container
-      }
-
-  ###################################################################################
-  # shorthand for container construction
-
-  hinoki.newContainer = (factories = {}, values = {}) ->
-    {
-      factories: factories
-      values: values
-    }
-
-  ###################################################################################
-  # default resolvers
-
-  hinoki.defaultValueResolver = (container, name) ->
-    container.values?[name]
-
-  hinoki.defaultFactoryResolver = (container, name) ->
-    factory = container.factories?[name]
-    unless factory?
-      return
-
-    # add $inject such that parseFunctionArguments is called only once per factory
-    if not factory.$inject? and 'function' is typeof factory
-      factory.$inject = hinoki.parseFunctionArguments factory
-
-    return factory
+  hinoki.defaultCache = (options) ->
+    options.container.values ?= {}
+    options.container.values[options.name] = options.value
 
   ###################################################################################
   # errors
