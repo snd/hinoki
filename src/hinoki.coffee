@@ -99,6 +99,9 @@ do ->
     # lets resolve the dependencies of the factory
 
     remainingContainers = hinoki.startingWith containers, result.container
+    # if a resolver returns a container that is not in the original
+    # container chain then remainingContainers is [].
+    # correct for that.
     if remainingContainers.length is 0
       remainingContainers = [result.container]
 
