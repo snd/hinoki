@@ -34,7 +34,6 @@ do ->
   hinoki.getOne = (containers, nameOrPath, debug) ->
     path = hinoki.castPath nameOrPath
 
-    # TODO rename to resolved
     result = hinoki.resolveInContainers containers, path, debug
 
     unless result?
