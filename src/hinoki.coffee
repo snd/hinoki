@@ -132,7 +132,7 @@ do ->
         container: result.container
         name: result.name
         value: value
-      delete result.container.underConstruction[path.name()]
+      delete result.container.underConstruction[result.name]
       return value
 
   ###################################################################################
