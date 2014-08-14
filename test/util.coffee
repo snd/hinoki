@@ -72,11 +72,11 @@ module.exports =
     test.ok hinoki.arrayOfStringsHasDuplicates ['a', 'b', 'b']
     test.done()
 
-  'arrayify': (test) ->
-    test.deepEqual [], hinoki.arrayify []
-    test.deepEqual [1, 2, 3], hinoki.arrayify [1, 2, 3]
-    test.deepEqual [1], hinoki.arrayify 1
-    test.deepEqual [], hinoki.arrayify null
+  'coerceToArray': (test) ->
+    test.deepEqual [], hinoki.coerceToArray []
+    test.deepEqual [1, 2, 3], hinoki.coerceToArray [1, 2, 3]
+    test.deepEqual [1], hinoki.coerceToArray 1
+    test.deepEqual [], hinoki.coerceToArray null
     test.done()
 
   'startingWith': (test) ->

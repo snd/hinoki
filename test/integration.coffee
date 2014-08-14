@@ -144,10 +144,10 @@ module.exports =
     c.resolvers = [
       (query, inner) ->
         test.equals query.container, c
-        test.equals query.name, 'a'
+        test.deepEqual query.path, ['a']
         inner
           container: c2
-          name: 'b'
+          path: ['b']
     ]
 
     hinoki.get(c, 'a').then (value) ->
@@ -166,19 +166,19 @@ module.exports =
       (query, inner) ->
         test.deepEqual query,
           container: c
-          name: 'a'
+          path: ['a']
         inner
           container: c2
-          name: 'b'
+          path: ['b']
       (query) ->
         test.deepEqual query,
           container: c2
-          name: 'b'
+          path: ['b']
         {
           factory: ->
             value
           container: c3
-          name: 'c'
+          path: ['c']
         }
     ]
 

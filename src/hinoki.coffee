@@ -20,7 +20,7 @@ do ->
   # get
 
   hinoki.get = (oneOrManyContainers, oneOrManyNamesOrPaths, debug) ->
-    containers = hinoki.arrayify oneOrManyContainers
+    containers = hinoki.coerceToArray oneOrManyContainers
 
     if containers.length is 0
       throw new Error 'at least 1 container is required'
@@ -32,7 +32,7 @@ do ->
       hinoki.getOne containers, oneOrManyNamesOrPaths, debug
 
   hinoki.getOne = (containers, nameOrPath, debug) ->
-    path = hinoki.castPath nameOrPath
+    path = hinoki.coerceToArray nameOrPath
 
     result = hinoki.resolveInContainers containers, path, debug
 
@@ -47,7 +47,8 @@ do ->
     unless hinoki.isUndefined result.value
       debug? {
         event: 'valueFound'
-        path: path.segments()
+        name: path[0]
+        path: path
         result: result
       }
       return Promise.resolve result.value
@@ -57,7 +58,7 @@ do ->
     # let's check for cycles first since
     # we can't use the factory if the path contains a cycle.
 
-    if path.isCyclic()
+    if hinoki.arrayOfStringsHasDuplicates path
       error = new hinoki.CircularDependencyError path, result.container
       return Promise.reject error
 
@@ -70,7 +71,8 @@ do ->
 
     debug? {
       event: 'factoryResolved'
-      path: path.segments()
+      name: path[0]
+      path: path
       result: result
     }
 
@@ -81,13 +83,13 @@ do ->
     # from here on we use the name and container returned by the resolver
     # which might differ from what was originally searched
 
-    underConstruction = result.container.underConstruction?[result.name]
+    underConstruction = result.container.underConstruction?[result.path[0]]
 
     if underConstruction?
       debug? {
         event: 'valueUnderConstruction'
-        name: path.name()
-        path: path.segments()
+        name: path[0]
+        path: path
         value: underConstruction
         container: result.container
       }
@@ -107,7 +109,7 @@ do ->
     dependencyNames = hinoki.getNamesToInject result.factory
 
     dependencyPaths = dependencyNames.map (x) ->
-      hinoki.castPath(x).concat path
+      hinoki.coerceToArray(x).concat path
 
     dependenciesPromise = hinoki.get remainingContainers, dependencyPaths, debug
 
@@ -118,8 +120,11 @@ do ->
 
       hinoki.callFactory result.container, path, result.factory, dependencyValues, debug
 
-    result.container.underConstruction ?= {}
-    result.container.underConstruction[result.name] = factoryCallResultPromise
+    nocache = result.nocache or result.factory.$nocache
+
+    unless nocache
+      result.container.underConstruction ?= {}
+      result.container.underConstruction[result.path[0]] = factoryCallResultPromise
 
     factoryCallResultPromise.then (value) ->
       # note that a null value is allowed!
@@ -127,12 +132,13 @@ do ->
         error = new hinoki.FactoryReturnedUndefinedError path, result.container, result.factory
         return Promise.reject error
       # value is fully constructed
-      cache = result.container.cache or hinoki.defaultCache
-      cache
-        container: result.container
-        name: result.name
-        value: value
-      delete result.container.underConstruction[result.name]
+      unless nocache
+        cache = result.container.cache or hinoki.defaultCache
+        cache
+          container: result.container
+          path: result.path
+          value: value
+        delete result.container.underConstruction[result.path[0]]
       return value
 
   ###################################################################################
@@ -140,7 +146,7 @@ do ->
 
   # normalizes sync and async values returned by factories
   hinoki.callFactory = (container, nameOrPath, factory, dependencyValues, debug) ->
-    path = hinoki.castPath nameOrPath
+    path = hinoki.coerceToArray nameOrPath
     try
       valueOrPromise = factory.apply null, dependencyValues
     catch exception
@@ -151,8 +157,8 @@ do ->
       # valueOrPromise is not a promise but an value
       debug? {
         event: 'valueCreated',
-        name: path.name()
-        path: path.segments()
+        name: path[0]
+        path: path
         value: valueOrPromise
         factory: factory
         container: container
@@ -163,8 +169,8 @@ do ->
 
     debug? {
       event: 'promiseCreated'
-      name: path.name()
-      path: path.segments()
+      name: path[0]
+      path: path
       promise: valueOrPromise
       container: container
       factory: factory
@@ -174,8 +180,8 @@ do ->
       .then (value) ->
         debug? {
           event: 'promiseResolved'
-          name: path.name()
-          path: path.segments()
+          name: path[0]
+          path: path
           value: value
           container: container
           factory: factory
@@ -189,8 +195,8 @@ do ->
   # functions that resolve factories
 
   hinoki.resolveInContainer = (container, nameOrPath, debug) ->
-    path = hinoki.castPath nameOrPath
-    name = path.name()
+    path = hinoki.coerceToArray nameOrPath
+    name = path[0]
 
     defaultResolver = (query) ->
       result = hinoki.defaultResolver query
@@ -214,11 +220,11 @@ do ->
     resolve = resolvers.reduceRight accum, defaultResolver
     return resolve {
       container: container
-      name: name
+      path: path
     }
 
   hinoki.resolveInContainers = (containers, nameOrPath, debug) ->
-    path = hinoki.castPath nameOrPath
+    path = hinoki.coerceToArray nameOrPath
 
     hinoki.some containers, (container) ->
       hinoki.resolveInContainer container, path, debug
@@ -227,31 +233,32 @@ do ->
   # default
 
   hinoki.defaultResolver = (query) ->
-      value = query.container.values?[query.name]
-      unless hinoki.isUndefined value
-        return {
-          value: value
-          name: query.name
-          container: query.container
-        }
-
-      factory = query.container.factories?[query.name]
-      unless factory?
-        return
-
-      # add $inject such that parseFunctionArguments is called only once per factory
-      if not factory.$inject? and 'function' is typeof factory
-        factory.$inject = hinoki.parseFunctionArguments factory
-
+    name = query.path[0]
+    value = query.container.values?[name]
+    unless hinoki.isUndefined value
       return {
-        factory: factory
-        name: query.name
+        value: value
+        path: query.path
         container: query.container
       }
 
+    factory = query.container.factories?[name]
+    unless factory?
+      return
+
+    # add $inject such that parseFunctionArguments is called only once per factory
+    if not factory.$inject? and 'function' is typeof factory
+      factory.$inject = hinoki.parseFunctionArguments factory
+
+    return {
+      factory: factory
+      path: query.path
+      container: query.container
+    }
+
   hinoki.defaultCache = (options) ->
     options.container.values ?= {}
-    options.container.values[options.name] = options.value
+    options.container.values[options.path[0]] = options.value
 
   ###################################################################################
   # errors
@@ -259,30 +266,30 @@ do ->
   # constructors for errors which are catchable with bluebirds `catch`
 
   hinoki.CircularDependencyError = (path, container) ->
-    this.message = "circular dependency #{path.toString()}"
+    this.message = "circular dependency #{hinoki.pathToString path}"
     this.type = 'CircularDependencyError'
-    this.name = path.name()
-    this.path = path.segments()
+    this.name = path[0]
+    this.path = path
     this.container = container
     if Error.captureStackTrace
       Error.captureStackTrace(this, this.constructor)
   hinoki.CircularDependencyError.prototype = new Error
 
   hinoki.UnresolvableFactoryError = (path, container) ->
-    this.message = "unresolvable factory '#{path.name()}' (#{path.toString()})"
+    this.message = "unresolvable factory '#{path[0]}' (#{hinoki.pathToString path})"
     this.type = 'UnresolvableFactoryError'
-    this.name = path.name()
-    this.path = path.segments()
+    this.name = path[0]
+    this.path = path
     this.container = container
     if Error.captureStackTrace
       Error.captureStackTrace(this, this.constructor)
   hinoki.UnresolvableFactoryError.prototype = new Error
 
   hinoki.ExceptionInFactoryError = (path, container, exception) ->
-    this.message = "exception in factory '#{path.name()}': #{exception}"
+    this.message = "exception in factory '#{path[0]}': #{exception}"
     this.type = 'ExceptionInFactoryError'
-    this.name = path.name()
-    this.path = path.segments()
+    this.name = path[0]
+    this.path = path
     this.container = container
     this.exception = exception
     if Error.captureStackTrace
@@ -290,10 +297,10 @@ do ->
   hinoki.ExceptionInFactoryError.prototype = new Error
 
   hinoki.PromiseRejectedError = (path, container, rejection) ->
-    this.message = "promise returned from factory '#{path.name()}' was rejected with reason: #{rejection}"
+    this.message = "promise returned from factory '#{path[0]}' was rejected with reason: #{rejection}"
     this.type = 'PromiseRejectedError'
-    this.name = path.name()
-    this.path = path.segments()
+    this.name = path[0]
+    this.path = path
     this.container = container
     this.rejection = rejection
     if Error.captureStackTrace
@@ -301,10 +308,10 @@ do ->
   hinoki.PromiseRejectedError.prototype = new Error
 
   hinoki.FactoryNotFunctionError = (path, container, factory) ->
-    this.message = "factory '#{path.name()}' is not a function: #{factory}"
+    this.message = "factory '#{path[0]}' is not a function: #{factory}"
     this.type = 'FactoryNotFunctionError'
-    this.name = path.name()
-    this.path = path.segments()
+    this.name = path[0]
+    this.path = path
     this.container = container
     this.factory = factory
     if Error.captureStackTrace
@@ -312,10 +319,10 @@ do ->
   hinoki.FactoryNotFunctionError.prototype = new Error
 
   hinoki.FactoryReturnedUndefinedError = (path, container, factory) ->
-    this.message = "factory '#{path.name()}' returned undefined"
+    this.message = "factory '#{path[0]}' returned undefined"
     this.type = 'FactoryReturnedUndefinedError'
-    this.name = path.name()
-    this.path = path.segments()
+    this.name = path[0]
+    this.path = path
     this.container = container
     this.factory = factory
     if Error.captureStackTrace
@@ -325,38 +332,8 @@ do ->
   ###################################################################################
   # path
 
-  hinoki.PathPrototype =
-    toString: ->
-      this.$segments.join ' <- '
-
-    name: ->
-      this.$segments[0]
-
-    segments: ->
-      this.$segments
-
-    concat: (otherValue) ->
-      otherPath = hinoki.castPath otherValue
-      segments = this.$segments.concat otherPath.$segments
-      hinoki.newPath segments
-
-    isCyclic: ->
-      hinoki.arrayOfStringsHasDuplicates this.$segments
-
-  hinoki.newPath = (segments) ->
-    path = Object.create hinoki.PathPrototype
-    path.$segments = segments
-    path
-
-  hinoki.castPath = (value) ->
-    if hinoki.PathPrototype.isPrototypeOf value
-      value
-    else if 'string' is typeof value
-      hinoki.newPath [value]
-    else if Array.isArray value
-      hinoki.newPath value
-    else
-      throw new Error "value #{value} can not be cast to name"
+  hinoki.pathToString = (path) ->
+    path.join ' <- '
 
   ###################################################################################
   # util
@@ -421,10 +398,10 @@ do ->
   # returns `[]` if `arg` is null.
   #
   # example:
-  # arrayify 'a'
+  # coerceToArray 'a'
   # => ['a']
 
-  hinoki.arrayify = (arg) ->
+  hinoki.coerceToArray = (arg) ->
     if Array.isArray arg
       return arg
     unless arg?
