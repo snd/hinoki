@@ -35,9 +35,7 @@
   "scripts": {
     "compile": "node_modules/coffee-script/bin/coffee --bare --compile --output src src/*.coffee",
     "prepublish": "node_modules/coffee-script/bin/coffee --bare --compile --output src src/*.coffee",
-    "pretest": "node_modules/coffee-script/bin/coffee --bare --compile --output src src/*.coffee && coffee --bare --compile --output test test/*.coffee",
-    "posttest": "rm test/*.js",
-    "clean": "rm src/*.js && rm test/*.js",
-    "test": "node_modules/nodeunit/bin/nodeunit test/*.js"
+    "clean": "rm src/*.js",
+    "test": "node_modules/nodeunit/bin/nodeunit test/*.coffee"
   }
 }
