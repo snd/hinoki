@@ -129,6 +129,32 @@ module.exports =
       test.deepEqual error.path, ['a', 'b']
       test.done()
 
+  'a factory is called no more than once': (test) ->
+    callsTo =
+      a: 0
+      b: 0
+      c: 0
+      d: 0
+
+    c =
+      factories:
+        a: (b, c) ->
+          test.ok callsTo.a < 2
+          Promise.delay(b + c, 40)
+        b: (d) ->
+          test.ok callsTo.b < 2
+          Promise.delay(d + 1, 20)
+        c: (d) ->
+          test.ok callsTo.c < 2
+          Promise.delay(d + 2, 30)
+        d: ->
+          test.ok callsTo.d < 2
+          Promise.delay(10, 10)
+
+    hinoki.get(c, 'a').then (a) ->
+      test.equals a, 23
+      test.done()
+
   'resolvers wrap around default resolver': (test) ->
     a = {}
     b = {}
@@ -187,28 +213,37 @@ module.exports =
       test.equals c3.values.c, value
       test.done()
 
-  'a factory is called no more than once': (test) ->
-    callsTo =
-      a: 0
-      b: 0
-      c: 0
-      d: 0
+  'a resolver can disable caching': (test) ->
+    c = {}
 
-    c =
-      factories:
-        a: (b, c) ->
-          test.ok callsTo.a < 2
-          Promise.delay(b + c, 40)
-        b: (d) ->
-          test.ok callsTo.b < 2
-          Promise.delay(d + 1, 20)
-        c: (d) ->
-          test.ok callsTo.c < 2
-          Promise.delay(d + 2, 30)
-        d: ->
-          test.ok callsTo.d < 2
-          Promise.delay(10, 10)
+    value = {}
+
+    c.resolvers = [
+      (query, inner) ->
+        test.deepEqual query,
+          container: c
+          path: ['a']
+        return {
+          nocache: true
+          container: c
+          factory: ->
+            value
+        }
+    ]
 
     hinoki.get(c, 'a').then (a) ->
-      test.equals a, 23
+      test.equals a, value
+      test.ok not c.values?
+      test.done()
+
+  'a factory with $nocache property is not cached': (test) ->
+    c =
+      factories:
+        x: -> 1
+
+    c.factories.x.$nocache = true
+
+    hinoki.get(c, 'x').then (x) ->
+      test.equals x, 1
+      test.ok not c.values?
       test.done()
