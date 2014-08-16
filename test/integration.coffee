@@ -247,3 +247,96 @@ module.exports =
       test.equals x, 1
       test.ok not c.values?
       test.done()
+
+  'mocking a factory for any require': (test) ->
+    test.expect 4
+    resolver = (query, inner) ->
+      if query.path[0] is 'bravo'
+        {
+          container: query.container
+          path: query.path
+          factory: (charlie) ->
+            charlie.split('').reverse().join('')
+          nocache: true
+        }
+      else
+        inner query
+    container =
+      factories:
+        alpha: -> 'alpha'
+        bravo: -> 'bravo'
+        charlie: -> 'charlie'
+        alpha_bravo: (alpha, bravo) ->
+          alpha + '_' + bravo
+        bravo_charlie: (bravo, charlie) ->
+          bravo + '_' + charlie
+        alpha_charlie: (alpha, charlie) ->
+          alpha + '_' + charlie
+      resolvers: [resolver]
+
+    hinoki.get(container, ['alpha_bravo', 'bravo_charlie', 'alpha_charlie'])
+      .spread (alpha_bravo, bravo_charlie, alpha_charlie) ->
+        test.equal alpha_bravo, 'alpha_eilrahc'
+        test.equal bravo_charlie, 'eilrahc_charlie'
+        test.equal alpha_charlie, 'alpha_charlie'
+        # note that bravo is not cached
+        test.deepEqual container.values,
+          alpha: 'alpha',
+          charlie: 'charlie',
+          alpha_charlie: 'alpha_charlie',
+          bravo_charlie: 'eilrahc_charlie',
+          alpha_bravo: 'alpha_eilrahc'
+        test.done()
+
+  'mocking a factory for requires from a specific other factory': (test) ->
+    # test.expect 4
+    resolver = (query, inner) ->
+      if query.path[0] is 'bravo'
+        console.log query.path
+        # only mock out when required by bravo_charlie
+        if query.path[1] is 'bravo_charlie'
+          {
+            container: query.container
+            path: query.path
+            factory: (charlie) ->
+              charlie.split('').reverse().join('')
+            nocache: true
+          }
+        else
+          # use the normal bravo factory when required from other factories
+          result = inner query
+          # this would usually be cached
+          # but dont cache it as that would
+          result.nocache = true
+          result
+      else
+        inner query
+    container =
+      factories:
+        alpha: -> 'alpha'
+        bravo: -> 'bravo'
+        charlie: -> 'charlie'
+        alpha_bravo: (alpha, bravo) ->
+          alpha + '_' + bravo
+        bravo_charlie: (bravo, charlie) ->
+          bravo + '_' + charlie
+        alpha_charlie: (alpha, charlie) ->
+          alpha + '_' + charlie
+      resolvers: [resolver]
+
+    hinoki.get(container, ['alpha_bravo', 'bravo_charlie', 'alpha_charlie'])
+      .spread (alpha_bravo, bravo_charlie, alpha_charlie) ->
+        test.equal alpha_bravo, 'alpha_bravo'
+        test.equal bravo_charlie, 'eilrahc_charlie'
+        test.equal alpha_charlie, 'alpha_charlie'
+        # note that bravo is not cached
+        test.deepEqual container.values,
+          alpha: 'alpha',
+          charlie: 'charlie',
+          alpha_charlie: 'alpha_charlie',
+          bravo_charlie: 'eilrahc_charlie',
+          alpha_bravo: 'alpha_bravo'
+        test.done()
+
+  'mocking a factory for all requires (and their requires...) from a specific factory': (test) ->
+    test.done()
