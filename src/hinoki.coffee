@@ -34,7 +34,10 @@ do ->
   hinoki.getOne = (containers, nameOrPath, debug) ->
     path = hinoki.coerceToArray nameOrPath
 
-    result = hinoki.resolveInContainers containers, path, debug
+    try
+      result = hinoki.resolveInContainers containers, path, debug
+    catch error
+      return Promise.reject error
 
     unless result?
       # we are out of luck: the factory could not be found

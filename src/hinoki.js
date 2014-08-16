@@ -31,7 +31,12 @@
   hinoki.getOne = function(containers, nameOrPath, debug) {
     var dependenciesPromise, dependencyNames, dependencyPaths, error, factoryCallResultPromise, nocache, path, remainingContainers, result, underConstruction, _base, _ref;
     path = hinoki.coerceToArray(nameOrPath);
-    result = hinoki.resolveInContainers(containers, path, debug);
+    try {
+      result = hinoki.resolveInContainers(containers, path, debug);
+    } catch (_error) {
+      error = _error;
+      return Promise.reject(error);
+    }
     if (result == null) {
       error = new hinoki.UnresolvableFactoryError(path, containers[0]);
       return Promise.reject(error);
