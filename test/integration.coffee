@@ -290,7 +290,7 @@ module.exports =
         test.done()
 
   'mocking a factory for requires from a specific other factory': (test) ->
-    # test.expect 4
+    test.expect 5
     resolver = (query, inner) ->
       if query.path[0] is 'bravo'
         # only mock out when required by bravo_charlie
@@ -359,6 +359,7 @@ module.exports =
           alpha_charlie: 'alpha_charlie',
           bravo_charlie: 'eilrahc_charlie',
           alpha_bravo: 'alpha_bravo'
+        test.equal 0, Object.keys(container.underConstruction)
         test.done()
 
   'mocking a factory for all requires (and their requires...) from a specific factory': (test) ->
