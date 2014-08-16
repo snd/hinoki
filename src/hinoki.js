@@ -189,6 +189,7 @@
         if (typeof debug === "function") {
           debug({
             event: 'resolverCalled',
+            resolver: resolver,
             query: query,
             result: result
           });

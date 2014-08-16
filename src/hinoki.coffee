@@ -213,6 +213,7 @@ do ->
         result = resolver query, inner, debug
         debug? {
           event: 'resolverCalled'
+          resolver: resolver
           query: query
           result: result
         }
