@@ -1,4 +1,5 @@
 Promise = require 'bluebird'
+util = require 'util'
 
 hinoki = require '../src/hinoki'
 
@@ -10,8 +11,8 @@ module.exports =
         x: 1
 
     hinoki.get(c, 'x').then (x) ->
-      test.equals x, 1
-      test.equals c.values.x, 1
+      test.equal x, 1
+      test.equal c.values.x, 1
       test.done()
 
   'get null value': (test) ->
@@ -29,8 +30,8 @@ module.exports =
         x: -> 1
 
     hinoki.get(c, 'x').then (x) ->
-      test.equals x, 1
-      test.equals c.values.x, 1
+      test.equal x, 1
+      test.equal c.values.x, 1
       test.done()
 
   'sync get null from factory': (test) ->
@@ -49,8 +50,8 @@ module.exports =
         x: -> Promise.resolve 1
 
     hinoki.get(c, 'x').then (x) ->
-      test.equals x, 1
-      test.equals c.values.x, 1
+      test.equal x, 1
+      test.equal c.values.x, 1
       test.done()
 
   'async get null from factory': (test) ->
@@ -70,7 +71,7 @@ module.exports =
         y: -> 1
 
     hinoki.get(c, 'x').then (x) ->
-      test.equals x, 2
+      test.equal x, 2
       test.done()
 
   'sync get null with dependencies': (test) ->
@@ -103,13 +104,13 @@ module.exports =
           1
 
     hinoki.get([c1, c2, c3], ['a', 'd']).spread (a, d) ->
-      test.equals a, 4
-      test.equals d, 1
+      test.equal a, 4
+      test.equal d, 1
 
-      test.equals c1.values.a, 4
-      test.equals c2.values.b, 3
-      test.equals c3.values.c, 2
-      test.equals c3.values.d, 1
+      test.equal c1.values.a, 4
+      test.equal c2.values.b, 3
+      test.equal c3.values.c, 2
+      test.equal c3.values.d, 1
 
       test.done()
 
@@ -125,7 +126,7 @@ module.exports =
           a + 1
 
     hinoki.get([c1, c2], 'b').catch (error) ->
-      test.equals error.type, 'UnresolvableFactoryError'
+      test.equal error.type, 'UnresolvableFactoryError'
       test.deepEqual error.path, ['a', 'b']
       test.done()
 
@@ -152,7 +153,7 @@ module.exports =
           Promise.delay(10, 10)
 
     hinoki.get(c, 'a').then (a) ->
-      test.equals a, 23
+      test.equal a, 23
       test.done()
 
   'resolvers wrap around default resolver': (test) ->
@@ -169,7 +170,7 @@ module.exports =
 
     c.resolvers = [
       (query, inner) ->
-        test.equals query.container, c
+        test.equal query.container, c
         test.deepEqual query.path, ['a']
         inner
           container: c2
@@ -177,8 +178,8 @@ module.exports =
     ]
 
     hinoki.get(c, 'a').then (value) ->
-      test.equals b, value
-      test.equals c2.values.b, value
+      test.equal b, value
+      test.equal c2.values.b, value
       test.done()
 
   'resolvers wrap around inner resolvers': (test) ->
@@ -209,8 +210,8 @@ module.exports =
     ]
 
     hinoki.get(c, 'a').then (a) ->
-      test.equals a, value
-      test.equals c3.values.c, value
+      test.equal a, value
+      test.equal c3.values.c, value
       test.done()
 
   'a resolver can disable caching': (test) ->
@@ -232,7 +233,7 @@ module.exports =
     ]
 
     hinoki.get(c, 'a').then (a) ->
-      test.equals a, value
+      test.equal a, value
       test.ok not c.values?
       test.done()
 
@@ -244,7 +245,7 @@ module.exports =
     c.factories.x.$nocache = true
 
     hinoki.get(c, 'x').then (x) ->
-      test.equals x, 1
+      test.equal x, 1
       test.ok not c.values?
       test.done()
 
@@ -292,7 +293,6 @@ module.exports =
     # test.expect 4
     resolver = (query, inner) ->
       if query.path[0] is 'bravo'
-        console.log query.path
         # only mock out when required by bravo_charlie
         if query.path[1] is 'bravo_charlie'
           {
@@ -324,7 +324,11 @@ module.exports =
           alpha + '_' + charlie
       resolvers: [resolver]
 
-    hinoki.get(container, ['alpha_bravo', 'bravo_charlie', 'alpha_charlie'])
+    hinoki.get(
+      container
+      ['alpha_bravo', 'bravo_charlie', 'alpha_charlie']
+      # (x) -> console.log util.inspect x
+    )
       .spread (alpha_bravo, bravo_charlie, alpha_charlie) ->
         test.equal alpha_bravo, 'alpha_bravo'
         test.equal bravo_charlie, 'eilrahc_charlie'

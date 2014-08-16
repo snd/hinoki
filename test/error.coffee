@@ -10,9 +10,9 @@ module.exports =
         a: (a) ->
 
     hinoki.get(c, 'a').catch hinoki.CircularDependencyError, (error) ->
-      test.equals error.type, 'CircularDependencyError'
+      test.equal error.type, 'CircularDependencyError'
       test.deepEqual error.path, ['a', 'a']
-      test.equals error.container, c
+      test.equal error.container, c
       test.done()
 
   'UnresolvableFactoryError': (test) ->
@@ -21,9 +21,9 @@ module.exports =
     c = {}
 
     hinoki.get(c, 'a').catch hinoki.UnresolvableFactoryError, (error) ->
-      test.equals error.type, 'UnresolvableFactoryError'
+      test.equal error.type, 'UnresolvableFactoryError'
       test.deepEqual error.path, ['a']
-      test.equals error.container, c
+      test.equal error.container, c
       test.done()
 
   'ExceptionInFactoryError': (test) ->
@@ -36,10 +36,10 @@ module.exports =
         a: -> throw exception
 
     hinoki.get(c, 'a').catch hinoki.ExceptionInFactoryError, (error) ->
-      test.equals error.type, 'ExceptionInFactoryError'
+      test.equal error.type, 'ExceptionInFactoryError'
       test.deepEqual error.path, ['a']
-      test.equals error.container, c
-      test.equals error.exception, exception
+      test.equal error.container, c
+      test.equal error.exception, exception
       test.done()
 
   'PromiseRejectedError': (test) ->
@@ -52,10 +52,10 @@ module.exports =
         a: -> Promise.reject rejection
 
     hinoki.get(c, 'a').catch hinoki.PromiseRejectedError, (error) ->
-      test.equals error.type, 'PromiseRejectedError'
+      test.equal error.type, 'PromiseRejectedError'
       test.deepEqual error.path, ['a']
-      test.equals error.container, c
-      test.equals error.rejection, rejection
+      test.equal error.container, c
+      test.equal error.rejection, rejection
       test.done()
 
   'FactoryNotFunctionError': (test) ->
@@ -68,10 +68,10 @@ module.exports =
         a: factory
 
     hinoki.get(c, 'a').catch hinoki.FactoryNotFunctionError, (error) ->
-      test.equals error.type, 'FactoryNotFunctionError'
+      test.equal error.type, 'FactoryNotFunctionError'
       test.deepEqual error.path, ['a']
-      test.equals error.container, c
-      test.equals error.factory, factory
+      test.equal error.container, c
+      test.equal error.factory, factory
       test.done()
 
   'FactoryReturnedUndefinedError': (test) ->
@@ -82,9 +82,9 @@ module.exports =
         a: ->
 
     hinoki.get(c, 'a').catch hinoki.FactoryReturnedUndefinedError, (error) ->
-      test.equals error.type, 'FactoryReturnedUndefinedError'
+      test.equal error.type, 'FactoryReturnedUndefinedError'
       test.deepEqual error.path, ['a']
-      test.equals error.container, c
+      test.equal error.container, c
       test.done()
 
   'exception in resolver': (test) ->

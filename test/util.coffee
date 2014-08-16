@@ -36,16 +36,16 @@ module.exports =
     'array': (test) ->
       test.ok hinoki.isUndefined hinoki.some []
 
-      test.equals 1, hinoki.some [1, null, null]
-      test.equals 2, hinoki.some [null, null, 2]
+      test.equal 1, hinoki.some [1, null, null]
+      test.equal 2, hinoki.some [null, null, 2]
 
       test.done()
 
     'array and predicate': (test) ->
       test.ok hinoki.isUndefined hinoki.some [], hinoki.identity, -> true
-      test.equals 1, hinoki.some [1], hinoki.identity, (x) -> x is 1
+      test.equal 1, hinoki.some [1], hinoki.identity, (x) -> x is 1
       test.ok hinoki.isUndefined hinoki.some [1], hinoki.identity, (x) -> x is 2
-      test.equals 2, hinoki.some [1, 2, 3], hinoki.identity, (x) -> x > 1
+      test.equal 2, hinoki.some [1, 2, 3], hinoki.identity, (x) -> x > 1
       test.ok hinoki.isUndefined hinoki.some [1, 2, 3], hinoki.identity, (x) -> x > 3
       test.ok hinoki.isUndefined hinoki.some [1, 2, 3], hinoki.identity, (x) -> x > 3
 
@@ -56,7 +56,7 @@ module.exports =
       test.done()
 
     'array, predicate, transform and sentinel': (test) ->
-      test.equals 'sentinel',
+      test.equal 'sentinel',
           hinoki.some [], hinoki.identity, hinoki.exists, 'sentinel'
 
       test.done()
@@ -92,7 +92,7 @@ module.exports =
     try
       hinoki.parseFunctionArguments 0
     catch err
-      test.equals err.message, 'argument must be a function'
+      test.equal err.message, 'argument must be a function'
     test.deepEqual [], hinoki.parseFunctionArguments ->
     test.deepEqual ['first'],
       hinoki.parseFunctionArguments (first) ->
