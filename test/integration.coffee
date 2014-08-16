@@ -305,8 +305,22 @@ module.exports =
         else
           # use the normal bravo factory when required from other factories
           result = inner query
-          # this would usually be cached
-          # but dont cache it as that would
+
+          # by default this will return a factory and then
+          # the cached value on subsequent resolutions.
+          # requires originating from bravo_charlie are not cached (nocache above).
+          # requires from other factories are cached by default.
+
+          # the under construction is a problem !!!
+          # if bravo is already under construction by alpha_bravo
+          # for example which reaches this code branch
+          # then bravo_charlies special factory returned from this resolver
+          # is ignored and bravo_charlie resolves to the same value as
+          # alpha_charlie.
+          # we can prevent this by disabling caching for all requires of bravo
+
+          # under construction should key both based on the path and the factory!!!
+
           result.nocache = true
           result
       else
@@ -327,7 +341,6 @@ module.exports =
     hinoki.get(
       container
       ['alpha_bravo', 'bravo_charlie', 'alpha_charlie']
-      # (x) -> console.log util.inspect x
     )
       .spread (alpha_bravo, bravo_charlie, alpha_charlie) ->
         test.equal alpha_bravo, 'alpha_bravo'
