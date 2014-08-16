@@ -154,12 +154,12 @@ do ->
 
         underConstruction = result.container.underConstruction[result.path[0]]
         if underConstruction?
-          newUnderConstruction = underConstruction.filter (x) ->
+          nextUnderConstruction = underConstruction.filter (x) ->
             x.factory isnt result.factory
-          if newUnderConstruction.length is 0
+          if nextUnderConstruction.length is 0
             delete result.container.underConstruction[result.path[0]]
           else
-            result.container.underConstruction[result.path[0]] = newUnderConstruction
+            result.container.underConstruction[result.path[0]] = nextUnderConstruction
 
       return value
 

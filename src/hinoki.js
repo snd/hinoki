@@ -116,7 +116,7 @@
       });
     }
     return factoryCallResultPromise.then(function(value) {
-      var cache, newUnderConstruction, underConstruction;
+      var cache, nextUnderConstruction, underConstruction;
       if (hinoki.isUndefined(value)) {
         error = new hinoki.FactoryReturnedUndefinedError(path, result.container, result.factory);
         return Promise.reject(error);
@@ -130,13 +130,13 @@
         });
         underConstruction = result.container.underConstruction[result.path[0]];
         if (underConstruction != null) {
-          newUnderConstruction = underConstruction.filter(function(x) {
+          nextUnderConstruction = underConstruction.filter(function(x) {
             return x.factory !== result.factory;
           });
-          if (newUnderConstruction.length === 0) {
+          if (nextUnderConstruction.length === 0) {
             delete result.container.underConstruction[result.path[0]];
           } else {
-            result.container.underConstruction[result.path[0]] = newUnderConstruction;
+            result.container.underConstruction[result.path[0]] = nextUnderConstruction;
           }
         }
       }
