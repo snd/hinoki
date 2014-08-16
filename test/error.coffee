@@ -86,3 +86,17 @@ module.exports =
       test.deepEqual error.path, ['a']
       test.equals error.container, c
       test.done()
+
+  'exception in resolver': (test) ->
+    test.expect 1
+
+    exception = {}
+
+    c =
+      resolvers: [
+        -> throw exception
+      ]
+
+    hinoki.get(c, 'a').catch (error) ->
+      test.equal error, exception
+      test.done()
