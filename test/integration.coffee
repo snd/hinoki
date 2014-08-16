@@ -318,10 +318,14 @@ module.exports =
           # is ignored and bravo_charlie resolves to the same value as
           # alpha_charlie.
           # we can prevent this by disabling caching for all requires of bravo
+          # use under construction only if the factory
+          # and path used for construction are the same one
+          #
+          # output varies based on path and factory
 
           # under construction should key both based on the path and the factory!!!
 
-          result.nocache = true
+          # result.nocache = true
           result
       else
         inner query
@@ -346,10 +350,12 @@ module.exports =
         test.equal alpha_bravo, 'alpha_bravo'
         test.equal bravo_charlie, 'eilrahc_charlie'
         test.equal alpha_charlie, 'alpha_charlie'
-        # note that bravo is not cached
+        # bravo is cached for all cases but the ones where
+        # bravo_charlie requires it
         test.deepEqual container.values,
           alpha: 'alpha',
           charlie: 'charlie',
+          bravo: 'bravo'
           alpha_charlie: 'alpha_charlie',
           bravo_charlie: 'eilrahc_charlie',
           alpha_bravo: 'alpha_bravo'

@@ -79,24 +79,30 @@ do ->
       result: result
     }
 
-    # if the value is already being constructed
-    # wait for that instead of starting a second construction.
-    # a factory must only be called exactly once per container.
-
     # from here on we use the name and container returned by the resolver
     # which might differ from what was originally searched
 
-    underConstruction = result.container.underConstruction?[result.path[0]]
+    # if the value is already being constructed
+    # wait for that instead of starting a second construction.
+    # a factory must only be called exactly once per container.
+    # TODO document this better
 
-    if underConstruction?
-      debug? {
-        event: 'valueUnderConstruction'
-        name: path[0]
-        path: path
-        value: underConstruction
-        container: result.container
-      }
-      return underConstruction
+    underConstructionForPath = result.container.underConstruction?[result.path[0]]
+
+    if underConstructionForPath?
+      underConstructionForPathAndFactory = hinoki.some(
+        underConstructionForPath
+        (x) -> if x.factory is result.factory then x
+      )
+      if underConstructionForPathAndFactory?
+        debug? {
+          event: 'valueUnderConstruction'
+          name: path[0]
+          path: path
+          value: underConstructionForPathAndFactory.promise
+          container: result.container
+        }
+        return underConstructionForPathAndFactory.promise
 
     # there is no value under construction. lets make one!
 
@@ -127,7 +133,11 @@ do ->
 
     unless nocache
       result.container.underConstruction ?= {}
-      result.container.underConstruction[result.path[0]] = factoryCallResultPromise
+      result.container.underConstruction[result.path[0]] ?= []
+      result.container.underConstruction[result.path[0]].push {
+        factory: result.factory
+        promise: factoryCallResultPromise
+      }
 
     factoryCallResultPromise.then (value) ->
       # note that a null value is allowed!
@@ -141,7 +151,16 @@ do ->
           container: result.container
           path: result.path
           value: value
-        delete result.container.underConstruction[result.path[0]]
+
+        underConstruction = result.container.underConstruction[result.path[0]]
+        if underConstruction?
+          newUnderConstruction = underConstruction.filter (x) ->
+            x.factory isnt result.factory
+          if newUnderConstruction.length is 0
+            delete result.container.underConstruction[result.path[0]]
+          else
+            result.container.underConstruction[result.path[0]] = newUnderConstruction
+
       return value
 
   ###################################################################################

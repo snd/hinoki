@@ -29,7 +29,7 @@
     }
   };
   hinoki.getOne = function(containers, nameOrPath, debug) {
-    var dependenciesPromise, dependencyNames, dependencyPaths, error, factoryCallResultPromise, nocache, path, remainingContainers, result, underConstruction, _base, _ref;
+    var dependenciesPromise, dependencyNames, dependencyPaths, error, factoryCallResultPromise, nocache, path, remainingContainers, result, underConstructionForPath, underConstructionForPathAndFactory, _base, _base1, _name, _ref;
     path = hinoki.coerceToArray(nameOrPath);
     try {
       result = hinoki.resolveInContainers(containers, path, debug);
@@ -70,18 +70,25 @@
         result: result
       });
     }
-    underConstruction = (_ref = result.container.underConstruction) != null ? _ref[result.path[0]] : void 0;
-    if (underConstruction != null) {
-      if (typeof debug === "function") {
-        debug({
-          event: 'valueUnderConstruction',
-          name: path[0],
-          path: path,
-          value: underConstruction,
-          container: result.container
-        });
+    underConstructionForPath = (_ref = result.container.underConstruction) != null ? _ref[result.path[0]] : void 0;
+    if (underConstructionForPath != null) {
+      underConstructionForPathAndFactory = hinoki.some(underConstructionForPath, function(x) {
+        if (x.factory === result.factory) {
+          return x;
+        }
+      });
+      if (underConstructionForPathAndFactory != null) {
+        if (typeof debug === "function") {
+          debug({
+            event: 'valueUnderConstruction',
+            name: path[0],
+            path: path,
+            value: underConstructionForPathAndFactory.promise,
+            container: result.container
+          });
+        }
+        return underConstructionForPathAndFactory.promise;
       }
-      return underConstruction;
     }
     remainingContainers = hinoki.startingWith(containers, result.container);
     if (remainingContainers.length === 0) {
@@ -100,10 +107,16 @@
       if ((_base = result.container).underConstruction == null) {
         _base.underConstruction = {};
       }
-      result.container.underConstruction[result.path[0]] = factoryCallResultPromise;
+      if ((_base1 = result.container.underConstruction)[_name = result.path[0]] == null) {
+        _base1[_name] = [];
+      }
+      result.container.underConstruction[result.path[0]].push({
+        factory: result.factory,
+        promise: factoryCallResultPromise
+      });
     }
     return factoryCallResultPromise.then(function(value) {
-      var cache;
+      var cache, newUnderConstruction, underConstruction;
       if (hinoki.isUndefined(value)) {
         error = new hinoki.FactoryReturnedUndefinedError(path, result.container, result.factory);
         return Promise.reject(error);
@@ -115,7 +128,17 @@
           path: result.path,
           value: value
         });
-        delete result.container.underConstruction[result.path[0]];
+        underConstruction = result.container.underConstruction[result.path[0]];
+        if (underConstruction != null) {
+          newUnderConstruction = underConstruction.filter(function(x) {
+            return x.factory !== result.factory;
+          });
+          if (newUnderConstruction.length === 0) {
+            delete result.container.underConstruction[result.path[0]];
+          } else {
+            result.container.underConstruction[result.path[0]] = newUnderConstruction;
+          }
+        }
       }
       return value;
     });
