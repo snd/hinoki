@@ -36,6 +36,7 @@
     "compile": "node_modules/coffee-script/bin/coffee --bare --compile --output src src/*.coffee",
     "prepublish": "node_modules/coffee-script/bin/coffee --bare --compile --output src src/*.coffee",
     "clean": "rm src/*.js",
+    "pretest": "node_modules/coffee-script/bin/coffee --bare --compile --output src src/*.coffee",
     "test": "node_modules/nodeunit/bin/nodeunit test/*.coffee"
   }
 }
