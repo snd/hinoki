@@ -87,6 +87,25 @@ do ->
     # a factory must only be called exactly once per container.
     # TODO document this better
 
+    # by default this will return a factory and then
+    # the cached value on subsequent resolutions.
+    # requires originating from bravo_charlie are not cached (nocache above).
+    # requires from other factories are cached by default.
+
+    # the under construction is a problem !!!
+    # if bravo is already under construction by alpha_bravo
+    # for example which reaches this code branch
+    # then bravo_charlies special factory returned from this resolver
+    # is ignored and bravo_charlie resolves to the same value as
+    # alpha_charlie.
+    # we can prevent this by disabling caching for all requires of bravo
+    # use under construction only if the factory
+    # and path used for construction are the same one
+    #
+    # output varies based on path and factory
+
+    # under construction should key both based on the path and the factory!!!
+
     underConstructionForPath = result.container.underConstruction?[result.path[0]]
 
     if underConstructionForPath?

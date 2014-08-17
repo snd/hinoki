@@ -250,7 +250,7 @@ module.exports =
       test.done()
 
   'mocking a factory for any require': (test) ->
-    test.expect 4
+    test.expect 5
     resolver = (query, inner) ->
       if query.path[0] is 'bravo'
         {
@@ -287,46 +287,21 @@ module.exports =
           alpha_charlie: 'alpha_charlie',
           bravo_charlie: 'eilrahc_charlie',
           alpha_bravo: 'alpha_eilrahc'
+        test.equal 0, Object.keys(container.underConstruction)
         test.done()
 
   'mocking a factory for requires from a specific other factory': (test) ->
     test.expect 5
     resolver = (query, inner) ->
-      if query.path[0] is 'bravo'
+      if query.path[0] is 'bravo' and query.path[1] is 'bravo_charlie'
         # only mock out when required by bravo_charlie
-        if query.path[1] is 'bravo_charlie'
-          {
-            container: query.container
-            path: query.path
-            factory: (charlie) ->
-              charlie.split('').reverse().join('')
-            nocache: true
-          }
-        else
-          # use the normal bravo factory when required from other factories
-          result = inner query
-
-          # by default this will return a factory and then
-          # the cached value on subsequent resolutions.
-          # requires originating from bravo_charlie are not cached (nocache above).
-          # requires from other factories are cached by default.
-
-          # the under construction is a problem !!!
-          # if bravo is already under construction by alpha_bravo
-          # for example which reaches this code branch
-          # then bravo_charlies special factory returned from this resolver
-          # is ignored and bravo_charlie resolves to the same value as
-          # alpha_charlie.
-          # we can prevent this by disabling caching for all requires of bravo
-          # use under construction only if the factory
-          # and path used for construction are the same one
-          #
-          # output varies based on path and factory
-
-          # under construction should key both based on the path and the factory!!!
-
-          # result.nocache = true
-          result
+        {
+          container: query.container
+          path: query.path
+          factory: (charlie) ->
+            charlie.split('').reverse().join('')
+          nocache: true
+        }
       else
         inner query
     container =
@@ -362,5 +337,92 @@ module.exports =
         test.equal 0, Object.keys(container.underConstruction)
         test.done()
 
-  'mocking a factory for all requires (and their requires...) from a specific factory': (test) ->
-    test.done()
+  'mocking a factory for all requires that originate in some way from a specific factory': (test) ->
+    test.expect 8
+    resolver = (query, inner) ->
+      # bravo_charlie is required by bravo_bravo_charlie
+      # but the resolver is not run because it is already cached?
+
+      # bravo charlie is required at toplevel before bravo_bravo_charlie
+      # bravo is required by bravo_charlie
+      # here bravo_bravo_charlie is not in path
+      # and bravo as well as bravo_charlie are cached
+      #
+      # bravo_bravo_charlie now requires bravo_charlie directory
+      # bravo_charlie on its own doesnt trigger the resolver !
+      # it is returned in its cached form
+
+      # the problem is that we wont even get to the point where we
+      # see that bravo_charlie requires bravo as it is already cached
+      #
+      # maybe look up in the injects of the factory as well?
+      #
+
+      console.log query.path, query.path.slice(1)
+      if 'bravo_bravo_charlie' in query.path
+        if query.path[0] is 'bravo'
+          console.log query.path
+          # only mock out when bravo_charlie is somewhere upstream
+          {
+            container: query.container
+            path: query.path
+            factory: (charlie) ->
+              charlie.split('').reverse().join('')
+            nocache: true
+          }
+        else
+          result = inner query
+          result.nocache = true
+          result
+      else
+        inner query
+    container =
+      factories:
+        alpha: -> 'alpha'
+        bravo: -> 'bravo'
+        charlie: -> 'charlie'
+        alpha_bravo: (alpha, bravo) ->
+          alpha + '_' + bravo
+        bravo_charlie: (bravo, charlie) ->
+          bravo + '_' + charlie
+        alpha_charlie: (alpha, charlie) ->
+          alpha + '_' + charlie
+        # all bravos upstream are mocked
+        bravo_bravo_charlie: (bravo, bravo_charlie) ->
+          bravo + '_' + bravo_charlie
+        alpha_bravo_charlie: (alpha_bravo, charlie) ->
+          alpha_bravo + '_' + charlie
+        # just bravos upstream of bravo_bravo_charlie are mocked
+        alpha_bravo_bravo_bravo_charlie: (alpha_bravo, bravo_bravo_charlie) ->
+          alpha_bravo + '_' + bravo_bravo_charlie
+      resolvers: [resolver]
+
+    hinoki.get(
+      container
+      [
+        'alpha_bravo'
+        'bravo_charlie'
+        'alpha_charlie'
+        'bravo_bravo_charlie'
+        'alpha_bravo_charlie'
+        'alpha_bravo_bravo_bravo_charlie'
+      ]
+    )
+      .spread (alpha_bravo, bravo_charlie, alpha_charlie, bravo_bravo_charlie, alpha_bravo_charlie, alpha_bravo_bravo_bravo_charlie) ->
+        test.equal alpha_bravo, 'alpha_bravo'
+        test.equal bravo_charlie, 'bravo_charlie'
+        test.equal alpha_charlie, 'alpha_charlie'
+        test.equal bravo_bravo_charlie, 'eilrahc_eilrahc_charlie'
+        test.equal alpha_bravo_charlie, 'alpha_bravo_charlie'
+        test.equal alpha_bravo_bravo_bravo_charlie, 'alpha_bravo_eilrahc_eilrahc_charlie'
+        test.deepEqual container.values,
+          alpha: 'alpha',
+          charlie: 'charlie',
+          bravo: 'bravo'
+          alpha_bravo: 'alpha_bravo'
+          bravo_charlie: 'bravo_charlie'
+          alpha_charlie: 'alpha_charlie'
+          bravo_bravo_charlie: 'eilrahc_eilrahc_charlie'
+          alpha_bravo_charlie: 'alpha_bravo_charlie'
+        test.equal 0, Object.keys(container.underConstruction)
+        test.done()
