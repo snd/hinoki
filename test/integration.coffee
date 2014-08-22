@@ -139,19 +139,23 @@ module.exports =
     c =
       factories:
         a: (b, c) ->
-          test.equal callsTo.a, 1
+          callsTo.a++
           Promise.delay(b + c, 40)
         b: (d) ->
-          test.equal callsTo.b, 1
+          callsTo.b++
           Promise.delay(d + 1, 20)
         c: (d) ->
-          test.equal callsTo.c, 1
+          callsTo.c++
           Promise.delay(d + 2, 30)
         d: ->
-          test.equal callsTo.d, 1
+          callsTo.d++
           Promise.delay(10, 10)
 
     hinoki.get(c, 'a').then (a) ->
+      test.equal callsTo.a, 1
+      test.equal callsTo.b, 1
+      test.equal callsTo.c, 1
+      test.equal callsTo.d, 1
       test.equal a, 23
       test.done()
 
