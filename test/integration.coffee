@@ -159,6 +159,31 @@ module.exports =
       test.equal a, 23
       test.done()
 
+  'promises awaiting resolution are cached and reused': (test) ->
+    test.expect 8
+    c =
+      factories:
+        a: ->
+          # here a new object is created
+          Promise.delay {}, 40
+
+    p1 = hinoki.get(c, 'a')
+    test.ok c.promisesAwaitingResolution.a?
+    # the first promise has one step more which handles caching
+    # and cleanup of promise caching
+    test.notEqual p1, c.promisesAwaitingResolution.a
+    p2 = hinoki.get(c, 'a')
+    test.equal p2, c.promisesAwaitingResolution.a
+    p3 = hinoki.get(c, 'a')
+    test.equal p3, c.promisesAwaitingResolution.a
+
+    Promise.all([p1, p2, p3]).then ([a1, a2, a3]) ->
+      test.equal 'object', typeof a1
+      test.equal a1, a2
+      test.equal a2, a3
+      test.ok not c.promisesAwaitingResolution.a?
+      test.done()
+
   'resolvers wrap around default resolver': (test) ->
     a = {}
     b = {}

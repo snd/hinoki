@@ -120,6 +120,10 @@ do ->
 
     nocache = resolution.nocache or resolution.factory.$nocache
 
+    # we are caching the promise
+    # still in the same sync run (no interleaving) from the initial call of the
+    # function
+
     unless nocache
       resolution.container.promisesAwaitingResolution ?= {}
       resolution.container.promisesAwaitingResolution[resolution.name] = factoryCallResultPromise
