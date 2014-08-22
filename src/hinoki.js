@@ -29,135 +29,102 @@
     }
   };
   hinoki.getOne = function(containers, nameOrPath, debug) {
-    var dependenciesPromise, dependencyNames, dependencyPaths, error, factoryCallResultPromise, nocache, path, remainingContainers, result, underConstructionForPath, underConstructionForPathAndFactory, _base, _base1, _name, _ref;
+    var dependenciesPromise, dependencyNames, dependencyPaths, error, factoryCallResultPromise, newPath, nocache, path, promiseAwaitingResolution, remainingContainers, resolution, resolutionErrors, _base, _ref;
     path = hinoki.coerceToArray(nameOrPath);
     try {
-      result = hinoki.resolveInContainers(containers, path, debug);
+      resolution = hinoki.resolveInContainers(containers, path, debug);
     } catch (_error) {
       error = _error;
-      return Promise.reject(error);
+      return Promise.reject(new hinoki.errors.ErrorInResolvers(path, containers, error));
     }
-    if (result == null) {
-      error = new hinoki.UnresolvableFactoryError(path, containers[0]);
-      return Promise.reject(error);
+    if (resolution instanceof Error) {
+      return Promise.reject(new hinoki.errors.ErrorInResolvers(path, containers, resolution));
     }
-    if (result instanceof Error) {
-      return Promise.reject(result);
+    if (resolution == null) {
+      return Promise.reject(new hinoki.errors.Unresolvable(path, containers));
     }
-    if (!hinoki.isUndefined(result.value)) {
+    resolutionErrors = hinoki.resolutionErrors(resolution);
+    if (resolutionErrors != null) {
+      return Promise.reject(new hinoki.errors.InvalidResolution(path, resolution, resolutionErrors));
+    }
+    if (!hinoki.isUndefined(resolution.value)) {
       if (typeof debug === "function") {
         debug({
-          event: 'valueFound',
-          name: path[0],
+          event: 'valueResolved',
           path: path,
-          result: result
+          resolution: resolution
         });
       }
-      return Promise.resolve(result.value);
+      return Promise.resolve(resolution.value);
     }
     if (hinoki.arrayOfStringsHasDuplicates(path)) {
-      error = new hinoki.CircularDependencyError(path, result.container);
-      return Promise.reject(error);
-    }
-    if ('function' !== typeof result.factory) {
-      return Promise.reject(new hinoki.FactoryNotFunctionError(path, result.container, result.factory));
+      return Promise.reject(new hinoki.errors.CircularDependency(path, resolution));
     }
     if (typeof debug === "function") {
       debug({
         event: 'factoryResolved',
-        name: path[0],
         path: path,
-        result: result
+        resolution: resolution
       });
     }
-    underConstructionForPath = (_ref = result.container.underConstruction) != null ? _ref[result.path[0]] : void 0;
-    if (underConstructionForPath != null) {
-      underConstructionForPathAndFactory = hinoki.some(underConstructionForPath, function(x) {
-        if (x.factory === result.factory) {
-          return x;
-        }
-      });
-      if (underConstructionForPathAndFactory != null) {
-        if (typeof debug === "function") {
-          debug({
-            event: 'valueUnderConstruction',
-            name: path[0],
-            path: path,
-            value: underConstructionForPathAndFactory.promise,
-            container: result.container
-          });
-        }
-        return underConstructionForPathAndFactory.promise;
+    promiseAwaitingResolution = (_ref = resolution.container.promisesAwaitingResolution) != null ? _ref[resolution.name] : void 0;
+    if (promiseAwaitingResolution != null) {
+      if (typeof debug === "function") {
+        debug({
+          event: 'valueAlreadyAwaitingResolution',
+          path: path,
+          resolution: resolution,
+          value: promiseAwaitingResolution
+        });
       }
+      return promiseAwaitingResolution;
     }
-    remainingContainers = hinoki.startingWith(containers, result.container);
-    if (remainingContainers.length === 0) {
-      remainingContainers = [result.container];
-    }
-    dependencyNames = hinoki.getNamesToInject(result.factory);
+    remainingContainers = hinoki.startingWith(containers, resolution.container);
+    dependencyNames = hinoki.getNamesToInject(resolution.factory);
+    newPath = path.slice();
+    newPath[0] = resolution.name;
     dependencyPaths = dependencyNames.map(function(x) {
-      return hinoki.coerceToArray(x).concat(path);
+      return hinoki.coerceToArray(x).concat(newPath);
     });
     dependenciesPromise = hinoki.get(remainingContainers, dependencyPaths, debug);
     factoryCallResultPromise = dependenciesPromise.then(function(dependencyValues) {
-      return hinoki.callFactory(result.container, path, result.factory, dependencyValues, debug);
+      return hinoki.callFactory(resolution.container, newPath, resolution.factory, dependencyValues, debug);
     });
-    nocache = result.nocache || result.factory.$nocache;
+    nocache = resolution.nocache || resolution.factory.$nocache;
     if (!nocache) {
-      if ((_base = result.container).underConstruction == null) {
-        _base.underConstruction = {};
+      if ((_base = resolution.container).promisesAwaitingResolution == null) {
+        _base.promisesAwaitingResolution = {};
       }
-      if ((_base1 = result.container.underConstruction)[_name = result.path[0]] == null) {
-        _base1[_name] = [];
-      }
-      result.container.underConstruction[result.path[0]].push({
-        factory: result.factory,
-        promise: factoryCallResultPromise
-      });
+      resolution.container.promisesAwaitingResolution[resolution.name] = factoryCallResultPromise;
     }
     return factoryCallResultPromise.then(function(value) {
-      var cache, nextUnderConstruction, underConstruction;
+      var _base1;
       if (hinoki.isUndefined(value)) {
-        error = new hinoki.FactoryReturnedUndefinedError(path, result.container, result.factory);
-        return Promise.reject(error);
+        return Promise.reject(new hinoki.errors.FactoryReturnedUndefined(newPath, resolution.container, resolution.factory));
       }
       if (!nocache) {
-        cache = result.container.cache || hinoki.defaultCache;
-        cache({
-          container: result.container,
-          path: result.path,
-          value: value
-        });
-        underConstruction = result.container.underConstruction[result.path[0]];
-        if (underConstruction != null) {
-          nextUnderConstruction = underConstruction.filter(function(x) {
-            return x.factory !== result.factory;
-          });
-          if (nextUnderConstruction.length === 0) {
-            delete result.container.underConstruction[result.path[0]];
-          } else {
-            result.container.underConstruction[result.path[0]] = nextUnderConstruction;
-          }
+        if ((_base1 = resolution.container).values == null) {
+          _base1.values = {};
         }
+        resolution.container.values[resolution.name] = value;
+        delete resolution.container.promisesAwaitingResolution[resolution.name];
       }
       return value;
     });
   };
   hinoki.callFactory = function(container, nameOrPath, factory, dependencyValues, debug) {
-    var error, exception, path, valueOrPromise;
+    var error, path, valueOrPromise;
     path = hinoki.coerceToArray(nameOrPath);
     try {
       valueOrPromise = factory.apply(null, dependencyValues);
     } catch (_error) {
-      exception = _error;
-      error = new hinoki.ExceptionInFactoryError(path, container, exception);
-      return Promise.reject(error);
+      error = _error;
+      return Promise.reject(new hinoki.errors.ErrorInFactory(path, container, error));
     }
     if (!hinoki.isThenable(valueOrPromise)) {
       if (typeof debug === "function") {
         debug({
           event: 'valueCreated',
-          name: path[0],
           path: path,
           value: valueOrPromise,
           factory: factory,
@@ -169,7 +136,6 @@
     if (typeof debug === "function") {
       debug({
         event: 'promiseCreated',
-        name: path[0],
         path: path,
         promise: valueOrPromise,
         container: container,
@@ -180,7 +146,6 @@
       if (typeof debug === "function") {
         debug({
           event: 'promiseResolved',
-          name: path[0],
           path: path,
           value: value,
           container: container,
@@ -189,47 +154,48 @@
       }
       return value;
     })["catch"](function(rejection) {
-      error = new hinoki.PromiseRejectedError(path, container, rejection);
-      return Promise.reject(error);
+      return Promise.reject(new hinoki.errors.PromiseRejected(path, container, rejection));
     });
   };
   hinoki.resolveInContainer = function(container, nameOrPath, debug) {
-    var accum, defaultResolver, name, path, resolve, resolvers;
+    var accum, defaultResolver, path, resolution, resolve, resolvers;
     path = hinoki.coerceToArray(nameOrPath);
-    name = path[0];
-    defaultResolver = function(query) {
-      var result;
-      result = hinoki.defaultResolver(query);
+    defaultResolver = function(name) {
+      var resolution;
+      resolution = hinoki.defaultResolver(name, container);
       if (typeof debug === "function") {
         debug({
           event: 'defaultResolverCalled',
-          query: query,
-          result: result
+          name: name,
+          container: container,
+          resolution: resolution
         });
       }
-      return result;
+      return resolution;
     };
-    resolvers = container.resolvers || [];
+    resolvers = hinoki.coerceToArray(container.resolvers || []);
     accum = function(inner, resolver) {
-      return function(query) {
-        var result;
-        result = resolver(query, inner, debug);
+      return function(name) {
+        var resolution;
+        resolution = resolver(name, container, inner, debug);
         if (typeof debug === "function") {
           debug({
             event: 'resolverCalled',
             resolver: resolver,
-            query: query,
-            result: result
+            name: name,
+            container: container,
+            resolution: resolution
           });
         }
-        return result;
+        return resolution;
       };
     };
     resolve = resolvers.reduceRight(accum, defaultResolver);
-    return resolve({
-      container: container,
-      path: path
-    });
+    resolution = resolve(path[0]);
+    if ((resolution != null) && 'object' === typeof resolution) {
+      resolution.container = container;
+    }
+    return resolution;
   };
   hinoki.resolveInContainers = function(containers, nameOrPath, debug) {
     var path;
@@ -238,18 +204,40 @@
       return hinoki.resolveInContainer(container, path, debug);
     });
   };
-  hinoki.defaultResolver = function(query) {
-    var factory, name, value, _ref, _ref1;
-    name = query.path[0];
-    value = (_ref = query.container.values) != null ? _ref[name] : void 0;
+  hinoki.resolutionErrors = function(resolution) {
+    var errors, isFactory, isValue;
+    errors = [];
+    if ('object' !== typeof resolution) {
+      errors.push('must be an object');
+    }
+    if (!(((resolution != null ? resolution.name : void 0) != null) && 'string' === typeof (resolution != null ? resolution.name : void 0))) {
+      errors.push("must have the 'name' property which is a string");
+    }
+    isValue = !hinoki.isUndefined(resolution != null ? resolution.value : void 0);
+    isFactory = (resolution != null ? resolution.factory : void 0) != null;
+    if (!(isValue || isFactory)) {
+      errors.push("must have either the 'value' or the 'factory' property");
+    } else if (isValue && isFactory) {
+      errors.push("must have either the 'value' or the 'factory' property - not both");
+    } else if (isFactory && 'function' !== typeof resolution.factory) {
+      errors.push("the 'factory' property must be a function");
+    }
+    if (errors.length === 0) {
+      return null;
+    } else {
+      return errors;
+    }
+  };
+  hinoki.defaultResolver = function(name, container) {
+    var factory, value, _ref, _ref1;
+    value = (_ref = container.values) != null ? _ref[name] : void 0;
     if (!hinoki.isUndefined(value)) {
       return {
         value: value,
-        path: query.path,
-        container: query.container
+        name: name
       };
     }
-    factory = (_ref1 = query.container.factories) != null ? _ref1[name] : void 0;
+    factory = (_ref1 = container.factories) != null ? _ref1[name] : void 0;
     if (factory == null) {
       return;
     }
@@ -258,67 +246,68 @@
     }
     return {
       factory: factory,
-      path: query.path,
-      container: query.container
+      name: name
     };
   };
-  hinoki.defaultCache = function(options) {
-    var _base;
-    if ((_base = options.container).values == null) {
-      _base.values = {};
+  hinoki.errors = {};
+  hinoki.errors.ErrorInResolvers = function(path, containers, error) {
+    this.message = "error in resolvers for '" + path[0] + "' (" + (hinoki.pathToString(path)) + "). original error message: " + error.message;
+    this.type = 'ErrorInResolver';
+    this.path = path;
+    this.containers = containers;
+    this.error = error;
+    if (Error.captureStackTrace) {
+      return Error.captureStackTrace(this, this.constructor);
     }
-    return options.container.values[options.path[0]] = options.value;
   };
-  hinoki.CircularDependencyError = function(path, container) {
+  hinoki.errors.ErrorInResolvers.prototype = new Error;
+  hinoki.errors.Unresolvable = function(path, container) {
+    this.message = "unresolvable name '" + path[0] + "' (" + (hinoki.pathToString(path)) + ")";
+    this.type = 'Unresolvable';
+    this.path = path;
+    this.container = container;
+    if (Error.captureStackTrace) {
+      return Error.captureStackTrace(this, this.constructor);
+    }
+  };
+  hinoki.errors.Unresolvable.prototype = new Error;
+  hinoki.errors.InvalidResolution = function(path, resolution, errors) {
+    var lines;
+    lines = errors;
+    lines.unshift("errors in resolution returned by resolvers for '" + path[0] + "' (" + (hinoki.pathToString(path)) + "):");
+    this.message = lines.join('\n');
+    this.type = 'InvalidResolution';
+    this.path = path;
+    this.resolution = resolution;
+    if (Error.captureStackTrace) {
+      return Error.captureStackTrace(this, this.constructor);
+    }
+  };
+  hinoki.errors.InvalidResolution.prototype = new Error;
+  hinoki.errors.CircularDependency = function(path, containers) {
     this.message = "circular dependency " + (hinoki.pathToString(path));
-    this.type = 'CircularDependencyError';
-    this.name = path[0];
+    this.type = 'CircularDependency';
     this.path = path;
-    this.container = container;
+    this.containers = containers;
     if (Error.captureStackTrace) {
       return Error.captureStackTrace(this, this.constructor);
     }
   };
-  hinoki.CircularDependencyError.prototype = new Error;
-  hinoki.UnresolvableFactoryError = function(path, container) {
-    this.message = "unresolvable factory '" + path[0] + "' (" + (hinoki.pathToString(path)) + ")";
-    this.type = 'UnresolvableFactoryError';
-    this.name = path[0];
+  hinoki.errors.CircularDependency.prototype = new Error;
+  hinoki.errors.ErrorInFactory = function(path, container, error) {
+    this.message = "error in factory for '" + path[0] + "'. original error message: " + error.message;
+    this.type = 'ErrorInFactory';
     this.path = path;
     this.container = container;
+    this.error = error;
     if (Error.captureStackTrace) {
       return Error.captureStackTrace(this, this.constructor);
     }
   };
-  hinoki.UnresolvableFactoryError.prototype = new Error;
-  hinoki.ExceptionInFactoryError = function(path, container, exception) {
-    this.message = "exception in factory '" + path[0] + "': " + exception;
-    this.type = 'ExceptionInFactoryError';
-    this.name = path[0];
-    this.path = path;
-    this.container = container;
-    this.exception = exception;
-    if (Error.captureStackTrace) {
-      return Error.captureStackTrace(this, this.constructor);
-    }
-  };
-  hinoki.ExceptionInFactoryError.prototype = new Error;
-  hinoki.PromiseRejectedError = function(path, container, rejection) {
-    this.message = "promise returned from factory '" + path[0] + "' was rejected with reason: " + rejection;
-    this.type = 'PromiseRejectedError';
-    this.name = path[0];
-    this.path = path;
-    this.container = container;
-    this.rejection = rejection;
-    if (Error.captureStackTrace) {
-      return Error.captureStackTrace(this, this.constructor);
-    }
-  };
-  hinoki.PromiseRejectedError.prototype = new Error;
-  hinoki.FactoryNotFunctionError = function(path, container, factory) {
-    this.message = "factory '" + path[0] + "' is not a function: " + factory;
-    this.type = 'FactoryNotFunctionError';
-    this.name = path[0];
+  hinoki.errors.ErrorInFactory.prototype = new Error;
+  hinoki.errors.FactoryReturnedUndefined = function(path, container, factory) {
+    this.message = "factory for '" + path[0] + "' returned undefined";
+    this.type = 'FactoryReturnedUndefined';
     this.path = path;
     this.container = container;
     this.factory = factory;
@@ -326,19 +315,18 @@
       return Error.captureStackTrace(this, this.constructor);
     }
   };
-  hinoki.FactoryNotFunctionError.prototype = new Error;
-  hinoki.FactoryReturnedUndefinedError = function(path, container, factory) {
-    this.message = "factory '" + path[0] + "' returned undefined";
-    this.type = 'FactoryReturnedUndefinedError';
-    this.name = path[0];
+  hinoki.errors.FactoryReturnedUndefined.prototype = new Error;
+  hinoki.errors.PromiseRejected = function(path, container, error) {
+    this.message = "promise returned from factory for '" + path[0] + "' was rejected. original error message: " + error.message;
+    this.type = 'PromiseRejected';
     this.path = path;
     this.container = container;
-    this.factory = factory;
+    this.error = error;
     if (Error.captureStackTrace) {
       return Error.captureStackTrace(this, this.constructor);
     }
   };
-  hinoki.FactoryReturnedUndefinedError.prototype = new Error;
+  hinoki.errors.PromiseRejected.prototype = new Error;
   hinoki.pathToString = function(path) {
     return path.join(' <- ');
   };

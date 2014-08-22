@@ -125,8 +125,7 @@ module.exports =
         b: (a) ->
           a + 1
 
-    hinoki.get([c1, c2], 'b').catch (error) ->
-      test.equal error.type, 'UnresolvableFactoryError'
+    hinoki.get([c1, c2], 'b').catch hinoki.errors.Unresolvable, (error) ->
       test.deepEqual error.path, ['a', 'b']
       test.done()
 
@@ -163,55 +162,42 @@ module.exports =
     c =
       factories:
         a: -> a
-
-    c2 =
-      factories:
         b: -> b
 
     c.resolvers = [
-      (query, inner) ->
-        test.equal query.container, c
-        test.deepEqual query.path, ['a']
-        inner
-          container: c2
-          path: ['b']
+      (name, container, inner) ->
+        test.equal name, 'a'
+        test.equal container, c
+        inner 'b'
     ]
 
     hinoki.get(c, 'a').then (value) ->
       test.equal b, value
-      test.equal c2.values.b, value
+      test.equal c.values.b, value
       test.done()
 
   'resolvers wrap around inner resolvers': (test) ->
     c = {}
-    c2 = {}
-    c3 = {}
 
     value = {}
 
     c.resolvers = [
-      (query, inner) ->
-        test.deepEqual query,
-          container: c
-          path: ['a']
-        inner
-          container: c2
-          path: ['b']
-      (query) ->
-        test.deepEqual query,
-          container: c2
-          path: ['b']
+      (name, container, inner) ->
+        test.equal name, 'a'
+        test.equal container, c
+        inner 'b'
+      (name, container, inner) ->
+        test.equal name, 'b'
+        test.equal container, c
         {
-          factory: ->
-            value
-          container: c3
-          path: ['c']
+          factory: -> value
+          name: 'c'
         }
     ]
 
     hinoki.get(c, 'a').then (a) ->
       test.equal a, value
-      test.equal c3.values.c, value
+      test.equal c.values.c, value
       test.done()
 
   'a resolver can disable caching': (test) ->
@@ -220,13 +206,12 @@ module.exports =
     value = {}
 
     c.resolvers = [
-      (query, inner) ->
-        test.deepEqual query,
-          container: c
-          path: ['a']
-        return {
+      (name, container, inner) ->
+        test.equal container, c
+        test.equal name, 'a'
+        {
           nocache: true
-          container: c
+          name: name
           factory: ->
             value
         }
@@ -251,17 +236,16 @@ module.exports =
 
   'mocking a factory for any require': (test) ->
     test.expect 5
-    resolver = (query, inner) ->
-      if query.path[0] is 'bravo'
+    resolver = (name, container, inner) ->
+      if name is 'bravo'
         {
-          container: query.container
-          path: query.path
+          name: 'bravo'
           factory: (charlie) ->
             charlie.split('').reverse().join('')
           nocache: true
         }
       else
-        inner query
+        inner name
     container =
       factories:
         alpha: -> 'alpha'
@@ -287,165 +271,5 @@ module.exports =
           alpha_charlie: 'alpha_charlie',
           bravo_charlie: 'eilrahc_charlie',
           alpha_bravo: 'alpha_eilrahc'
-        test.equal 0, Object.keys(container.underConstruction)
+        test.equal 0, Object.keys(container.promisesAwaitingResolution)
         test.done()
-
-  'mocking a factory for requires from a specific other factory': (test) ->
-    test.expect 5
-    resolver = (query, inner) ->
-      if query.path[0] is 'bravo' and query.path[1] is 'bravo_charlie'
-        # only mock out when required by bravo_charlie
-        {
-          container: query.container
-          path: query.path
-          factory: (charlie) ->
-            charlie.split('').reverse().join('')
-          nocache: true
-        }
-      else
-        inner query
-    container =
-      factories:
-        alpha: -> 'alpha'
-        bravo: -> 'bravo'
-        charlie: -> 'charlie'
-        alpha_bravo: (alpha, bravo) ->
-          alpha + '_' + bravo
-        bravo_charlie: (bravo, charlie) ->
-          bravo + '_' + charlie
-        alpha_charlie: (alpha, charlie) ->
-          alpha + '_' + charlie
-      resolvers: [resolver]
-
-    hinoki.get(
-      container
-      ['alpha_bravo', 'bravo_charlie', 'alpha_charlie']
-    )
-      .spread (alpha_bravo, bravo_charlie, alpha_charlie) ->
-        test.equal alpha_bravo, 'alpha_bravo'
-        test.equal bravo_charlie, 'eilrahc_charlie'
-        test.equal alpha_charlie, 'alpha_charlie'
-        # bravo is cached for all cases but the ones where
-        # bravo_charlie requires it
-        test.deepEqual container.values,
-          alpha: 'alpha',
-          charlie: 'charlie',
-          bravo: 'bravo'
-          alpha_charlie: 'alpha_charlie',
-          bravo_charlie: 'eilrahc_charlie',
-          alpha_bravo: 'alpha_bravo'
-        test.equal 0, Object.keys(container.underConstruction)
-        test.done()
-
-# TODO this should be possible but is not possible with the way
-# hinoki currently works
-
-#   'mocking a factory for all requires that originate in some way from a specific factory': (test) ->
-#     # test.expect 8
-#     resolver = (query, inner) ->
-#       # we are mocking out just 'bravo' under the circumstance that
-#       # it is required somehow by 'bravo_bravo_charlie'.
-#       # in other words that 'bravo_bravo_charlie' is somewhere upstream.
-#       # this means if 'bravo' is required by 'bravo_charlie' directly
-#       # it should resolve per default.
-#       # if 'bravo' is required by 'bravo_charlie' and 'bravo_charlie' is requred
-#       # by 'bravo_bravo_charlie' then it should be mocked.
-#
-#       # what happens is:
-#       # 1. alpha_bravo is required, no mock, bravo is cached
-#       # 2. bravo_charlie is required, mo mock, bravo_charlie is cached
-#
-#       # bravo_charlie is required by bravo_bravo_charlie
-#       # but the resolver is not run because it is already cached?
-#
-#       # bravo charlie is required at toplevel before bravo_bravo_charlie
-#       # bravo is required by bravo_charlie
-#       # here bravo_bravo_charlie is not in path
-#       # and bravo as well as bravo_charlie are cached
-#       #
-#       # bravo_bravo_charlie now requires bravo_charlie directory
-#       # bravo_charlie on its own doesnt trigger the resolver !
-#       # it is returned in its cached form
-#
-#       # the problem is that we wont even get to the point where we
-#       # see that bravo_charlie requires bravo as it is already cached
-#       #
-#       # maybe look up in the injects of the factory as well?
-#       #
-#       #
-#       # the main problem is that alpha_bravo should not be cached
-#       # because it depends on bravo.
-#       # but its impossible for a resolver to know that alpha_bravo
-#       # depends on bravo.
-#
-#       console.log query.path
-#       if 'bravo' in query.path
-#       # if 'bravo' is query.path[0]
-#         if 'bravo' is query.path[0] and 'bravo_bravo_charlie' in query.path
-#         # if 'bravo_bravo_charlie' in query.path
-#           # only mock out when bravo_charlie is somewhere upstream
-#           {
-#             container: query.container
-#             path: query.path
-#             factory: (charlie) ->
-#               charlie.split('').reverse().join('')
-#             nocache: true
-#           }
-#         else
-#           # disable caching for everything that uses bravo
-#           result = inner query
-#           result.nocache = true
-#           result
-#       else
-#         inner query
-#     container =
-#       factories:
-#         alpha: -> 'alpha'
-#         bravo: -> 'bravo'
-#         charlie: -> 'charlie'
-#         alpha_bravo: (alpha, bravo) ->
-#           alpha + '_' + bravo
-#         bravo_charlie: (bravo, charlie) ->
-#           bravo + '_' + charlie
-#         alpha_charlie: (alpha, charlie) ->
-#           alpha + '_' + charlie
-#         # all bravos upstream are mocked
-#         bravo_bravo_charlie: (bravo, bravo_charlie) ->
-#           bravo + '_' + bravo_charlie
-#         alpha_bravo_charlie: (alpha_bravo, charlie) ->
-#           alpha_bravo + '_' + charlie
-#         # just bravos upstream of bravo_bravo_charlie are mocked
-#         alpha_bravo_bravo_bravo_charlie: (alpha_bravo, bravo_bravo_charlie) ->
-#           alpha_bravo + '_' + bravo_bravo_charlie
-#       resolvers: [resolver]
-#
-#     hinoki.get(
-#       container
-#       [
-#         'alpha_bravo'
-#         'bravo_charlie'
-#         'alpha_charlie'
-#         'bravo_bravo_charlie'
-#         'alpha_bravo_charlie'
-#         'alpha_bravo_bravo_bravo_charlie'
-#       ]
-#     )
-#       .spread (alpha_bravo, bravo_charlie, alpha_charlie, bravo_bravo_charlie, alpha_bravo_charlie, alpha_bravo_bravo_bravo_charlie) ->
-#         console.log container.values
-#         test.equal alpha_bravo, 'alpha_bravo'
-#         test.equal bravo_charlie, 'bravo_charlie'
-#         test.equal alpha_charlie, 'alpha_charlie'
-#         test.equal bravo_bravo_charlie, 'eilrahc_eilrahc_charlie'
-#         test.equal alpha_bravo_charlie, 'alpha_bravo_charlie'
-#         # test.equal alpha_bravo_bravo_bravo_charlie, 'alpha_bravo_eilrahc_eilrahc_charlie'
-#         # test.deepEqual container.values,
-#         #   alpha: 'alpha',
-#         #   charlie: 'charlie',
-#         #   bravo: 'bravo'
-#         #   alpha_bravo: 'alpha_bravo'
-#         #   bravo_charlie: 'bravo_charlie'
-#         #   alpha_charlie: 'alpha_charlie'
-#         #   bravo_bravo_charlie: 'eilrahc_eilrahc_charlie'
-#         #   alpha_bravo_charlie: 'alpha_bravo_charlie'
-#         test.equal 0, Object.keys(container.underConstruction)
-#         test.done()

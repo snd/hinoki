@@ -35,150 +35,105 @@ do ->
     path = hinoki.coerceToArray nameOrPath
 
     try
-      result = hinoki.resolveInContainers containers, path, debug
+      resolution = hinoki.resolveInContainers containers, path, debug
     catch error
-      return Promise.reject error
+      return Promise.reject new hinoki.errors.ErrorInResolvers path, containers, error
 
-    unless result?
+    # from here on we use the name and container returned by the resolver
+    # (resolution.name and resolution.container)
+    # which might differ from what was originally searched (path[0]).
+
+    if resolution instanceof Error
+      return Promise.reject new hinoki.errors.ErrorInResolvers path, containers, resolution
+
+    unless resolution?
       # we are out of luck: the factory could not be found
-      error = new hinoki.UnresolvableFactoryError path, containers[0]
-      return Promise.reject error
+      return Promise.reject new hinoki.errors.Unresolvable path, containers
 
-    if result instanceof Error
-      return Promise.reject result
+    resolutionErrors = hinoki.resolutionErrors resolution
 
-    unless hinoki.isUndefined result.value
+    if resolutionErrors?
+      return Promise.reject new hinoki.errors.InvalidResolution path, resolution, resolutionErrors
+
+    unless hinoki.isUndefined resolution.value
       debug? {
-        event: 'valueFound'
-        name: path[0]
+        event: 'valueResolved'
         path: path
-        result: result
+        resolution: resolution
       }
-      return Promise.resolve result.value
+      return Promise.resolve resolution.value
 
     # no value available.
     # we've got a factory.
     # let's check for cycles first since
     # we can't use the factory if the path contains a cycle.
 
+    # TODO how to handle name change here
+
     if hinoki.arrayOfStringsHasDuplicates path
-      error = new hinoki.CircularDependencyError path, result.container
-      return Promise.reject error
+      return Promise.reject new hinoki.errors.CircularDependency path, resolution
 
     # no cycle - yeah!
 
-    unless 'function' is typeof result.factory
-      # we are out of luck: the resolver didn't return a function
-      # TODO call with result.name here
-      return Promise.reject new hinoki.FactoryNotFunctionError path, result.container, result.factory
-
     debug? {
       event: 'factoryResolved'
-      name: path[0]
       path: path
-      result: result
+      resolution: resolution
     }
-
-    # from here on we use the name and container returned by the resolver
-    # which might differ from what was originally searched
 
     # if the value is already being constructed
     # wait for that instead of starting a second construction.
-    # a factory must only be called exactly once per container.
-    # TODO document this better
 
-    # by default this will return a factory and then
-    # the cached value on subsequent resolutions.
-    # requires originating from bravo_charlie are not cached (nocache above).
-    # requires from other factories are cached by default.
+    promiseAwaitingResolution = resolution.container.promisesAwaitingResolution?[resolution.name]
 
-    # the under construction is a problem !!!
-    # if bravo is already under construction by alpha_bravo
-    # for example which reaches this code branch
-    # then bravo_charlies special factory returned from this resolver
-    # is ignored and bravo_charlie resolves to the same value as
-    # alpha_charlie.
-    # we can prevent this by disabling caching for all requires of bravo
-    # use under construction only if the factory
-    # and path used for construction are the same one
-    #
-    # output varies based on path and factory
-
-    # under construction should key both based on the path and the factory!!!
-
-    underConstructionForPath = result.container.underConstruction?[result.path[0]]
-
-    if underConstructionForPath?
-      underConstructionForPathAndFactory = hinoki.some(
-        underConstructionForPath
-        (x) -> if x.factory is result.factory then x
-      )
-      if underConstructionForPathAndFactory?
-        debug? {
-          event: 'valueUnderConstruction'
-          name: path[0]
-          path: path
-          value: underConstructionForPathAndFactory.promise
-          container: result.container
-        }
-        return underConstructionForPathAndFactory.promise
+    if promiseAwaitingResolution?
+      debug? {
+        event: 'valueAlreadyAwaitingResolution'
+        path: path
+        resolution: resolution
+        value: promiseAwaitingResolution
+      }
+      return promiseAwaitingResolution
 
     # there is no value under construction. lets make one!
 
-    # lets resolve the dependencies of the factory
+    # first lets resolve the dependencies of the factory
 
-    remainingContainers = hinoki.startingWith containers, result.container
-    # if a resolver returns a container that is not in the original
-    # container chain then remainingContainers is [].
-    # correct for that.
-    if remainingContainers.length is 0
-      remainingContainers = [result.container]
+    remainingContainers = hinoki.startingWith containers, resolution.container
 
-    dependencyNames = hinoki.getNamesToInject result.factory
+    dependencyNames = hinoki.getNamesToInject resolution.factory
+
+    newPath = path.slice()
+    newPath[0] = resolution.name
 
     dependencyPaths = dependencyNames.map (x) ->
-      hinoki.coerceToArray(x).concat path
+      hinoki.coerceToArray(x).concat newPath
 
     dependenciesPromise = hinoki.get remainingContainers, dependencyPaths, debug
 
     factoryCallResultPromise = dependenciesPromise.then (dependencyValues) ->
 
-      # the dependencies are ready
-      # and we can finally call the factory
+      # the dependencies are ready!
+      # we can finally call the factory!
 
-      hinoki.callFactory result.container, path, result.factory, dependencyValues, debug
+      hinoki.callFactory resolution.container, newPath, resolution.factory, dependencyValues, debug
 
-    nocache = result.nocache or result.factory.$nocache
+    nocache = resolution.nocache or resolution.factory.$nocache
 
     unless nocache
-      result.container.underConstruction ?= {}
-      result.container.underConstruction[result.path[0]] ?= []
-      result.container.underConstruction[result.path[0]].push {
-        factory: result.factory
-        promise: factoryCallResultPromise
-      }
+      resolution.container.promisesAwaitingResolution ?= {}
+      resolution.container.promisesAwaitingResolution[resolution.name] = factoryCallResultPromise
 
     factoryCallResultPromise.then (value) ->
       # note that a null value is allowed!
       if hinoki.isUndefined value
-        error = new hinoki.FactoryReturnedUndefinedError path, result.container, result.factory
-        return Promise.reject error
+        return Promise.reject new hinoki.errors.FactoryReturnedUndefined newPath, resolution.container, resolution.factory
+
       # value is fully constructed
       unless nocache
-        cache = result.container.cache or hinoki.defaultCache
-        cache
-          container: result.container
-          path: result.path
-          value: value
-
-        underConstruction = result.container.underConstruction[result.path[0]]
-        if underConstruction?
-          nextUnderConstruction = underConstruction.filter (x) ->
-            x.factory isnt result.factory
-          if nextUnderConstruction.length is 0
-            delete result.container.underConstruction[result.path[0]]
-          else
-            result.container.underConstruction[result.path[0]] = nextUnderConstruction
+        resolution.container.values ?= {}
+        resolution.container.values[resolution.name] = value
+        delete resolution.container.promisesAwaitingResolution[resolution.name]
 
       return value
 
@@ -190,15 +145,13 @@ do ->
     path = hinoki.coerceToArray nameOrPath
     try
       valueOrPromise = factory.apply null, dependencyValues
-    catch exception
-      error = new hinoki.ExceptionInFactoryError path, container, exception
-      return Promise.reject error
+    catch error
+      return Promise.reject new hinoki.errors.ErrorInFactory path, container, error
 
     unless hinoki.isThenable valueOrPromise
       # valueOrPromise is not a promise but an value
       debug? {
         event: 'valueCreated',
-        name: path[0]
         path: path
         value: valueOrPromise
         factory: factory
@@ -210,7 +163,6 @@ do ->
 
     debug? {
       event: 'promiseCreated'
-      name: path[0]
       path: path
       promise: valueOrPromise
       container: container
@@ -221,7 +173,6 @@ do ->
       .then (value) ->
         debug? {
           event: 'promiseResolved'
-          name: path[0]
           path: path
           value: value
           container: container
@@ -229,41 +180,44 @@ do ->
         }
         return value
       .catch (rejection) ->
-        error = new hinoki.PromiseRejectedError path, container, rejection
-        Promise.reject error
+        Promise.reject new hinoki.errors.PromiseRejected path, container, rejection
 
   ###################################################################################
   # functions that resolve factories
 
   hinoki.resolveInContainer = (container, nameOrPath, debug) ->
     path = hinoki.coerceToArray nameOrPath
-    name = path[0]
 
-    defaultResolver = (query) ->
-      result = hinoki.defaultResolver query
+    defaultResolver = (name) ->
+      resolution = hinoki.defaultResolver name, container
       debug? {
         event: 'defaultResolverCalled'
-        query: query
-        result: result
+        name: name
+        container: container
+        resolution: resolution
       }
-      return result
+      return resolution
 
-    resolvers = container.resolvers || []
+    resolvers = hinoki.coerceToArray(container.resolvers || [])
     accum = (inner, resolver) ->
-      (query) ->
-        result = resolver query, inner, debug
+      (name) ->
+        resolution = resolver name, container, inner, debug
         debug? {
           event: 'resolverCalled'
           resolver: resolver
-          query: query
-          result: result
+          name: name
+          container: container
+          resolution: resolution
         }
-        return result
+        return resolution
     resolve = resolvers.reduceRight accum, defaultResolver
-    return resolve {
-      container: container
-      path: path
-    }
+
+    resolution = resolve path[0]
+
+    if resolution? and 'object' is typeof resolution
+      resolution.container = container
+
+    return resolution
 
   hinoki.resolveInContainers = (containers, nameOrPath, debug) ->
     path = hinoki.coerceToArray nameOrPath
@@ -272,19 +226,37 @@ do ->
       hinoki.resolveInContainer container, path, debug
 
   ###################################################################################
-  # default
+  # resolution
 
-  hinoki.defaultResolver = (query) ->
-    name = query.path[0]
-    value = query.container.values?[name]
+  hinoki.resolutionErrors = (resolution) ->
+    errors = []
+    unless 'object' is typeof resolution
+      errors.push 'must be an object'
+
+    unless resolution?.name? and 'string' is typeof resolution?.name
+      errors.push "must have the 'name' property which is a string"
+
+    isValue = not hinoki.isUndefined resolution?.value
+    isFactory = resolution?.factory?
+
+    unless isValue or isFactory
+      errors.push "must have either the 'value' or the 'factory' property"
+    else if isValue and isFactory
+      errors.push "must have either the 'value' or the 'factory' property - not both"
+    else if isFactory and 'function' isnt typeof resolution.factory
+      errors.push "the 'factory' property must be a function"
+
+    if errors.length is 0 then null else errors
+
+  hinoki.defaultResolver = (name, container) ->
+    value = container.values?[name]
     unless hinoki.isUndefined value
       return {
         value: value
-        path: query.path
-        container: query.container
+        name: name
       }
 
-    factory = query.container.factories?[name]
+    factory = container.factories?[name]
     unless factory?
       return
 
@@ -294,82 +266,84 @@ do ->
 
     return {
       factory: factory
-      path: query.path
-      container: query.container
+      name: name
     }
-
-  hinoki.defaultCache = (options) ->
-    options.container.values ?= {}
-    options.container.values[options.path[0]] = options.value
 
   ###################################################################################
   # errors
 
   # constructors for errors which are catchable with bluebirds `catch`
 
-  hinoki.CircularDependencyError = (path, container) ->
+  hinoki.errors = {}
+
+  hinoki.errors.ErrorInResolvers = (path, containers, error) ->
+    this.message = "error in resolvers for '#{path[0]}' (#{hinoki.pathToString path}). original error message: #{error.message}"
+    this.type = 'ErrorInResolver'
+    this.path = path
+    this.containers = containers
+    this.error = error
+    if Error.captureStackTrace
+      Error.captureStackTrace(this, this.constructor)
+  hinoki.errors.ErrorInResolvers.prototype = new Error
+
+  hinoki.errors.Unresolvable = (path, container) ->
+    this.message = "unresolvable name '#{path[0]}' (#{hinoki.pathToString path})"
+    this.type = 'Unresolvable'
+    this.path = path
+    this.container = container
+    if Error.captureStackTrace
+      Error.captureStackTrace(this, this.constructor)
+  hinoki.errors.Unresolvable.prototype = new Error
+
+  hinoki.errors.InvalidResolution = (path, resolution, errors) ->
+    lines = errors
+    lines.unshift "errors in resolution returned by resolvers for '#{path[0]}' (#{hinoki.pathToString path}):"
+    this.message = lines.join '\n'
+    this.type = 'InvalidResolution'
+    this.path = path
+    this.resolution = resolution
+    if Error.captureStackTrace
+      Error.captureStackTrace(this, this.constructor)
+  hinoki.errors.InvalidResolution.prototype = new Error
+
+  hinoki.errors.CircularDependency = (path, containers) ->
     this.message = "circular dependency #{hinoki.pathToString path}"
-    this.type = 'CircularDependencyError'
-    this.name = path[0]
+    this.type = 'CircularDependency'
     this.path = path
-    this.container = container
+    this.containers = containers
     if Error.captureStackTrace
       Error.captureStackTrace(this, this.constructor)
-  hinoki.CircularDependencyError.prototype = new Error
+  hinoki.errors.CircularDependency.prototype = new Error
 
-  hinoki.UnresolvableFactoryError = (path, container) ->
-    this.message = "unresolvable factory '#{path[0]}' (#{hinoki.pathToString path})"
-    this.type = 'UnresolvableFactoryError'
-    this.name = path[0]
+  hinoki.errors.ErrorInFactory = (path, container, error) ->
+    this.message = "error in factory for '#{path[0]}'. original error message: #{error.message}"
+    this.type = 'ErrorInFactory'
     this.path = path
     this.container = container
+    this.error = error
     if Error.captureStackTrace
       Error.captureStackTrace(this, this.constructor)
-  hinoki.UnresolvableFactoryError.prototype = new Error
+  hinoki.errors.ErrorInFactory.prototype = new Error
 
-  hinoki.ExceptionInFactoryError = (path, container, exception) ->
-    this.message = "exception in factory '#{path[0]}': #{exception}"
-    this.type = 'ExceptionInFactoryError'
-    this.name = path[0]
-    this.path = path
-    this.container = container
-    this.exception = exception
-    if Error.captureStackTrace
-      Error.captureStackTrace(this, this.constructor)
-  hinoki.ExceptionInFactoryError.prototype = new Error
-
-  hinoki.PromiseRejectedError = (path, container, rejection) ->
-    this.message = "promise returned from factory '#{path[0]}' was rejected with reason: #{rejection}"
-    this.type = 'PromiseRejectedError'
-    this.name = path[0]
-    this.path = path
-    this.container = container
-    this.rejection = rejection
-    if Error.captureStackTrace
-      Error.captureStackTrace(this, this.constructor)
-  hinoki.PromiseRejectedError.prototype = new Error
-
-  hinoki.FactoryNotFunctionError = (path, container, factory) ->
-    this.message = "factory '#{path[0]}' is not a function: #{factory}"
-    this.type = 'FactoryNotFunctionError'
-    this.name = path[0]
+  hinoki.errors.FactoryReturnedUndefined = (path, container, factory) ->
+    this.message = "factory for '#{path[0]}' returned undefined"
+    this.type = 'FactoryReturnedUndefined'
     this.path = path
     this.container = container
     this.factory = factory
     if Error.captureStackTrace
       Error.captureStackTrace(this, this.constructor)
-  hinoki.FactoryNotFunctionError.prototype = new Error
+  hinoki.errors.FactoryReturnedUndefined.prototype = new Error
 
-  hinoki.FactoryReturnedUndefinedError = (path, container, factory) ->
-    this.message = "factory '#{path[0]}' returned undefined"
-    this.type = 'FactoryReturnedUndefinedError'
-    this.name = path[0]
+  hinoki.errors.PromiseRejected = (path, container, error) ->
+    this.message = "promise returned from factory for '#{path[0]}' was rejected. original error message: #{error.message}"
+    this.type = 'PromiseRejected'
     this.path = path
     this.container = container
-    this.factory = factory
+    this.error = error
     if Error.captureStackTrace
       Error.captureStackTrace(this, this.constructor)
-  hinoki.FactoryReturnedUndefinedError.prototype = new Error
+  hinoki.errors.PromiseRejected.prototype = new Error
 
   ###################################################################################
   # path
