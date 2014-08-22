@@ -184,6 +184,32 @@ module.exports =
       test.ok not c.promisesAwaitingResolution.a?
       test.done()
 
+  'promises awaiting resolution are not cached and reused with nocache': (test) ->
+    test.expect 7
+    c =
+      factories:
+        a: ->
+          # here a new object is created
+          Promise.delay {}, 40
+
+    c.factories.a.$nocache = true
+
+    p1 = hinoki.get(c, 'a')
+    test.ok not c.promisesAwaitingResolution?.a?
+    # the first promise has one step more which handles caching
+    # and cleanup of promise caching
+    p2 = hinoki.get(c, 'a')
+    test.ok not c.promisesAwaitingResolution?.a?
+    p3 = hinoki.get(c, 'a')
+    test.ok not c.promisesAwaitingResolution?.a?
+
+    Promise.all([p1, p2, p3]).then ([a1, a2, a3]) ->
+      test.equal 'object', typeof a1
+      test.notEqual a1, a2
+      test.notEqual a2, a3
+      test.ok not c.promisesAwaitingResolution?.a?
+      test.done()
+
   'resolvers wrap around default resolver': (test) ->
     a = {}
     b = {}

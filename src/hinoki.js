@@ -67,17 +67,20 @@
         resolution: resolution
       });
     }
-    promiseAwaitingResolution = (_ref = resolution.container.promisesAwaitingResolution) != null ? _ref[resolution.name] : void 0;
-    if (promiseAwaitingResolution != null) {
-      if (typeof debug === "function") {
-        debug({
-          event: 'valueAlreadyAwaitingResolution',
-          path: path,
-          resolution: resolution,
-          value: promiseAwaitingResolution
-        });
+    nocache = resolution.nocache || resolution.factory.$nocache;
+    if (!nocache) {
+      promiseAwaitingResolution = (_ref = resolution.container.promisesAwaitingResolution) != null ? _ref[resolution.name] : void 0;
+      if (promiseAwaitingResolution != null) {
+        if (typeof debug === "function") {
+          debug({
+            event: 'valueAlreadyAwaitingResolution',
+            path: path,
+            resolution: resolution,
+            value: promiseAwaitingResolution
+          });
+        }
+        return promiseAwaitingResolution;
       }
-      return promiseAwaitingResolution;
     }
     remainingContainers = hinoki.startingWith(containers, resolution.container);
     dependencyNames = hinoki.getNamesToInject(resolution.factory);
@@ -90,7 +93,6 @@
     factoryCallResultPromise = dependenciesPromise.then(function(dependencyValues) {
       return hinoki.callFactory(resolution.container, newPath, resolution.factory, dependencyValues, debug);
     });
-    nocache = resolution.nocache || resolution.factory.$nocache;
     if (!nocache) {
       if ((_base = resolution.container).promisesAwaitingResolution == null) {
         _base.promisesAwaitingResolution = {};

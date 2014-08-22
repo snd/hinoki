@@ -81,19 +81,22 @@ do ->
       resolution: resolution
     }
 
-    # if the value is already being constructed
-    # wait for that instead of starting a second construction.
+    nocache = resolution.nocache or resolution.factory.$nocache
 
-    promiseAwaitingResolution = resolution.container.promisesAwaitingResolution?[resolution.name]
+    unless nocache
+      # if the value is already being constructed
+      # wait for that instead of starting a second construction.
 
-    if promiseAwaitingResolution?
-      debug? {
-        event: 'valueAlreadyAwaitingResolution'
-        path: path
-        resolution: resolution
-        value: promiseAwaitingResolution
-      }
-      return promiseAwaitingResolution
+      promiseAwaitingResolution = resolution.container.promisesAwaitingResolution?[resolution.name]
+
+      if promiseAwaitingResolution?
+        debug? {
+          event: 'valueAlreadyAwaitingResolution'
+          path: path
+          resolution: resolution
+          value: promiseAwaitingResolution
+        }
+        return promiseAwaitingResolution
 
     # there is no value under construction. lets make one!
 
@@ -117,8 +120,6 @@ do ->
       # we can finally call the factory!
 
       hinoki.callFactory resolution.container, newPath, resolution.factory, dependencyValues, debug
-
-    nocache = resolution.nocache or resolution.factory.$nocache
 
     # we are caching the promise
     # still in the same sync run (no interleaving) from the initial call of the
