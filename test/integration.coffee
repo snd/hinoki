@@ -165,7 +165,7 @@ module.exports =
       factories:
         a: ->
           # here a new object is created
-          Promise.delay {}, 40
+          Promise.delay {}, 10
 
     p1 = hinoki.get(c, 'a')
     test.ok c.promisesAwaitingResolution.a?
@@ -184,13 +184,45 @@ module.exports =
       test.ok not c.promisesAwaitingResolution.a?
       test.done()
 
+  'all dependent promises are created without interleaving': (test) ->
+    test.expect 12
+    container =
+      factories:
+        a: ->
+          Promise.delay {}, 10
+        b: (a) ->
+          Promise.delay {a: a}, 10
+        c: (b) ->
+          Promise.delay {b: b}, 10
+
+    cWithCleanup = hinoki.get(container, 'c')
+
+    a = container.promisesAwaitingResolution.a
+    b = container.promisesAwaitingResolution.b
+    c = container.promisesAwaitingResolution.c
+    test.ok a?
+    test.ok b?
+    test.ok c?
+    test.notEqual cWithCleanup, hinoki.get(container, 'c')
+    test.equal a, hinoki.get(container, 'a')
+    test.equal b, hinoki.get(container, 'b')
+    test.equal c, hinoki.get(container, 'c')
+
+    Promise.all([cWithCleanup, a, b, c]).then ([cWithCleanup, a, b, c]) ->
+      test.equal c.b, b
+      test.equal b.a, a
+      test.equal 'object', typeof a
+      test.equal c, cWithCleanup
+      test.equal 0, Object.keys(container.promisesAwaitingResolution).length
+      test.done()
+
   'promises awaiting resolution are not cached and reused with nocache': (test) ->
     test.expect 7
     c =
       factories:
         a: ->
           # here a new object is created
-          Promise.delay {}, 40
+          Promise.delay {}, 10
 
     c.factories.a.$nocache = true
 
