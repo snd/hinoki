@@ -94,7 +94,7 @@ do ->
           event: 'valueIsAlreadyAwaitingResolution'
           path: path
           resolution: resolution
-          value: promiseAwaitingResolution
+          promise: promiseAwaitingResolution
         }
         return promiseAwaitingResolution
 
