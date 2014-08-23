@@ -182,7 +182,7 @@ module.exports =
       test.equal 'object', typeof a1
       test.equal a1, a2
       test.equal a2, a3
-      test.ok not c.promisesAwaitingResolution.a?
+      test.ok not c.promisesAwaitingResolution?.a?
       test.done()
 
   'all dependent promises are created without interleaving': (test) ->
@@ -220,7 +220,7 @@ module.exports =
       test.equal b.a, a
       test.equal 'object', typeof a
       test.equal c, cWithCleanup
-      test.equal 0, Object.keys(container.promisesAwaitingResolution).length
+      test.ok not container.promisesAwaitingResolution?
       test.done()
 
   'promises awaiting resolution are not cached and reused with nocache': (test) ->
@@ -366,5 +366,5 @@ module.exports =
           alpha_charlie: 'alpha_charlie',
           bravo_charlie: 'eilrahc_charlie',
           alpha_bravo: 'alpha_eilrahc'
-        test.equal 0, Object.keys(container.promisesAwaitingResolution)
+        test.ok not container.promisesAwaitingResolution?
         test.done()

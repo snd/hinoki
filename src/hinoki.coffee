@@ -142,6 +142,8 @@ do ->
         resolution.container.values ?= {}
         resolution.container.values[resolution.name] = value
         delete resolution.container.promisesAwaitingResolution[resolution.name]
+        if Object.keys(resolution.container.promisesAwaitingResolution).length is 0
+          delete resolution.container.promisesAwaitingResolution
 
       return value
 
