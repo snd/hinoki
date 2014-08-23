@@ -360,10 +360,10 @@ module.exports =
         test.equal alpha_charlie, 'alpha_charlie'
         # note that bravo is not cached
         test.deepEqual container.values,
-          alpha: 'alpha',
-          charlie: 'charlie',
-          alpha_charlie: 'alpha_charlie',
-          bravo_charlie: 'eilrahc_charlie',
+          alpha: 'alpha'
+          charlie: 'charlie'
+          alpha_charlie: 'alpha_charlie'
+          bravo_charlie: 'eilrahc_charlie'
           alpha_bravo: 'alpha_eilrahc'
         test.ok not container.promisesAwaitingResolution?
         test.done()
