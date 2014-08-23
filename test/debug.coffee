@@ -5,7 +5,9 @@ hinoki = require '../src/hinoki'
 module.exports =
 
   'hinokis way of working and calls to debug are deterministic': (test) ->
-    # test.expect 24
+    test.expect 58
+
+    alphaBravoPromise = Promise.resolve('alpha_bravo')
 
     container =
       values:
@@ -14,7 +16,7 @@ module.exports =
         bravo: -> 'bravo'
         charlie: -> 'charlie'
         alpha_bravo: (alpha, bravo) ->
-          Promise.resolve(alpha + '_' + bravo, 10)
+          alphaBravoPromise
         bravo_charlie: (bravo, charlie) ->
           bravo + '_' + charlie
         alpha_charlie: (alpha, charlie) ->
@@ -108,6 +110,8 @@ module.exports =
             name: 'bravo'
             container: container
         }
+        # end of sync part of alpha_bravo
+
         # get bravo_charlie (get -> bravo_charlie)
         {
           event: 'defaultResolverWasCalled'
@@ -172,23 +176,182 @@ module.exports =
             container: container
           promise: container.promisesAwaitingResolution?.bravo
         }
+        # bravo_charlie needs charlie (get -> bravo_charlie -> charlie)
+        {
+          event: 'defaultResolverWasCalled'
+          path: ['charlie', 'bravo_charlie']
+          container: container
+          resolution:
+            factory: container.factories.charlie
+            name: 'charlie'
+        }
+        {
+          event: 'customResolverWasCalled'
+          path: ['charlie', 'bravo_charlie']
+          container: container
+          resolver: noopResolver
+          resolution:
+            factory: container.factories.charlie
+            name: 'charlie'
+        }
+        # charlie has a factory (get -> bravo_charlie -> charlie)
+        {
+          event: 'factoryWasResolved'
+          path: ['charlie', 'bravo_charlie']
+          resolution:
+            factory: container.factories.charlie
+            name: 'charlie'
+            container: container
+        }
+        # end of sync part of bravo_charlie
+
+        # get alpha_charlie (get -> alpha_charlie)
+        {
+          event: 'defaultResolverWasCalled'
+          path: ['alpha_charlie']
+          container: container
+          resolution:
+            factory: container.factories.alpha_charlie
+            name: 'alpha_charlie'
+        }
+        {
+          event: 'customResolverWasCalled'
+          path: ['alpha_charlie']
+          container: container
+          resolver: noopResolver
+          resolution:
+            factory: container.factories.alpha_charlie
+            name: 'alpha_charlie'
+        }
+        # alpha_charlie has a factory (get -> alpha_charlie)
+        {
+          event: 'factoryWasResolved'
+          path: ['alpha_charlie']
+          resolution:
+            factory: container.factories.alpha_charlie
+            name: 'alpha_charlie'
+            container: container
+        }
+        # alpha_charlie factory needs alpha (get -> alpha_charlie -> alpha)
+        {
+          event: 'defaultResolverWasCalled',
+          path: ['alpha', 'alpha_charlie']
+          container: container
+          resolution:
+            value: container.values.alpha
+            name: 'alpha'
+        }
+        {
+          event: 'customResolverWasCalled',
+          path: ['alpha', 'alpha_charlie']
+          container: container
+          resolver: noopResolver
+          resolution:
+            value: container.values.alpha
+            name: 'alpha'
+        }
+        # alpha has a value (get -> alpha_charlie -> alpha)
+        {
+          event: 'valueWasResolved',
+          path: ['alpha', 'alpha_charlie']
+          resolution:
+            value: container.values.alpha
+            name: 'alpha'
+            container: container
+        }
+        # alpha_charlie needs charlie (get -> alpha_charlie -> charlie)
+        {
+          event: 'defaultResolverWasCalled'
+          path: ['charlie', 'alpha_charlie']
+          container: container
+          resolution:
+            factory: container.factories.charlie
+            name: 'charlie'
+        }
+        {
+          event: 'customResolverWasCalled'
+          path: ['charlie', 'alpha_charlie']
+          container: container
+          resolver: noopResolver
+          resolution:
+            factory: container.factories.charlie
+            name: 'charlie'
+        }
+        # charlie has a factory (get -> alpha_charlie -> charlie)
+        {
+          event: 'factoryWasResolved'
+          path: ['charlie', 'alpha_charlie']
+          resolution:
+            factory: container.factories.charlie
+            name: 'charlie'
+            container: container
+        }
+        # charlies factory was already called (get -> alpha_charlie -> bravo)
+        {
+          event: 'valueIsAlreadyAwaitingResolution'
+          path: ['charlie', 'alpha_charlie']
+          resolution:
+            factory: container.factories.charlie
+            name: 'charlie'
+            container: container
+          promise: container.promisesAwaitingResolution?.charlie
+        }
+        # end of sync part of alpha_charlie
+
+        # async... on a following tick
+
+        {
+          event: 'valueWasCreated'
+          path: ['bravo', 'alpha_bravo']
+          factory: container.factories.bravo
+          value: 'bravo'
+          container: container
+        }
+        {
+          event: 'valueWasCreated'
+          path: ['charlie', 'bravo_charlie']
+          factory: container.factories.charlie
+          value: 'charlie'
+          container: container
+        }
+        {
+          event: 'valueWasCreated'
+          path: ['alpha_charlie']
+          factory: container.factories.alpha_charlie
+          value: 'alpha_charlie'
+          container: container
+        }
+        {
+          event: 'promiseWasCreated'
+          path: ['alpha_bravo']
+          factory: container.factories.alpha_bravo
+          promise: alphaBravoPromise
+          container: container
+        }
+        {
+          event: 'valueWasCreated'
+          path: ['bravo_charlie']
+          factory: container.factories.bravo_charlie
+          value: 'bravo_charlie'
+          container: container
+        }
+
+        # async... on a following tick
+
+        {
+          event: 'promiseWasResolved'
+          path: ['alpha_bravo']
+          factory: container.factories.alpha_bravo
+          value: 'alpha_bravo'
+          container: container
+        }
       ]
 
     callToDebug = 0
 
-    missedEvents = []
-
     debug = (actualEvent) ->
-      # if callToDebug is 0
       expectedEvent = expectedEvents()[callToDebug++]
-      # console.log "EXPECTED"
-      # console.log expectedEvent
-      # console.log "ACTUAL"
-      # console.log actualEvent
-      if expectedEvent?
-        test.deepEqual expectedEvent, actualEvent
-      else
-        missedEvents.push actualEvent
+      test.deepEqual expectedEvent, actualEvent
 
     container.resolvers = noopResolver
 
@@ -205,7 +368,4 @@ module.exports =
           bravo_charlie: 'bravo_charlie'
           alpha_bravo: 'alpha_bravo'
         test.ok not container.promisesAwaitingResolution?
-
-        console.log missedEvents[0]
-        console.log missedEvents.length + ' to go'
         test.done()
