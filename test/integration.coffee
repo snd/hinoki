@@ -178,6 +178,7 @@ module.exports =
     test.equal p3, c.promisesAwaitingResolution.a
 
     Promise.all([p1, p2, p3]).then ([a1, a2, a3]) ->
+      # three pointers to the same object!
       test.equal 'object', typeof a1
       test.equal a1, a2
       test.equal a2, a3
@@ -236,6 +237,7 @@ module.exports =
     test.ok not c.promisesAwaitingResolution?.a?
 
     Promise.all([p1, p2, p3]).then ([a1, a2, a3]) ->
+      # three different objects!
       test.equal 'object', typeof a1
       test.notEqual a1, a2
       test.notEqual a2, a3
