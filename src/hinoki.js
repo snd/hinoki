@@ -50,7 +50,7 @@
     if (!hinoki.isUndefined(resolution.value)) {
       if (typeof debug === "function") {
         debug({
-          event: 'valueResolved',
+          event: 'valueWasResolved',
           path: path,
           resolution: resolution
         });
@@ -62,7 +62,7 @@
     }
     if (typeof debug === "function") {
       debug({
-        event: 'factoryResolved',
+        event: 'factoryWasResolved',
         path: path,
         resolution: resolution
       });
@@ -73,10 +73,10 @@
       if (promiseAwaitingResolution != null) {
         if (typeof debug === "function") {
           debug({
-            event: 'valueAlreadyAwaitingResolution',
+            event: 'valueIsAlreadyAwaitingResolution',
             path: path,
             resolution: resolution,
-            value: promiseAwaitingResolution
+            promise: promiseAwaitingResolution
           });
         }
         return promiseAwaitingResolution;
@@ -109,9 +109,15 @@
           _base1.values = {};
         }
         resolution.container.values[resolution.name] = value;
-        delete resolution.container.promisesAwaitingResolution[resolution.name];
       }
       return value;
+    })["finally"](function() {
+      if (!nocache) {
+        delete resolution.container.promisesAwaitingResolution[resolution.name];
+        if (Object.keys(resolution.container.promisesAwaitingResolution).length === 0) {
+          return delete resolution.container.promisesAwaitingResolution;
+        }
+      }
     });
   };
   hinoki.callFactory = function(container, nameOrPath, factory, dependencyValues, debug) {
@@ -126,7 +132,7 @@
     if (!hinoki.isThenable(valueOrPromise)) {
       if (typeof debug === "function") {
         debug({
-          event: 'valueCreated',
+          event: 'valueWasCreated',
           path: path,
           value: valueOrPromise,
           factory: factory,
@@ -137,7 +143,7 @@
     }
     if (typeof debug === "function") {
       debug({
-        event: 'promiseCreated',
+        event: 'promiseWasCreated',
         path: path,
         promise: valueOrPromise,
         container: container,
@@ -147,7 +153,7 @@
     return Promise.resolve(valueOrPromise).then(function(value) {
       if (typeof debug === "function") {
         debug({
-          event: 'promiseResolved',
+          event: 'promiseWasResolved',
           path: path,
           value: value,
           container: container,
@@ -167,8 +173,8 @@
       resolution = hinoki.defaultResolver(name, container);
       if (typeof debug === "function") {
         debug({
-          event: 'defaultResolverCalled',
-          name: name,
+          event: 'defaultResolverWasCalled',
+          path: path,
           container: container,
           resolution: resolution
         });
@@ -182,9 +188,9 @@
         resolution = resolver(name, container, inner, debug);
         if (typeof debug === "function") {
           debug({
-            event: 'resolverCalled',
+            event: 'customResolverWasCalled',
             resolver: resolver,
-            name: name,
+            path: path,
             container: container,
             resolution: resolution
           });
