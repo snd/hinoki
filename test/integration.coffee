@@ -1,5 +1,4 @@
 Promise = require 'bluebird'
-util = require 'util'
 
 hinoki = require '../src/hinoki'
 
