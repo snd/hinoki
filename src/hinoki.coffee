@@ -112,6 +112,9 @@ do ->
     dependencyPaths = dependencyNames.map (x) ->
       hinoki.coerceToArray(x).concat newPath
 
+    # this code is reached synchronously from the start of the function call
+    # without interleaving.
+
     dependenciesPromise = hinoki.get remainingContainers, dependencyPaths, debug
 
     factoryCallResultPromise = dependenciesPromise.then (dependencyValues) ->
@@ -121,9 +124,9 @@ do ->
 
       hinoki.callFactory resolution.container, newPath, resolution.factory, dependencyValues, debug
 
-    # we are caching the promise
-    # still in the same sync run (no interleaving) from the initial call of the
-    # function
+    # cache the promise.
+    # this code is reached synchronously from the start of the function call
+    # without interleaving.
 
     unless nocache
       resolution.container.promisesAwaitingResolution ?= {}
