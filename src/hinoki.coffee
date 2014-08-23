@@ -57,7 +57,7 @@ do ->
 
     unless hinoki.isUndefined resolution.value
       debug? {
-        event: 'valueResolved'
+        event: 'valueWasResolved'
         path: path
         resolution: resolution
       }
@@ -76,7 +76,7 @@ do ->
     # no cycle - yeah!
 
     debug? {
-      event: 'factoryResolved'
+      event: 'factoryWasResolved'
       path: path
       resolution: resolution
     }
@@ -91,7 +91,7 @@ do ->
 
       if promiseAwaitingResolution?
         debug? {
-          event: 'valueAlreadyAwaitingResolution'
+          event: 'valueIsAlreadyAwaitingResolution'
           path: path
           resolution: resolution
           value: promiseAwaitingResolution
@@ -167,7 +167,7 @@ do ->
     unless hinoki.isThenable valueOrPromise
       # valueOrPromise is not a promise but an value
       debug? {
-        event: 'valueCreated',
+        event: 'valueWasCreated',
         path: path
         value: valueOrPromise
         factory: factory
@@ -178,7 +178,7 @@ do ->
     # valueOrPromise is a promise
 
     debug? {
-      event: 'promiseCreated'
+      event: 'promiseWasCreated'
       path: path
       promise: valueOrPromise
       container: container
@@ -188,7 +188,7 @@ do ->
     Promise.resolve(valueOrPromise)
       .then (value) ->
         debug? {
-          event: 'promiseResolved'
+          event: 'promiseWasResolved'
           path: path
           value: value
           container: container
@@ -207,8 +207,8 @@ do ->
     defaultResolver = (name) ->
       resolution = hinoki.defaultResolver name, container
       debug? {
-        event: 'defaultResolverCalled'
-        name: name
+        event: 'defaultResolverWasCalled'
+        path: path
         container: container
         resolution: resolution
       }
@@ -219,9 +219,9 @@ do ->
       (name) ->
         resolution = resolver name, container, inner, debug
         debug? {
-          event: 'resolverCalled'
+          event: 'customResolverWasCalled'
           resolver: resolver
-          name: name
+          path: path
           container: container
           resolution: resolution
         }
