@@ -186,14 +186,20 @@ module.exports =
       test.done()
 
   'all dependent promises are created without interleaving': (test) ->
-    test.expect 12
+    test.expect 18
     container =
       factories:
         a: ->
+          test.ok container.promisesAwaitingResolution.a?
+          test.ok container.promisesAwaitingResolution.b?
+          test.ok container.promisesAwaitingResolution.c?
           Promise.delay {}, 10
         b: (a) ->
+          test.ok container.promisesAwaitingResolution.b?
+          test.ok container.promisesAwaitingResolution.c?
           Promise.delay {a: a}, 10
         c: (b) ->
+          test.ok container.promisesAwaitingResolution.c?
           Promise.delay {b: b}, 10
 
     cWithCleanup = hinoki.get(container, 'c')
