@@ -7,7 +7,7 @@ module.exports =
   'ErrorInResolvers':
 
     'thrown': (test) ->
-      test.expect 3
+      test.expect 4
       x = new Error 'fail'
       c =
         resolvers: ->
@@ -17,10 +17,11 @@ module.exports =
         test.equal error.message, "error in resolvers for 'a' (a). original error message: fail"
         test.deepEqual error.path, ['a']
         test.equal error.error, x
+        test.ok not c.promisesAwaitingResolution?
         test.done()
 
     'returned': (test) ->
-      test.expect 3
+      test.expect 4
       x = new Error 'fail'
       c =
         resolvers: ->
@@ -30,12 +31,13 @@ module.exports =
         test.equal error.message, "error in resolvers for 'a' (a). original error message: fail"
         test.deepEqual error.path, ['a']
         test.equal error.error, x
+        test.ok not c.promisesAwaitingResolution?
         test.done()
 
   'Unresolvable':
 
     'custom resolver': (test) ->
-      test.expect 2
+      test.expect 3
 
       c =
         resolvers: ->
@@ -43,16 +45,18 @@ module.exports =
       hinoki.get(c, 'a').catch hinoki.errors.Unresolvable, (error) ->
         test.equal error.message, "unresolvable name 'a' (a)"
         test.deepEqual error.path, ['a']
+        test.ok not c.promisesAwaitingResolution?
         test.done()
 
     'default resolver': (test) ->
-      test.expect 2
+      test.expect 3
 
       c = {}
 
       hinoki.get(c, 'a').catch hinoki.errors.Unresolvable, (error) ->
         test.equal error.message, "unresolvable name 'a' (a)"
         test.deepEqual error.path, ['a']
+        test.ok not c.promisesAwaitingResolution?
         test.done()
 
   'resolutionErrors':
@@ -130,29 +134,28 @@ module.exports =
       ]
       test.done()
 
-  'InvalidResolution':
+  'InvalidResolution': (test) ->
+    test.expect 4
+    resolution =
+      factory: 'test'
+    c =
+      resolvers: ->
+        resolution
 
-    'thrown': (test) ->
-      test.expect 3
-      resolution =
-        factory: 'test'
-      c =
-        resolvers: ->
-          resolution
-
-      hinoki.get(c, 'a').catch hinoki.errors.InvalidResolution, (error) ->
-        lines = [
-          "errors in resolution returned by resolvers for 'a' (a):"
-          "must have the 'name' property which is a string"
-          "the 'factory' property must be a function"
-        ]
-        test.equal error.message, lines.join('\n')
-        test.equal error.resolution, resolution
-        test.deepEqual error.path, ['a']
-        test.done()
+    hinoki.get(c, 'a').catch hinoki.errors.InvalidResolution, (error) ->
+      lines = [
+        "errors in resolution returned by resolvers for 'a' (a):"
+        "must have the 'name' property which is a string"
+        "the 'factory' property must be a function"
+      ]
+      test.equal error.message, lines.join('\n')
+      test.equal error.resolution, resolution
+      test.deepEqual error.path, ['a']
+      test.ok not c.promisesAwaitingResolution?
+      test.done()
 
   'CircularDependency': (test) ->
-    test.expect 2
+    test.expect 3
 
     c =
       factories:
@@ -161,10 +164,11 @@ module.exports =
     hinoki.get(c, 'a').catch hinoki.errors.CircularDependency, (error) ->
       test.equal error.message, "circular dependency a <- a"
       test.deepEqual error.path, ['a', 'a']
+      test.ok not c.promisesAwaitingResolution?
       test.done()
 
   'ErrorInFactory': (test) ->
-    test.expect 4
+    test.expect 5
 
     exception = new Error 'fail'
 
@@ -177,10 +181,11 @@ module.exports =
       test.deepEqual error.path, ['a']
       test.equal error.container, c
       test.equal error.error, exception
+      test.ok not c.promisesAwaitingResolution?
       test.done()
 
   'FactoryReturnedUndefinedError': (test) ->
-    test.expect 3
+    test.expect 4
 
     c =
       factories:
@@ -190,10 +195,11 @@ module.exports =
       test.equal error.message, "factory for 'a' returned undefined"
       test.deepEqual error.path, ['a']
       test.equal error.container, c
+      test.ok not c.promisesAwaitingResolution?
       test.done()
 
   'PromiseRejected': (test) ->
-    test.expect 4
+    test.expect 5
 
     rejection = new Error 'fail'
 
@@ -206,4 +212,5 @@ module.exports =
       test.deepEqual error.path, ['a']
       test.equal error.container, c
       test.equal error.error, rejection
+      test.ok not c.promisesAwaitingResolution?
       test.done()

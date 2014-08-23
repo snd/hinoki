@@ -132,20 +132,26 @@ do ->
       resolution.container.promisesAwaitingResolution ?= {}
       resolution.container.promisesAwaitingResolution[resolution.name] = factoryCallResultPromise
 
-    factoryCallResultPromise.then (value) ->
-      # note that a null value is allowed!
-      if hinoki.isUndefined value
-        return Promise.reject new hinoki.errors.FactoryReturnedUndefined newPath, resolution.container, resolution.factory
+    factoryCallResultPromise
+      .then (value) ->
+        # note that a null value is allowed!
+        if hinoki.isUndefined value
+          return Promise.reject new hinoki.errors.FactoryReturnedUndefined newPath, resolution.container, resolution.factory
 
-      # value is fully constructed
-      unless nocache
-        resolution.container.values ?= {}
-        resolution.container.values[resolution.name] = value
-        delete resolution.container.promisesAwaitingResolution[resolution.name]
-        if Object.keys(resolution.container.promisesAwaitingResolution).length is 0
-          delete resolution.container.promisesAwaitingResolution
+        # cache
+        unless nocache
+          resolution.container.values ?= {}
+          resolution.container.values[resolution.name] = value
 
-      return value
+        return value
+      .finally ->
+        # whether success or error: remove promise from promise cache
+        # this prevents errored promises from being reused
+        # and allows further requests for the errored names to succeed
+        unless nocache
+          delete resolution.container.promisesAwaitingResolution[resolution.name]
+          if Object.keys(resolution.container.promisesAwaitingResolution).length is 0
+            delete resolution.container.promisesAwaitingResolution
 
   ###################################################################################
   # call factory
