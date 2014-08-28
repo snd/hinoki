@@ -18,7 +18,7 @@ hinoki is inspired by [prismatic's graph](https://github.com/Prismatic/plumbing#
 in a nutshell
 
 - [large test suite](test)
-- [just ~500 lines of code](src/hinoki.coffee)
+- [below 500 lines of code](src/hinoki.coffee)
 - battle-tested in production
 - [a functional data-driven approach with localized mutable state](#containers)
 - a simple carefully-designed (underlying) model
