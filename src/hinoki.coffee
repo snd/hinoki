@@ -388,8 +388,8 @@ do ->
   hinoki.identity = (x) ->
     x
 
-  # calls fun for the values in array. returns the first
-  # value returned by transform for which predicate returns true.
+  # calls iterator for the values in array in sequence (with the index as the second argument).
+  # returns the first value returned by iterator for which predicate returns true.
   # otherwise returns sentinel.
 
   hinoki.some = (
