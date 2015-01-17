@@ -37,5 +37,5 @@
     "pretest": "npm run compile",
     "test": "node_modules/nodeunit/bin/nodeunit test/*.coffee"
   },
-  "main": "src/hinoki"
+  "main": "lib/hinoki"
 }
