@@ -31,12 +31,11 @@
     "coffee-script": "1.7.1",
     "nodeunit": "0.9.0"
   },
-  "main": "src/hinoki",
   "scripts": {
-    "compile": "node_modules/coffee-script/bin/coffee --bare --compile --output src src/*.coffee",
-    "prepublish": "node_modules/coffee-script/bin/coffee --bare --compile --output src src/*.coffee",
-    "clean": "rm src/*.js",
-    "pretest": "node_modules/coffee-script/bin/coffee --bare --compile --output src src/*.coffee",
+    "compile": "node_modules/coffee-script/bin/coffee --bare --compile --output lib src",
+    "prepublish": "npm run compile",
+    "pretest": "npm run compile",
     "test": "node_modules/nodeunit/bin/nodeunit test/*.coffee"
-  }
+  },
+  "main": "src/hinoki"
 }
