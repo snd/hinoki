@@ -14,7 +14,7 @@ module.exports =
           throw x
 
       hinoki.get(c, 'a').catch hinoki.errors.ErrorInResolvers, (error) ->
-        test.equal error.message, "error in resolvers for 'a' (a). original error message: fail"
+        test.equal error.message, "error in resolvers for 'a' (a). original error: Error: fail"
         test.deepEqual error.path, ['a']
         test.equal error.error, x
         test.ok not c.promisesAwaitingResolution?
@@ -28,7 +28,7 @@ module.exports =
           x
 
       hinoki.get(c, 'a').catch hinoki.errors.ErrorInResolvers, (error) ->
-        test.equal error.message, "error in resolvers for 'a' (a). original error message: fail"
+        test.equal error.message, "error in resolvers for 'a' (a). original error: Error: fail"
         test.deepEqual error.path, ['a']
         test.equal error.error, x
         test.ok not c.promisesAwaitingResolution?
@@ -177,7 +177,7 @@ module.exports =
         a: -> throw exception
 
     hinoki.get(c, 'a').catch hinoki.errors.ErrorInFactory, (error) ->
-      test.equal error.message, "error in factory for 'a'. original error message: fail"
+      test.equal error.message, "error in factory for 'a'. original error: Error: fail"
       test.deepEqual error.path, ['a']
       test.equal error.container, c
       test.equal error.error, exception
@@ -208,7 +208,7 @@ module.exports =
         a: -> Promise.reject rejection
 
     hinoki.get(c, 'a').catch hinoki.errors.PromiseRejected, (error) ->
-      test.equal error.message, "promise returned from factory for 'a' was rejected. original error message: fail"
+      test.equal error.message, "promise returned from factory for 'a' was rejected. original error: Error: fail"
       test.deepEqual error.path, ['a']
       test.equal error.container, c
       test.equal error.error, rejection
