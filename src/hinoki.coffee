@@ -293,7 +293,7 @@ do ->
   hinoki.errors = {}
 
   hinoki.errors.ErrorInResolvers = (path, containers, error) ->
-    this.message = "error in resolvers for '#{path[0]}' (#{hinoki.pathToString path}). original error message: #{error.message}"
+    this.message = "error in resolvers for '#{path[0]}' (#{hinoki.pathToString path}). original error: #{error.toString()}"
     this.type = 'ErrorInResolver'
     this.path = path
     this.containers = containers
@@ -332,7 +332,7 @@ do ->
   hinoki.errors.CircularDependency.prototype = new Error
 
   hinoki.errors.ErrorInFactory = (path, container, error) ->
-    this.message = "error in factory for '#{path[0]}'. original error message: #{error.message}"
+    this.message = "error in factory for '#{path[0]}'. original error: #{error.toString()}"
     this.type = 'ErrorInFactory'
     this.path = path
     this.container = container
@@ -352,7 +352,7 @@ do ->
   hinoki.errors.FactoryReturnedUndefined.prototype = new Error
 
   hinoki.errors.PromiseRejected = (path, container, error) ->
-    this.message = "promise returned from factory for '#{path[0]}' was rejected. original error message: #{error.message}"
+    this.message = "promise returned from factory for '#{path[0]}' was rejected. original error: #{error.toString()}"
     this.type = 'PromiseRejected'
     this.path = path
     this.container = container
