@@ -293,8 +293,8 @@ do ->
       constructor.prototype = Object.create(superConstructor.prototype)
       constructor.prototype.constructor = constructor
     else
-      # where there is no Object.create we use a proxy constructor
-      # to make a new object that has super constructor as its prototype
+      # if there is no Object.create we use a proxyConstructor
+      # to make a new object that has superConstructor as its prototype
       # and make it the prototype of constructor
       proxyConstructor = ->
       proxyConstructor.prototype = superConstructor.prototype
