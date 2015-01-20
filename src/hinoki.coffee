@@ -288,82 +288,116 @@ do ->
   ###################################################################################
   # errors
 
+  hinoki.inherits = (constructor, superConstructor) ->
+    if 'function' is typeof Object.create
+      constructor.prototype = Object.create(superConstructor.prototype)
+      constructor.prototype.constructor = constructor
+    else
+      # where there is no Object.create we use a proxy constructor
+      # to make a new object that has super constructor as its prototype
+      # and make it the prototype of constructor
+      proxyConstructor = ->
+      proxyConstructor.prototype = superConstructor.prototype
+      constructor.prototype = new proxyConstructor
+      constructor.prototype.constructor = constructor
+
   # constructors for errors which are catchable with bluebirds `catch`
 
   # the base error for all other hinoki errors
   # not to be instantiated directly
   hinoki.BaseError = ->
-  hinoki.BaseError.prototype = new Error
-  hinoki.BaseError.prototype.name = 'BaseError'
+  hinoki.inherits hinoki.BaseError, Error
 
   hinoki.ErrorInResolversError = (path, containers, error) ->
+    this.name = 'ErrorInResolversError'
     this.message = "error in resolvers for '#{path[0]}' (#{hinoki.pathToString path}). original error: #{error.toString()}"
+    if Error.captureStackTrace?
+      # second argument excludes the constructor from inclusion in the stack trace
+      Error.captureStackTrace(this, this.constructor)
+
     this.path = path
     this.containers = containers
     this.error = error
-    if Error.captureStackTrace
-      Error.captureStackTrace(this, this.constructor)
-  hinoki.ErrorInResolversError.prototype = new hinoki.BaseError
-  hinoki.ErrorInResolversError.prototype.name = 'ErrorInResolversError'
+    return
+
+  hinoki.inherits hinoki.ErrorInResolversError, hinoki.BaseError
 
   hinoki.UnresolvableError = (path, container) ->
+    this.name = 'UnresolvableError'
     this.message = "unresolvable name '#{path[0]}' (#{hinoki.pathToString path})"
+    if Error.captureStackTrace?
+      Error.captureStackTrace(this, this.constructor)
+
     this.path = path
     this.container = container
-    if Error.captureStackTrace
-      Error.captureStackTrace(this, this.constructor)
-  hinoki.UnresolvableError.prototype = new hinoki.BaseError
-  hinoki.UnresolvableError.prototype.name = 'UnresolvableError'
+    return
+
+  hinoki.inherits hinoki.UnresolvableError, hinoki.BaseError
 
   hinoki.InvalidResolutionError = (path, resolution, errors) ->
+    this.name = 'InvalidResolutionError'
     lines = errors
     lines.unshift "errors in resolution returned by resolvers for '#{path[0]}' (#{hinoki.pathToString path}):"
     this.message = lines.join '\n'
+    if Error.captureStackTrace?
+      Error.captureStackTrace(this, this.constructor)
+
     this.path = path
     this.resolution = resolution
-    if Error.captureStackTrace
-      Error.captureStackTrace(this, this.constructor)
-  hinoki.InvalidResolutionError.prototype = new hinoki.BaseError
-  hinoki.InvalidResolutionError.prototype.name = 'InvalidResolutionError'
+    return
+
+  hinoki.inherits hinoki.InvalidResolutionError, hinoki.BaseError
 
   hinoki.CircularDependencyError = (path, containers) ->
+    this.name = 'CircularDependencyError'
     this.message = "circular dependency #{hinoki.pathToString path}"
+    if Error.captureStackTrace?
+      Error.captureStackTrace(this, this.constructor)
+
     this.path = path
     this.containers = containers
-    if Error.captureStackTrace
-      Error.captureStackTrace(this, this.constructor)
-  hinoki.CircularDependencyError.prototype = new hinoki.BaseError
-  hinoki.CircularDependencyError.prototype.name = 'CircularDependencyError'
+    return
+
+  hinoki.inherits hinoki.CircularDependencyError, hinoki.BaseError
 
   hinoki.ThrowInFactoryError = (path, container, error) ->
+    this.name = 'ThrowInFactoryError'
     this.message = "error in factory for '#{path[0]}'. original error: #{error.toString()}"
+    if Error.captureStackTrace?
+      Error.captureStackTrace(this, this.constructor)
+
     this.path = path
     this.container = container
     this.error = error
-    if Error.captureStackTrace
-      Error.captureStackTrace(this, this.constructor)
-  hinoki.ThrowInFactoryError.prototype = new hinoki.BaseError
-  hinoki.ThrowInFactoryError.prototype.name = 'ThrowInFactoryError'
+    return
+
+  hinoki.inherits hinoki.ThrowInFactoryError, hinoki.BaseError
 
   hinoki.FactoryReturnedUndefinedError = (path, container, factory) ->
+    this.name = 'FactoryReturnedUndefinedError'
     this.message = "factory for '#{path[0]}' returned undefined"
+    if Error.captureStackTrace?
+      Error.captureStackTrace(this, this.constructor)
+
     this.path = path
     this.container = container
     this.factory = factory
-    if Error.captureStackTrace
-      Error.captureStackTrace(this, this.constructor)
-  hinoki.FactoryReturnedUndefinedError.prototype = new hinoki.BaseError
-  hinoki.FactoryReturnedUndefinedError.prototype.name = 'FactoryReturnedUndefinedError'
+    return
+
+  hinoki.inherits hinoki.FactoryReturnedUndefinedError, hinoki.BaseError
 
   hinoki.PromiseRejectedError = (path, container, error) ->
+    this.name = 'PromiseRejectedError'
     this.message = "promise returned from factory for '#{path[0]}' was rejected. original error: #{error.toString()}"
+    if Error.captureStackTrace?
+      Error.captureStackTrace(this, this.constructor)
+
     this.path = path
     this.container = container
     this.error = error
-    if Error.captureStackTrace
-      Error.captureStackTrace(this, this.constructor)
-  hinoki.PromiseRejectedError.prototype = new hinoki.BaseError
-  hinoki.PromiseRejectedError.prototype.name = 'PromiseRejectedError'
+    return
+
+  hinoki.inherits hinoki.PromiseRejectedError, hinoki.BaseError
 
   ###################################################################################
   # path
