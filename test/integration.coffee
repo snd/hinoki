@@ -124,7 +124,7 @@ module.exports =
         b: (a) ->
           a + 1
 
-    hinoki.get([c1, c2], 'b').catch hinoki.errors.Unresolvable, (error) ->
+    hinoki.get([c1, c2], 'b').catch hinoki.UnresolvableError, (error) ->
       test.deepEqual error.path, ['a', 'b']
       test.done()
 
