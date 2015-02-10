@@ -115,7 +115,11 @@ do ->
     # this code is reached synchronously from the start of the function call
     # without interleaving.
 
-    dependenciesPromise = hinoki.get remainingContainers, dependencyPaths, debug
+    dependenciesPromise =
+      if dependencyPaths.length isnt 0
+        hinoki.get remainingContainers, dependencyPaths, debug
+      else
+        Promise.resolve([])
 
     factoryCallResultPromise = dependenciesPromise.then (dependencyValues) ->
 
