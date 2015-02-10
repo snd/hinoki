@@ -127,6 +127,8 @@ do ->
     # cache the promise.
     # this code is reached synchronously from the start of the function call
     # without interleaving.
+    # its important that the factoryCallResultPromise is added
+    # to promisesAwaitingResolution before the factory is actually called !
 
     unless nocache
       resolution.container.promisesAwaitingResolution ?= {}
