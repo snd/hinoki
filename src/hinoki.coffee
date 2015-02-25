@@ -520,3 +520,11 @@ do ->
       factory.$inject
     else
       hinoki.parseFunctionArguments factory
+
+  hinoki.getAndCacheNamesToInject = (factory) ->
+    if factory.$inject?
+      factory.$inject
+    else
+      names = hinoki.parseFunctionArguments factory
+      factory.$inject = names
+      return names
