@@ -22,6 +22,13 @@
     if Array.isArray oneOrManyNamesOrPaths
       Promise.all oneOrManyNamesOrPaths.map (nameOrPath) ->
         hinokiOne containers, nameOrPath, debug
+    else if 'function' is typeof oneOrManyNamesOrPaths
+      injectable = oneOrManyNamesOrPaths
+      hinoki(
+        oneOrManyContainers
+        hinokiNamesToInject(injectable)
+        debug
+      ).spread(injectable)
     else
       hinokiOne containers, oneOrManyNamesOrPaths, debug
 

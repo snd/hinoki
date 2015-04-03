@@ -84,6 +84,24 @@ module.exports =
       test.ok hinoki.isNull c.values.x
       test.done()
 
+  'injectable is injected correctly': (test) ->
+    c =
+      factories:
+        a: -> 0
+        b: -> 1
+        c: (a, b) -> a + b
+        d: (b, c) -> b + c
+        e: (c, d) -> c + d
+        f: (d, e) -> d + e
+        g: (e, f) -> e + f
+        h: (f, g) -> f + g
+
+    hinoki(c, (a, b, c, d, e, f, g, h) ->
+      [a, b, c, d, e, f, g, h]
+    ).then (fibonacci) ->
+      test.deepEqual fibonacci, [0, 1, 1, 2, 3, 5, 8, 13]
+      test.done()
+
   'containers are tried in order. values are created in container that resolved factory': (test) ->
     c1 =
       factories:
