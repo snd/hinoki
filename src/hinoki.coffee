@@ -22,7 +22,7 @@
       throw new Error 'at least 1 container is required'
 
     if Array.isArray oneOrManyNamesOrPaths
-      Promise.all(oneOrManyNamesOrPaths).map (nameOrPath) ->
+      Promise.all oneOrManyNamesOrPaths.map (nameOrPath) ->
         hinoki.getOne containers, nameOrPath, debug
     else
       hinoki.getOne containers, oneOrManyNamesOrPaths, debug
