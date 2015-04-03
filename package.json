@@ -25,11 +25,11 @@
     "node": ">=0.10.0"
   },
   "dependencies": {
-    "bluebird": "2.9.12"
+    "bluebird": "2.9.24"
   },
   "devDependencies": {
     "coffee-script": "1.9.1",
-    "nodeunit": "0.9.0"
+    "nodeunit": "0.9.1"
   },
   "scripts": {
     "compile": "node_modules/coffee-script/bin/coffee --bare --compile --output lib src",
