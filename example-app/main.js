@@ -58,6 +58,6 @@ container.values = {
   }
 };
 
-hinoki.get(container, 'startApp').then(function(startApp) {
+hinoki(container, 'startApp').then(function(startApp) {
   startApp();
 });

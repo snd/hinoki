@@ -9,7 +9,7 @@ module.exports =
       values:
         x: 1
 
-    hinoki.get(c, 'x').then (x) ->
+    hinoki(c, 'x').then (x) ->
       test.equal x, 1
       test.equal c.values.x, 1
       test.done()
@@ -19,7 +19,7 @@ module.exports =
       values:
         x: null
 
-    hinoki.get(c, 'x').then (x) ->
+    hinoki(c, 'x').then (x) ->
       test.ok hinoki.isNull x
       test.done()
 
@@ -28,7 +28,7 @@ module.exports =
       factories:
         x: -> 1
 
-    hinoki.get(c, 'x').then (x) ->
+    hinoki(c, 'x').then (x) ->
       test.equal x, 1
       test.equal c.values.x, 1
       test.done()
@@ -38,7 +38,7 @@ module.exports =
       factories:
         x: -> null
 
-    hinoki.get(c, 'x').then (x) ->
+    hinoki(c, 'x').then (x) ->
       test.ok hinoki.isNull x
       test.ok hinoki.isNull c.values.x
       test.done()
@@ -48,7 +48,7 @@ module.exports =
       factories:
         x: -> Promise.resolve 1
 
-    hinoki.get(c, 'x').then (x) ->
+    hinoki(c, 'x').then (x) ->
       test.equal x, 1
       test.equal c.values.x, 1
       test.done()
@@ -58,7 +58,7 @@ module.exports =
       factories:
         x: -> Promise.resolve null
 
-    hinoki.get(c, 'x').then (x) ->
+    hinoki(c, 'x').then (x) ->
       test.ok hinoki.isNull x
       test.ok hinoki.isNull c.values.x
       test.done()
@@ -69,7 +69,7 @@ module.exports =
         x: (y) -> 1 + y
         y: -> 1
 
-    hinoki.get(c, 'x').then (x) ->
+    hinoki(c, 'x').then (x) ->
       test.equal x, 2
       test.done()
 
@@ -79,7 +79,7 @@ module.exports =
         x: (y) -> null
         y: -> 1
 
-    hinoki.get(c, 'x').then (x) ->
+    hinoki(c, 'x').then (x) ->
       test.ok hinoki.isNull x
       test.ok hinoki.isNull c.values.x
       test.done()
@@ -102,7 +102,7 @@ module.exports =
         d: ->
           1
 
-    hinoki.get([c1, c2, c3], ['a', 'd']).spread (a, d) ->
+    hinoki([c1, c2, c3], ['a', 'd']).spread (a, d) ->
       test.equal a, 4
       test.equal d, 1
 
@@ -124,7 +124,7 @@ module.exports =
         b: (a) ->
           a + 1
 
-    hinoki.get([c1, c2], 'b').catch hinoki.UnresolvableError, (error) ->
+    hinoki([c1, c2], 'b').catch hinoki.UnresolvableError, (error) ->
       test.deepEqual error.path, ['a', 'b']
       test.done()
 
@@ -150,7 +150,7 @@ module.exports =
           callsTo.d++
           Promise.delay(10, 10)
 
-    hinoki.get(c, 'a').then (a) ->
+    hinoki(c, 'a').then (a) ->
       test.equal callsTo.a, 1
       test.equal callsTo.b, 1
       test.equal callsTo.c, 1
@@ -166,14 +166,14 @@ module.exports =
           # here a new object is created
           Promise.delay {}, 10
 
-    p1 = hinoki.get(c, 'a')
+    p1 = hinoki(c, 'a')
     test.ok c.promisesAwaitingResolution.a?
     # the first promise has one step more which handles caching
     # and cleanup of promise caching
     test.notEqual p1, c.promisesAwaitingResolution.a
-    p2 = hinoki.get(c, 'a')
+    p2 = hinoki(c, 'a')
     test.equal p2, c.promisesAwaitingResolution.a
-    p3 = hinoki.get(c, 'a')
+    p3 = hinoki(c, 'a')
     test.equal p3, c.promisesAwaitingResolution.a
 
     Promise.all([p1, p2, p3]).then ([a1, a2, a3]) ->
@@ -201,7 +201,7 @@ module.exports =
           test.ok container.promisesAwaitingResolution.c?
           Promise.delay {b: b}, 10
 
-    promiseCWithCleanup = hinoki.get(container, 'c')
+    promiseCWithCleanup = hinoki(container, 'c')
 
     promiseA = container.promisesAwaitingResolution.a
     promiseB = container.promisesAwaitingResolution.b
@@ -211,13 +211,13 @@ module.exports =
     test.ok promiseB?
     test.ok promiseC?
 
-    test.notEqual promiseCWithCleanup, hinoki.get(container, 'c')
+    test.notEqual promiseCWithCleanup, hinoki(container, 'c')
 
     # these are already awaiting resolution
     # getting them again returns the cached promises
-    test.equal promiseA, hinoki.get(container, 'a')
-    test.equal promiseB, hinoki.get(container, 'b')
-    test.equal promiseC, hinoki.get(container, 'c')
+    test.equal promiseA, hinoki(container, 'a')
+    test.equal promiseB, hinoki(container, 'b')
+    test.equal promiseC, hinoki(container, 'c')
 
     Promise.all([promiseCWithCleanup, promiseA, promiseB, promiseC])
       .then ([valueCWithCleanup, valueA, valueB, valueC]) ->
@@ -239,13 +239,13 @@ module.exports =
 
     c.factories.a.$nocache = true
 
-    p1 = hinoki.get(c, 'a')
+    p1 = hinoki(c, 'a')
     test.ok not c.promisesAwaitingResolution?.a?
     # the first promise has one step more which handles caching
     # and cleanup of promise caching
-    p2 = hinoki.get(c, 'a')
+    p2 = hinoki(c, 'a')
     test.ok not c.promisesAwaitingResolution?.a?
-    p3 = hinoki.get(c, 'a')
+    p3 = hinoki(c, 'a')
     test.ok not c.promisesAwaitingResolution?.a?
 
     Promise.all([p1, p2, p3]).then ([a1, a2, a3]) ->
@@ -272,7 +272,7 @@ module.exports =
         inner 'b'
     ]
 
-    hinoki.get(c, 'a').then (value) ->
+    hinoki(c, 'a').then (value) ->
       test.equal b, value
       test.equal c.values.b, value
       test.done()
@@ -296,7 +296,7 @@ module.exports =
         }
     ]
 
-    hinoki.get(c, 'a').then (a) ->
+    hinoki(c, 'a').then (a) ->
       test.equal a, value
       test.equal c.values.c, value
       test.done()
@@ -318,7 +318,7 @@ module.exports =
         }
     ]
 
-    hinoki.get(c, 'a').then (a) ->
+    hinoki(c, 'a').then (a) ->
       test.equal a, value
       test.ok not c.values?
       test.done()
@@ -330,7 +330,7 @@ module.exports =
 
     c.factories.x.$nocache = true
 
-    hinoki.get(c, 'x').then (x) ->
+    hinoki(c, 'x').then (x) ->
       test.equal x, 1
       test.ok not c.values?
       test.done()
@@ -360,7 +360,7 @@ module.exports =
           alpha + '_' + charlie
       resolvers: [resolver]
 
-    hinoki.get(container, ['alpha_bravo', 'bravo_charlie', 'alpha_charlie'])
+    hinoki(container, ['alpha_bravo', 'bravo_charlie', 'alpha_charlie'])
       .spread (alpha_bravo, bravo_charlie, alpha_charlie) ->
         test.equal alpha_bravo, 'alpha_eilrahc'
         test.equal bravo_charlie, 'eilrahc_charlie'

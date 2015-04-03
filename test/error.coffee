@@ -9,7 +9,7 @@ module.exports =
       factories:
         a: ->
 
-    hinoki.get(c, 'a').catch hinoki.BaseError, (error) ->
+    hinoki(c, 'a').catch hinoki.BaseError, (error) ->
       test.equal error.name, 'FactoryReturnedUndefinedError'
       test.done()
 
@@ -21,7 +21,7 @@ module.exports =
         resolvers: ->
           throw x
 
-      hinoki.get(c, 'a').catch hinoki.ErrorInResolversError, (error) ->
+      hinoki(c, 'a').catch hinoki.ErrorInResolversError, (error) ->
         test.equal error.name, 'ErrorInResolversError'
         test.equal error.message, "error in resolvers for 'a' (a). original error: Error: fail"
         test.equal 'string', typeof error.stack
@@ -39,7 +39,7 @@ module.exports =
         resolvers: ->
           x
 
-      hinoki.get(c, 'a').catch hinoki.ErrorInResolversError, (error) ->
+      hinoki(c, 'a').catch hinoki.ErrorInResolversError, (error) ->
         test.equal error.message, "error in resolvers for 'a' (a). original error: Error: fail"
         test.deepEqual error.path, ['a']
         test.equal error.error, x
@@ -52,7 +52,7 @@ module.exports =
       c =
         resolvers: ->
 
-      hinoki.get(c, 'a').catch hinoki.UnresolvableError, (error) ->
+      hinoki(c, 'a').catch hinoki.UnresolvableError, (error) ->
         test.equal error.name, 'UnresolvableError'
         test.equal error.message, "unresolvable name 'a' (a)"
         test.equal 'string', typeof error.stack
@@ -66,7 +66,7 @@ module.exports =
     'default resolver': (test) ->
       c = {}
 
-      hinoki.get(c, 'a').catch hinoki.UnresolvableError, (error) ->
+      hinoki(c, 'a').catch hinoki.UnresolvableError, (error) ->
         test.equal error.message, "unresolvable name 'a' (a)"
         test.deepEqual error.path, ['a']
         test.ok not c.promisesAwaitingResolution?
@@ -154,7 +154,7 @@ module.exports =
       resolvers: ->
         resolution
 
-    hinoki.get(c, 'a').catch hinoki.InvalidResolutionError, (error) ->
+    hinoki(c, 'a').catch hinoki.InvalidResolutionError, (error) ->
       test.equal error.name, 'InvalidResolutionError'
       lines = [
         "errors in resolution returned by resolvers for 'a' (a):"
@@ -176,7 +176,7 @@ module.exports =
       factories:
         a: (a) ->
 
-    hinoki.get(c, 'a').catch hinoki.CircularDependencyError, (error) ->
+    hinoki(c, 'a').catch hinoki.CircularDependencyError, (error) ->
       test.equal error.name, 'CircularDependencyError'
       test.equal error.message, "circular dependency a <- a"
       test.equal 'string', typeof error.stack
@@ -194,7 +194,7 @@ module.exports =
       factories:
         a: -> throw exception
 
-    hinoki.get(c, 'a').catch hinoki.ThrowInFactoryError, (error) ->
+    hinoki(c, 'a').catch hinoki.ThrowInFactoryError, (error) ->
       test.equal error.name, 'ThrowInFactoryError'
       test.equal error.message, "error in factory for 'a'. original error: Error: fail"
       test.equal 'string', typeof error.stack
@@ -212,7 +212,7 @@ module.exports =
       factories:
         a: ->
 
-    hinoki.get(c, 'a').catch hinoki.FactoryReturnedUndefinedError, (error) ->
+    hinoki(c, 'a').catch hinoki.FactoryReturnedUndefinedError, (error) ->
       test.equal error.name, 'FactoryReturnedUndefinedError'
       test.equal error.message, "factory for 'a' returned undefined"
       test.equal 'string', typeof error.stack
@@ -231,7 +231,7 @@ module.exports =
       factories:
         a: -> Promise.reject rejection
 
-    hinoki.get(c, 'a').catch hinoki.PromiseRejectedError, (error) ->
+    hinoki(c, 'a').catch hinoki.PromiseRejectedError, (error) ->
       test.equal error.name, 'PromiseRejectedError'
       test.equal error.message, "promise returned from factory for 'a' was rejected. original error: Error: fail"
       test.equal 'string', typeof error.stack

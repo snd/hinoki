@@ -24,6 +24,6 @@ var container = {
   values: values
 };
 
-hinoki.get(container, 'domains', console.log).then(function(domains) {
+hinoki(container, 'domains', console.log).then(function(domains) {
   console.log(domains);
 });

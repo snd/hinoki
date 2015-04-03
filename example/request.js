@@ -93,4 +93,4 @@ var factory = function(
   console.log('requestContainer.values', requestContainer.values);
 };
 
-hinoki.get(containers, hinoki.parseFunctionArguments(factory)).spread(factory);
+hinoki(containers, hinoki.parseFunctionArguments(factory)).spread(factory);

@@ -16,7 +16,7 @@ var container = {
   factories: factories
 };
 
-hinoki.get(container, 'acd', console.log).then(function(acd) {
+hinoki(container, 'acd', console.log).then(function(acd) {
   console.log(acd);  // -> 'acd'
   // dependency ids have been cached
   console.log(factories.a.$inject); // -> []

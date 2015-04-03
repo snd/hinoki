@@ -22,7 +22,7 @@ module.exports =
       values:
         xs: [1, 2, 3, 6]
 
-    hinoki.get(c, 'count')
+    hinoki(c, 'count')
       .then (count) ->
         test.equal count, 4
         test.deepEqual c.values,
@@ -36,7 +36,7 @@ module.exports =
       values:
         xs: [1, 2, 3, 6]
 
-    hinoki.get(c, 'mean').then (mean) ->
+    hinoki(c, 'mean').then (mean) ->
       test.equal mean, 3
       test.deepEqual c.values,
         xs: [1, 2, 3, 6]
@@ -50,7 +50,7 @@ module.exports =
       values:
         xs: [1, 2, 3, 6]
 
-    hinoki.get(c, 'meanOfSquares').then (meanOfSquares) ->
+    hinoki(c, 'meanOfSquares').then (meanOfSquares) ->
       test.equal meanOfSquares, 12.5
       test.deepEqual c.values,
         xs: [1, 2, 3, 6]
@@ -64,7 +64,7 @@ module.exports =
       values:
         xs: [1, 2, 3, 6]
 
-    hinoki.get(c, 'variance').then (variance) ->
+    hinoki(c, 'variance').then (variance) ->
       test.equal variance, 3.5
       test.deepEqual c.values,
         xs: [1, 2, 3, 6]

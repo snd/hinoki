@@ -30,6 +30,6 @@ var container = {
   values: values
 };
 
-hinoki.get(container, 'mean', console.log).then(function(mean) {
+hinoki(container, 'mean', console.log).then(function(mean) {
   console.log(mean);  // -> 3
 });

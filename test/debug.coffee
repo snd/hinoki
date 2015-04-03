@@ -355,7 +355,7 @@ module.exports =
 
     container.resolvers = noopResolver
 
-    hinoki.get(container, ['alpha_bravo', 'bravo_charlie', 'alpha_charlie'], debug)
+    hinoki(container, ['alpha_bravo', 'bravo_charlie', 'alpha_charlie'], debug)
       .spread (alpha_bravo, bravo_charlie, alpha_charlie) ->
         test.equal alpha_bravo, 'alpha_bravo'
         test.equal bravo_charlie, 'bravo_charlie'
