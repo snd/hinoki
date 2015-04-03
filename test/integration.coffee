@@ -201,26 +201,33 @@ module.exports =
           test.ok container.promisesAwaitingResolution.c?
           Promise.delay {b: b}, 10
 
-    cWithCleanup = hinoki.get(container, 'c')
+    promiseCWithCleanup = hinoki.get(container, 'c')
 
-    a = container.promisesAwaitingResolution.a
-    b = container.promisesAwaitingResolution.b
-    c = container.promisesAwaitingResolution.c
-    test.ok a?
-    test.ok b?
-    test.ok c?
-    test.notEqual cWithCleanup, hinoki.get(container, 'c')
-    test.equal a, hinoki.get(container, 'a')
-    test.equal b, hinoki.get(container, 'b')
-    test.equal c, hinoki.get(container, 'c')
+    promiseA = container.promisesAwaitingResolution.a
+    promiseB = container.promisesAwaitingResolution.b
+    promiseC = container.promisesAwaitingResolution.c
 
-    Promise.all([cWithCleanup, a, b, c]).then ([cWithCleanup, a, b, c]) ->
-      test.equal c.b, b
-      test.equal b.a, a
-      test.equal 'object', typeof a
-      test.equal c, cWithCleanup
-      test.ok not container.promisesAwaitingResolution?
-      test.done()
+    test.ok promiseA?
+    test.ok promiseB?
+    test.ok promiseC?
+
+    test.notEqual promiseCWithCleanup, hinoki.get(container, 'c')
+
+    # these are already awaiting resolution
+    # getting them again returns the cached promises
+    test.equal promiseA, hinoki.get(container, 'a')
+    test.equal promiseB, hinoki.get(container, 'b')
+    test.equal promiseC, hinoki.get(container, 'c')
+
+    Promise.all([promiseCWithCleanup, promiseA, promiseB, promiseC])
+      .then ([valueCWithCleanup, valueA, valueB, valueC]) ->
+        test.equal 'object', typeof valueA
+        test.equal valueB.a, valueA
+        test.equal valueC.b, valueB
+        # both promises resolve to the identical value
+        test.equal valueCWithCleanup, valueC
+        test.ok not container.promisesAwaitingResolution?
+        test.done()
 
   'promises awaiting resolution are not cached and reused with nocache': (test) ->
     test.expect 7
