@@ -2,7 +2,15 @@
   "name": "hinoki",
   "version": "0.3.0-beta.16",
   "description": "magical inversion of control for nodejs and the browser",
-  "keywords": ["inversion", "control", "dependency", "injection", "ioc", "container"],
+  "keywords": [
+    "inversion",
+    "control",
+    "dependency",
+    "injection",
+    "ioc",
+    "container",
+    "lifetime"
+  ],
   "homepage": "http://github.com/snd/hinoki",
   "author": {
     "name": "Maximilian Krüger",
