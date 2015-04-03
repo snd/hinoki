@@ -10,12 +10,10 @@
     root.hinoki = factory(root.Promise)
 )(this, (Promise) ->
 
-  hinoki = {}
-
   ###################################################################################
   # get
 
-  hinoki.get = (oneOrManyContainers, oneOrManyNamesOrPaths, debug) ->
+  hinoki = (oneOrManyContainers, oneOrManyNamesOrPaths, debug) ->
     containers = hinoki.coerceToArray oneOrManyContainers
 
     if containers.length is 0
@@ -23,11 +21,11 @@
 
     if Array.isArray oneOrManyNamesOrPaths
       Promise.all oneOrManyNamesOrPaths.map (nameOrPath) ->
-        hinoki.getOne containers, nameOrPath, debug
+        hinokiOne containers, nameOrPath, debug
     else
-      hinoki.getOne containers, oneOrManyNamesOrPaths, debug
+      hinokiOne containers, oneOrManyNamesOrPaths, debug
 
-  hinoki.getOne = (containers, nameOrPath, debug) ->
+  hinokiOne = (containers, nameOrPath, debug) ->
     path = hinoki.coerceToArray nameOrPath
 
     try
@@ -100,7 +98,7 @@
 
     remainingContainers = hinoki.startingWith containers, resolution.container
 
-    dependencyNames = hinoki.getNamesToInject resolution.factory
+    dependencyNames = hinokiNamesToInject resolution.factory
 
     newPath = path.slice()
     newPath[0] = resolution.name
@@ -113,7 +111,7 @@
 
     dependenciesPromise =
       if dependencyPaths.length isnt 0
-        hinoki.get remainingContainers, dependencyPaths, debug
+        hinoki remainingContainers, dependencyPaths, debug
       else
         Promise.resolve([])
 
@@ -510,13 +508,13 @@
     else
       []
 
-  hinoki.getNamesToInject = (factory) ->
+  hinokiNamesToInject = (factory) ->
     if factory.$inject?
       factory.$inject
     else
       hinoki.parseFunctionArguments factory
 
-  hinoki.getAndCacheNamesToInject = (factory) ->
+  hinokiAndCacheNamesToInject = (factory) ->
     if factory.$inject?
       factory.$inject
     else
