@@ -1,20 +1,16 @@
-# do -> = module pattern in coffeescript
-do ->
-  hinoki = {}
-
-  ###################################################################################
-  # node.js or browser?
-
-  if window?
-    unless window.Promise?
-      throw new Error 'hinoki requires Promise global by bluebird to be present'
-    Promise = window.Promise
-    window.hinoki = hinoki
-  else if module?.exports?
-    Promise = require 'bluebird'
-    module.exports = hinoki
+((root, factory) ->
+  # amd
+  if ('function' is typeof define) and define.amd?
+    define(['bluebird'], factory)
+  # commonjs
+  else if exports?
+    module.exports = factory(require('bluebird'))
+  # other
   else
-    throw new Error 'either the `window` global or the `module.exports` global must be present'
+    root.hinoki = factory(root.Promise)
+)(this, (Promise) ->
+
+  hinoki = {}
 
   ###################################################################################
   # get
@@ -122,7 +118,6 @@ do ->
         Promise.resolve([])
 
     factoryCallResultPromise = dependenciesPromise.then (dependencyValues) ->
-
       # the dependencies are ready!
       # we can finally call the factory!
 
@@ -528,3 +523,6 @@ do ->
       names = hinoki.parseFunctionArguments factory
       factory.$inject = names
       return names
+
+  return hinoki
+)
