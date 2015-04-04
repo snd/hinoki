@@ -13,28 +13,34 @@
   ###################################################################################
   # get
 
-  hinoki = (oneOrManyContainers, oneOrManyNamesOrPaths, debug) ->
+  # polymorphic
+  hinoki = (oneOrManyContainers, nameOrNamesOrFunction, debug) ->
     containers = hinoki.coerceToArray oneOrManyContainers
 
     if containers.length is 0
       throw new Error 'at least 1 container is required'
 
-    if Array.isArray oneOrManyNamesOrPaths
-      Promise.all oneOrManyNamesOrPaths.map (nameOrPath) ->
-        hinokiOne containers, nameOrPath, debug
-    else if 'function' is typeof oneOrManyNamesOrPaths
-      injectable = oneOrManyNamesOrPaths
-      hinoki(
+    if 'function' is typeof nameOrNamesOrFunction
+      return hinoki(
         oneOrManyContainers
-        hinokiNamesToInject(injectable)
+        hinoki.getNamesToInject(nameOrNamesOrFunction).map(hinoki.coerceToArray)
         debug
-      ).spread(injectable)
-    else
-      hinokiOne containers, oneOrManyNamesOrPaths, debug
+      ).spread(nameOrNamesOrFunction)
 
-  hinokiOne = (containers, nameOrPath, debug) ->
-    path = hinoki.coerceToArray nameOrPath
 
+    if Array.isArray nameOrNamesOrFunction
+      paths = hinoki.coerceToArray(nameOrNamesOrFunction).map(hinoki.coerceToArray)
+      return hinoki.many containers, paths, debug
+
+    path = hinoki.coerceToArray(nameOrNamesOrFunction)
+    hinoki.one containers, path, debug
+
+  hinoki.many = (containers, paths, debug) ->
+      Promise.all paths.map (path) ->
+        hinoki.one containers, path, debug
+
+  hinoki.one = (containers, path, debug) ->
+    # try-catch prevents optimization
     try
       resolution = hinoki.resolveInContainers containers, path, debug
     catch error
@@ -105,7 +111,7 @@
 
     remainingContainers = hinoki.startingWith containers, resolution.container
 
-    dependencyNames = hinokiNamesToInject resolution.factory
+    dependencyNames = hinoki.getNamesToInject resolution.factory
 
     newPath = path.slice()
     newPath[0] = resolution.name
@@ -118,7 +124,7 @@
 
     dependenciesPromise =
       if dependencyPaths.length isnt 0
-        hinoki remainingContainers, dependencyPaths, debug
+        hinoki.many remainingContainers, dependencyPaths, debug
       else
         Promise.resolve([])
 
@@ -515,13 +521,13 @@
     else
       []
 
-  hinokiNamesToInject = (factory) ->
+  hinoki.getNamesToInject = (factory) ->
     if factory.$inject?
       factory.$inject
     else
       hinoki.parseFunctionArguments factory
 
-  hinokiAndCacheNamesToInject = (factory) ->
+  hinoki.getAndCacheNamesToInject = (factory) ->
     if factory.$inject?
       factory.$inject
     else
