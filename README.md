@@ -13,6 +13,16 @@ abstract information is small
 
 <!---
 > beautiful inversion of control for nodejs and the browser
+
+hinoki is a powerful and flexible asynchronous dependency injection system
+
+ultra simple and ultra fast sync and async dependency injection
+
+ultra lightweight
+
+dead simple
+
+very fast
 -->
 
 hinoki is a powerful yet simple asynchronous dependency injection system
@@ -99,6 +109,7 @@ write this in text form as well
 - hinoki is a bendable [flexible] base for your [individual] dependency injection needs
 - [simulate method-missing by generating dependencies on demand]()
 - powerful error handling using promises
+- its so fast that you wont even notice it
 -->
 
 ``` javascript
@@ -330,6 +341,8 @@ inside the callback for the request/event you would create a new lifetime
 and use both that and the ... lifetime
 
 the ... lifetime is shared by all requests
+
+overlaying
 
 -->
 
