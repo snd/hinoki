@@ -59,7 +59,7 @@ we hope you prefer hinoki as the substance/material for building virtual palaces
 > Hinoki seems to be the least surprising IoC container available for Node.  
 > I definitely do like its ascetic worldview.  
 > Thanks a lot for this!  
-> <small>[andrey](https://github.com/snd/hinoki/issues/3)</small>
+> <small>[@andrey](https://github.com/snd/hinoki/issues/3)</small>
 
 <!---
 ### features
@@ -145,7 +145,7 @@ those computations can even be [asynchronous](#on-promises).
 </small>
 -->
 
-### **_factories_** are simply functions that return **_values_**
+### **_factories_** are functions that return **_values_**
 
 within hinoki you use **factories** to model
 the [dependency graph](https://en.wikipedia.org/wiki/Dependency_graph) of your
@@ -201,13 +201,21 @@ var factories = {
 <!---
 the idea is that you define and the can evaluate parts of the graph.
 
-**_factories_** can be thought of as the recipes to get to the values.
 -->
 
 the *factory* for the *product* `variance` depends on
 the *products* `mean`and `meanOfSquares`...
 
-### _factories_ + _values_ = _lifetimes_
+a factory is a recipe to create the value in the presence of
+the values that are the value's dependencies.
+
+a name is associated with both a value and a factory
+
+lifetimes manage names.
+within a lifetime there is either a value for a name.
+or there
+
+### _lifetime_ = _factories_ + _values_
 
 **lifetimes** are used to record the values returned by factories.
 
@@ -246,7 +254,7 @@ var lifetime = {
 
 **lifetimes** are plain old javascript objects.
 
-### on getting values
+### getting a *value* in a *lifetime*
 
 we can give hinoki a lifetime and a name and it will kindly give us a
 [promise](...) that will resolve to the value of that name:
@@ -928,7 +936,7 @@ hinoki(container, 'variance')
 - merge `experiments` into `master`
 - finish documentation
 - test the examples
-- remove debug callback and add alternative better debugging solution
+- better debugging solution
 - replace resolvers by
   - sources
     - `lifetime.factories` can be array of sources
