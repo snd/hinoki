@@ -169,8 +169,7 @@
   # call factory
 
   # normalizes sync and async values returned by factories
-  hinoki.callFactory = (lifetime, nameOrPath, factory, dependencyValues, debug) ->
-    path = hinoki.coerceToArray nameOrPath
+  hinoki.callFactory = (lifetime, path, factory, dependencyValues, debug) ->
     try
       valueOrPromise = factory.apply null, dependencyValues
     catch error
@@ -213,9 +212,7 @@
   ###################################################################################
   # functions that resolve factories
 
-  hinoki.resolveInLifetime = (lifetime, nameOrPath, debug) ->
-    path = hinoki.coerceToArray nameOrPath
-
+  hinoki.resolveInLifetime = (lifetime, path, debug) ->
     defaultResolver = (name) ->
       resolution = hinoki.defaultResolver name, lifetime
       debug? {
@@ -247,9 +244,7 @@
 
     return resolution
 
-  hinoki.resolveInLifetimes = (lifetimes, nameOrPath, debug) ->
-    path = hinoki.coerceToArray nameOrPath
-
+  hinoki.resolveInLifetimes = (lifetimes, path, debug) ->
     hinoki.some lifetimes, (lifetime) ->
       hinoki.resolveInLifetime lifetime, path, debug
 
