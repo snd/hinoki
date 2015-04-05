@@ -5,11 +5,11 @@ hinoki = require '../src/hinoki'
 module.exports =
 
   'errors can be catched as BaseError': (test) ->
-    c =
+    lifetime =
       factories:
         a: ->
 
-    hinoki(c, 'a').catch hinoki.BaseError, (error) ->
+    hinoki(lifetime, 'a').catch hinoki.BaseError, (error) ->
       test.equal error.name, 'FactoryReturnedUndefinedError'
       test.done()
 
@@ -17,11 +17,11 @@ module.exports =
 
     'thrown': (test) ->
       x = new Error 'fail'
-      c =
+      lifetime =
         resolvers: ->
           throw x
 
-      hinoki(c, 'a').catch hinoki.ErrorInResolversError, (error) ->
+      hinoki(lifetime, 'a').catch hinoki.ErrorInResolversError, (error) ->
         test.equal error.name, 'ErrorInResolversError'
         test.equal error.message, "error in resolvers for 'a' (a). original error: Error: fail"
         test.equal 'string', typeof error.stack
@@ -29,47 +29,47 @@ module.exports =
 
         test.deepEqual error.path, ['a']
         test.equal error.error, x
-        test.ok not c.promisesAwaitingResolution?
+        test.ok not lifetime.promisesAwaitingResolution?
 
         test.done()
 
     'returned': (test) ->
       x = new Error 'fail'
-      c =
+      lifetime =
         resolvers: ->
           x
 
-      hinoki(c, 'a').catch hinoki.ErrorInResolversError, (error) ->
+      hinoki(lifetime, 'a').catch hinoki.ErrorInResolversError, (error) ->
         test.equal error.message, "error in resolvers for 'a' (a). original error: Error: fail"
         test.deepEqual error.path, ['a']
         test.equal error.error, x
-        test.ok not c.promisesAwaitingResolution?
+        test.ok not lifetime.promisesAwaitingResolution?
         test.done()
 
   'UnresolvableError':
 
     'custom resolver': (test) ->
-      c =
+      lifetime =
         resolvers: ->
 
-      hinoki(c, 'a').catch hinoki.UnresolvableError, (error) ->
+      hinoki(lifetime, 'a').catch hinoki.UnresolvableError, (error) ->
         test.equal error.name, 'UnresolvableError'
         test.equal error.message, "unresolvable name 'a' (a)"
         test.equal 'string', typeof error.stack
         test.ok error.stack.split('\n').length > 8
 
         test.deepEqual error.path, ['a']
-        test.ok not c.promisesAwaitingResolution?
+        test.ok not lifetime.promisesAwaitingResolution?
 
         test.done()
 
     'default resolver': (test) ->
-      c = {}
+      lifetime = {}
 
-      hinoki(c, 'a').catch hinoki.UnresolvableError, (error) ->
+      hinoki(lifetime, 'a').catch hinoki.UnresolvableError, (error) ->
         test.equal error.message, "unresolvable name 'a' (a)"
         test.deepEqual error.path, ['a']
-        test.ok not c.promisesAwaitingResolution?
+        test.ok not lifetime.promisesAwaitingResolution?
         test.done()
 
   'resolutionErrors':
@@ -150,11 +150,11 @@ module.exports =
   'InvalidResolutionError': (test) ->
     resolution =
       factory: 'test'
-    c =
+    lifetime =
       resolvers: ->
         resolution
 
-    hinoki(c, 'a').catch hinoki.InvalidResolutionError, (error) ->
+    hinoki(lifetime, 'a').catch hinoki.InvalidResolutionError, (error) ->
       test.equal error.name, 'InvalidResolutionError'
       lines = [
         "errors in resolution returned by resolvers for 'a' (a):"
@@ -167,79 +167,79 @@ module.exports =
 
       test.equal error.resolution, resolution
       test.deepEqual error.path, ['a']
-      test.ok not c.promisesAwaitingResolution?
+      test.ok not lifetime.promisesAwaitingResolution?
 
       test.done()
 
   'CircularDependencyError': (test) ->
-    c =
+    lifetime =
       factories:
         a: (a) ->
 
-    hinoki(c, 'a').catch hinoki.CircularDependencyError, (error) ->
+    hinoki(lifetime, 'a').catch hinoki.CircularDependencyError, (error) ->
       test.equal error.name, 'CircularDependencyError'
       test.equal error.message, "circular dependency a <- a"
       test.equal 'string', typeof error.stack
       test.ok error.stack.split('\n').length > 8
 
       test.deepEqual error.path, ['a', 'a']
-      test.ok not c.promisesAwaitingResolution?
+      test.ok not lifetime.promisesAwaitingResolution?
 
       test.done()
 
   'ThrowInFactoryError': (test) ->
     exception = new Error 'fail'
 
-    c =
+    lifetime =
       factories:
         a: -> throw exception
 
-    hinoki(c, 'a').catch hinoki.ThrowInFactoryError, (error) ->
+    hinoki(lifetime, 'a').catch hinoki.ThrowInFactoryError, (error) ->
       test.equal error.name, 'ThrowInFactoryError'
       test.equal error.message, "error in factory for 'a'. original error: Error: fail"
       test.equal 'string', typeof error.stack
       test.ok error.stack.split('\n').length > 8
 
       test.deepEqual error.path, ['a']
-      test.equal error.container, c
+      test.equal error.lifetime, lifetime
       test.equal error.error, exception
-      test.ok not c.promisesAwaitingResolution?
+      test.ok not lifetime.promisesAwaitingResolution?
 
       test.done()
 
   'FactoryReturnedUndefinedError': (test) ->
-    c =
+    lifetime =
       factories:
         a: ->
 
-    hinoki(c, 'a').catch hinoki.FactoryReturnedUndefinedError, (error) ->
+    hinoki(lifetime, 'a').catch hinoki.FactoryReturnedUndefinedError, (error) ->
       test.equal error.name, 'FactoryReturnedUndefinedError'
       test.equal error.message, "factory for 'a' returned undefined"
       test.equal 'string', typeof error.stack
       test.ok error.stack.split('\n').length > 8
 
       test.deepEqual error.path, ['a']
-      test.equal error.container, c
-      test.ok not c.promisesAwaitingResolution?
+      test.equal error.lifetime, lifetime
+      test.ok not lifetime.promisesAwaitingResolution?
 
       test.done()
 
   'PromiseRejectedError': (test) ->
     rejection = new Error 'fail'
 
-    c =
+    lifetime =
       factories:
         a: -> Promise.reject rejection
 
-    hinoki(c, 'a').catch hinoki.PromiseRejectedError, (error) ->
+    hinoki(lifetime, 'a').catch hinoki.PromiseRejectedError, (error) ->
       test.equal error.name, 'PromiseRejectedError'
       test.equal error.message, "promise returned from factory for 'a' was rejected. original error: Error: fail"
       test.equal 'string', typeof error.stack
       test.ok error.stack.split('\n').length > 8
 
       test.deepEqual error.path, ['a']
-      test.equal error.container, c
+      test.equal error.lifetime, lifetime
       test.equal error.error, rejection
-      test.ok not c.promisesAwaitingResolution?
+      test.ok not lifetime.promisesAwaitingResolution?
 
       test.done()

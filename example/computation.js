@@ -25,11 +25,11 @@ var values = {
   xs: [1, 2, 3, 6]
 };
 
-var container = {
+var lifetime = {
   factories: factories,
   values: values
 };
 
-hinoki(container, 'mean', console.log).then(function(mean) {
+hinoki(lifetime, 'mean', console.log).then(function(mean) {
   console.log(mean);  // -> 3
 });

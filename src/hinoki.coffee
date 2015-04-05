@@ -14,15 +14,15 @@
   # get
 
   # polymorphic
-  hinoki = (oneOrManyContainers, nameOrNamesOrFunction, debug) ->
-    containers = hinoki.coerceToArray oneOrManyContainers
+  hinoki = (oneOrManyLifetimes, nameOrNamesOrFunction, debug) ->
+    lifetimes = hinoki.coerceToArray oneOrManyLifetimes
 
-    if containers.length is 0
-      throw new Error 'at least 1 container is required'
+    if lifetimes.length is 0
+      throw new Error 'at least 1 lifetime is required'
 
     if 'function' is typeof nameOrNamesOrFunction
       return hinoki(
-        oneOrManyContainers
+        oneOrManyLifetimes
         hinoki.getNamesToInject(nameOrNamesOrFunction).map(hinoki.coerceToArray)
         debug
       ).spread(nameOrNamesOrFunction)
@@ -30,32 +30,32 @@
 
     if Array.isArray nameOrNamesOrFunction
       paths = hinoki.coerceToArray(nameOrNamesOrFunction).map(hinoki.coerceToArray)
-      return hinoki.many containers, paths, debug
+      return hinoki.many lifetimes, paths, debug
 
     path = hinoki.coerceToArray(nameOrNamesOrFunction)
-    hinoki.one containers, path, debug
+    hinoki.one lifetimes, path, debug
 
-  hinoki.many = (containers, paths, debug) ->
+  hinoki.many = (lifetimes, paths, debug) ->
       Promise.all paths.map (path) ->
-        hinoki.one containers, path, debug
+        hinoki.one lifetimes, path, debug
 
-  hinoki.one = (containers, path, debug) ->
+  hinoki.one = (lifetimes, path, debug) ->
     # try-catch prevents optimization
     try
-      resolution = hinoki.resolveInContainers containers, path, debug
+      resolution = hinoki.resolveInLifetimes lifetimes, path, debug
     catch error
-      return Promise.reject new hinoki.ErrorInResolversError path, containers, error
+      return Promise.reject new hinoki.ErrorInResolversError path, lifetimes, error
 
-    # from here on we use the name and container returned by the resolver
-    # (resolution.name and resolution.container)
+    # from here on we use the name and lifetime returned by the resolver
+    # (resolution.name and resolution.lifetime)
     # which might differ from what was originally searched (path[0]).
 
     if resolution instanceof Error
-      return Promise.reject new hinoki.ErrorInResolversError path, containers, resolution
+      return Promise.reject new hinoki.ErrorInResolversError path, lifetimes, resolution
 
     unless resolution?
       # we are out of luck: the factory could not be found
-      return Promise.reject new hinoki.UnresolvableError path, containers
+      return Promise.reject new hinoki.UnresolvableError path, lifetimes
 
     resolutionErrors = hinoki.resolutionErrors resolution
 
@@ -94,7 +94,7 @@
       # if the value is already being constructed
       # wait for that instead of starting a second construction.
 
-      promiseAwaitingResolution = resolution.container.promisesAwaitingResolution?[resolution.name]
+      promiseAwaitingResolution = resolution.lifetime.promisesAwaitingResolution?[resolution.name]
 
       if promiseAwaitingResolution?
         debug? {
@@ -109,7 +109,7 @@
 
     # first lets resolve the dependencies of the factory
 
-    remainingContainers = hinoki.startingWith containers, resolution.container
+    remainingLifetimes = hinoki.startingWith lifetimes, resolution.lifetime
 
     dependencyNames = hinoki.getNamesToInject resolution.factory
 
@@ -124,7 +124,7 @@
 
     dependenciesPromise =
       if dependencyPaths.length isnt 0
-        hinoki.many remainingContainers, dependencyPaths, debug
+        hinoki.many remainingLifetimes, dependencyPaths, debug
       else
         Promise.resolve([])
 
@@ -132,7 +132,7 @@
       # the dependencies are ready!
       # we can finally call the factory!
 
-      hinoki.callFactory resolution.container, newPath, resolution.factory, dependencyValues, debug
+      hinoki.callFactory resolution.lifetime, newPath, resolution.factory, dependencyValues, debug
 
     # cache the promise.
     # this code is reached synchronously from the start of the function call
@@ -141,19 +141,19 @@
     # to promisesAwaitingResolution before the factory is actually called !
 
     unless nocache
-      resolution.container.promisesAwaitingResolution ?= {}
-      resolution.container.promisesAwaitingResolution[resolution.name] = factoryCallResultPromise
+      resolution.lifetime.promisesAwaitingResolution ?= {}
+      resolution.lifetime.promisesAwaitingResolution[resolution.name] = factoryCallResultPromise
 
     factoryCallResultPromise
       .then (value) ->
         # note that a null value is allowed!
         if hinoki.isUndefined value
-          return Promise.reject new hinoki.FactoryReturnedUndefinedError newPath, resolution.container, resolution.factory
+          return Promise.reject new hinoki.FactoryReturnedUndefinedError newPath, resolution.lifetime, resolution.factory
 
         # cache
         unless nocache
-          resolution.container.values ?= {}
-          resolution.container.values[resolution.name] = value
+          resolution.lifetime.values ?= {}
+          resolution.lifetime.values[resolution.name] = value
 
         return value
       .finally ->
@@ -161,20 +161,20 @@
         # this prevents errored promises from being reused
         # and allows further requests for the errored names to succeed
         unless nocache
-          delete resolution.container.promisesAwaitingResolution[resolution.name]
-          if Object.keys(resolution.container.promisesAwaitingResolution).length is 0
-            delete resolution.container.promisesAwaitingResolution
+          delete resolution.lifetime.promisesAwaitingResolution[resolution.name]
+          if Object.keys(resolution.lifetime.promisesAwaitingResolution).length is 0
+            delete resolution.lifetime.promisesAwaitingResolution
 
   ###################################################################################
   # call factory
 
   # normalizes sync and async values returned by factories
-  hinoki.callFactory = (container, nameOrPath, factory, dependencyValues, debug) ->
+  hinoki.callFactory = (lifetime, nameOrPath, factory, dependencyValues, debug) ->
     path = hinoki.coerceToArray nameOrPath
     try
       valueOrPromise = factory.apply null, dependencyValues
     catch error
-      return Promise.reject new hinoki.ThrowInFactoryError path, container, error
+      return Promise.reject new hinoki.ThrowInFactoryError path, lifetime, error
 
     unless hinoki.isThenable valueOrPromise
       # valueOrPromise is not a promise but an value
@@ -183,7 +183,7 @@
         path: path
         value: valueOrPromise
         factory: factory
-        container: container
+        lifetime: lifetime
       }
       return Promise.resolve valueOrPromise
 
@@ -193,7 +193,7 @@
       event: 'promiseWasCreated'
       path: path
       promise: valueOrPromise
-      container: container
+      lifetime: lifetime
       factory: factory
     }
 
@@ -203,38 +203,38 @@
           event: 'promiseWasResolved'
           path: path
           value: value
-          container: container
+          lifetime: lifetime
           factory: factory
         }
         return value
       .catch (rejection) ->
-        Promise.reject new hinoki.PromiseRejectedError path, container, rejection
+        Promise.reject new hinoki.PromiseRejectedError path, lifetime, rejection
 
   ###################################################################################
   # functions that resolve factories
 
-  hinoki.resolveInContainer = (container, nameOrPath, debug) ->
+  hinoki.resolveInLifetime = (lifetime, nameOrPath, debug) ->
     path = hinoki.coerceToArray nameOrPath
 
     defaultResolver = (name) ->
-      resolution = hinoki.defaultResolver name, container
+      resolution = hinoki.defaultResolver name, lifetime
       debug? {
         event: 'defaultResolverWasCalled'
         path: path
-        container: container
+        lifetime: lifetime
         resolution: resolution
       }
       return resolution
 
-    resolvers = hinoki.coerceToArray(container.resolvers || [])
+    resolvers = hinoki.coerceToArray(lifetime.resolvers || [])
     accum = (inner, resolver) ->
       (name) ->
-        resolution = resolver name, container, inner, debug
+        resolution = resolver name, lifetime, inner, debug
         debug? {
           event: 'customResolverWasCalled'
           resolver: resolver
           path: path
-          container: container
+          lifetime: lifetime
           resolution: resolution
         }
         return resolution
@@ -243,15 +243,15 @@
     resolution = resolve path[0]
 
     if resolution? and 'object' is typeof resolution
-      resolution.container = container
+      resolution.lifetime = lifetime
 
     return resolution
 
-  hinoki.resolveInContainers = (containers, nameOrPath, debug) ->
+  hinoki.resolveInLifetimes = (lifetimes, nameOrPath, debug) ->
     path = hinoki.coerceToArray nameOrPath
 
-    hinoki.some containers, (container) ->
-      hinoki.resolveInContainer container, path, debug
+    hinoki.some lifetimes, (lifetime) ->
+      hinoki.resolveInLifetime lifetime, path, debug
 
   ###################################################################################
   # resolution
@@ -276,15 +276,15 @@
 
     if errors.length is 0 then null else errors
 
-  hinoki.defaultResolver = (name, container) ->
-    value = container.values?[name]
+  hinoki.defaultResolver = (name, lifetime) ->
+    value = lifetime.values?[name]
     unless hinoki.isUndefined value
       return {
         value: value
         name: name
       }
 
-    factory = container.factories?[name]
+    factory = lifetime.factories?[name]
     unless factory?
       return
 
@@ -320,7 +320,7 @@
   hinoki.BaseError = ->
   hinoki.inherits hinoki.BaseError, Error
 
-  hinoki.ErrorInResolversError = (path, containers, error) ->
+  hinoki.ErrorInResolversError = (path, lifetimes, error) ->
     this.name = 'ErrorInResolversError'
     this.message = "error in resolvers for '#{path[0]}' (#{hinoki.pathToString path}). original error: #{error.toString()}"
     if Error.captureStackTrace?
@@ -328,20 +328,20 @@
       Error.captureStackTrace(this, this.constructor)
 
     this.path = path
-    this.containers = containers
+    this.lifetimes = lifetimes
     this.error = error
     return
 
   hinoki.inherits hinoki.ErrorInResolversError, hinoki.BaseError
 
-  hinoki.UnresolvableError = (path, container) ->
+  hinoki.UnresolvableError = (path, lifetime) ->
     this.name = 'UnresolvableError'
     this.message = "unresolvable name '#{path[0]}' (#{hinoki.pathToString path})"
     if Error.captureStackTrace?
       Error.captureStackTrace(this, this.constructor)
 
     this.path = path
-    this.container = container
+    this.lifetime = lifetime
     return
 
   hinoki.inherits hinoki.UnresolvableError, hinoki.BaseError
@@ -360,52 +360,52 @@
 
   hinoki.inherits hinoki.InvalidResolutionError, hinoki.BaseError
 
-  hinoki.CircularDependencyError = (path, containers) ->
+  hinoki.CircularDependencyError = (path, lifetimes) ->
     this.name = 'CircularDependencyError'
     this.message = "circular dependency #{hinoki.pathToString path}"
     if Error.captureStackTrace?
       Error.captureStackTrace(this, this.constructor)
 
     this.path = path
-    this.containers = containers
+    this.lifetimes = lifetimes
     return
 
   hinoki.inherits hinoki.CircularDependencyError, hinoki.BaseError
 
-  hinoki.ThrowInFactoryError = (path, container, error) ->
+  hinoki.ThrowInFactoryError = (path, lifetime, error) ->
     this.name = 'ThrowInFactoryError'
     this.message = "error in factory for '#{path[0]}'. original error: #{error.toString()}"
     if Error.captureStackTrace?
       Error.captureStackTrace(this, this.constructor)
 
     this.path = path
-    this.container = container
+    this.lifetime = lifetime
     this.error = error
     return
 
   hinoki.inherits hinoki.ThrowInFactoryError, hinoki.BaseError
 
-  hinoki.FactoryReturnedUndefinedError = (path, container, factory) ->
+  hinoki.FactoryReturnedUndefinedError = (path, lifetime, factory) ->
     this.name = 'FactoryReturnedUndefinedError'
     this.message = "factory for '#{path[0]}' returned undefined"
     if Error.captureStackTrace?
       Error.captureStackTrace(this, this.constructor)
 
     this.path = path
-    this.container = container
+    this.lifetime = lifetime
     this.factory = factory
     return
 
   hinoki.inherits hinoki.FactoryReturnedUndefinedError, hinoki.BaseError
 
-  hinoki.PromiseRejectedError = (path, container, error) ->
+  hinoki.PromiseRejectedError = (path, lifetime, error) ->
     this.name = 'PromiseRejectedError'
     this.message = "promise returned from factory for '#{path[0]}' was rejected. original error: #{error.toString()}"
     if Error.captureStackTrace?
       Error.captureStackTrace(this, this.constructor)
 
     this.path = path
-    this.container = container
+    this.lifetime = lifetime
     this.error = error
     return
 

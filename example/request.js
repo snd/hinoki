@@ -4,15 +4,15 @@ var Promise = require('bluebird');
 ////////////////////////////////////////////////////////////////////////////////
 // process lifetime
 
-processContainer = {};
+processLifetime = {};
 
-processContainer.values = {
+processLifetime.values = {
   env: {
     IS_ADMIN_REQUIRED: 'true'
   }
 };
 
-processContainer.factories = {
+processLifetime.factories = {
   configIsAdminRequired: function(env) {
     return env.IS_ADMIN_REQUIRED === 'true'
   },
@@ -28,9 +28,9 @@ processContainer.factories = {
 // request lifetime
 
 // assume this to be created for every request
-requestContainer = {};
+requestLifetime = {};
 
-requestContainer.values = {
+requestLifetime.values = {
   // assume this is a nodejs request object
   req: {
     url: '/protected',
@@ -49,7 +49,7 @@ requestContainer.values = {
   }
 };
 
-requestContainer.factories = {
+requestLifetime.factories = {
   url: function(req) {
     return req.url;
   },
@@ -74,9 +74,9 @@ requestContainer.factories = {
 ////////////////////////////////////////////////////////////////////////////////
 // injection
 
-var containers = [
-  requestContainer,
-  processContainer
+var lifetimes = [
+  requestLifetime,
+  processLifetime
 ];
 
 var factory = function(
@@ -89,8 +89,8 @@ var factory = function(
     sendForbidden();
   }
 
-  console.log('processContainer.values', processContainer.values);
-  console.log('requestContainer.values', requestContainer.values);
+  console.log('processLifetime.values', processLifetime.values);
+  console.log('requestLifetime.values', requestLifetime.values);
 };
 
-hinoki(containers, hinoki.parseFunctionArguments(factory)).spread(factory);
+hinoki(lifetimes, hinoki.parseFunctionArguments(factory)).spread(factory);

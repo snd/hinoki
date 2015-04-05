@@ -12,11 +12,11 @@ var factories = {
 
 factories.ac.$inject = ['a', 'c'];
 
-var container = {
+var lifetime = {
   factories: factories
 };
 
-hinoki(container, 'acd', console.log).then(function(acd) {
+hinoki(lifetime, 'acd', console.log).then(function(acd) {
   console.log(acd);  // -> 'acd'
   // dependency ids have been cached
   console.log(factories.a.$inject); // -> []

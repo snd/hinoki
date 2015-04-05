@@ -19,55 +19,55 @@ factories =
 module.exports =
 
   'ask for count': (test) ->
-    c =
+    lifetime =
       factories: factories
       values:
         xs: [1, 2, 3, 6]
 
-    hinoki(c, 'count').then (count) ->
+    hinoki(lifetime, 'count').then (count) ->
       test.equal count, 4
-      test.deepEqual c.values,
+      test.deepEqual lifetime.values,
         xs: [1, 2, 3, 6]
         count: 4
       test.done()
 
   'ask for mean': (test) ->
-    c =
+    lifetime =
       factories: factories
       values:
         xs: [1, 2, 3, 6]
 
-    hinoki(c, 'mean').then (mean) ->
+    hinoki(lifetime, 'mean').then (mean) ->
       test.equal mean, 3
-      test.deepEqual c.values,
+      test.deepEqual lifetime.values,
         xs: [1, 2, 3, 6]
         count: 4
         mean: 3
       test.done()
 
   'ask for meanOfSquares': (test) ->
-    c =
+    lifetime =
       factories: factories
       values:
         xs: [1, 2, 3, 6]
 
-    hinoki(c, 'meanOfSquares').then (meanOfSquares) ->
+    hinoki(lifetime, 'meanOfSquares').then (meanOfSquares) ->
       test.equal meanOfSquares, 12.5
-      test.deepEqual c.values,
+      test.deepEqual lifetime.values,
         xs: [1, 2, 3, 6]
         count: 4
         meanOfSquares: 12.5
       test.done()
 
   'ask for variance': (test) ->
-    c =
+    lifetime =
       factories: factories
       values:
         xs: [1, 2, 3, 6]
 
-    hinoki(c, 'variance').then (variance) ->
+    hinoki(lifetime, 'variance').then (variance) ->
       test.equal variance, 3.5
-      test.deepEqual c.values,
+      test.deepEqual lifetime.values,
         xs: [1, 2, 3, 6]
         count: 4
         mean: 3

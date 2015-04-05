@@ -33,15 +33,15 @@ var loadFolderSync = function(name, object) {
 ////////////////////////////////////////////////////////////////////////////////
 // lets go!
 
-var container = {}
+var lifetime = {}
 
-container.factories = {};
+lifetime.factories = {};
 
 // add all the exports of all the files in the ./services directory
 // to the factories object
-loadFolderSync(path.resolve(__dirname, './services'), container.factories)
+loadFolderSync(path.resolve(__dirname, './services'), lifetime.factories)
 
-container.values = {
+lifetime.values = {
   // lets mock out the console
   console: {
     log: function() {
@@ -58,6 +58,6 @@ container.values = {
   }
 };
 
-hinoki(container, 'startApp').then(function(startApp) {
+hinoki(lifetime, 'startApp').then(function(startApp) {
   startApp();
 });

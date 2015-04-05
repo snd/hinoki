@@ -19,11 +19,11 @@ var values = {
   domain: 'google.com'
 };
 
-var container = {
+var lifetime = {
   factories: factories,
   values: values
 };
 
-hinoki(container, 'domains', console.log).then(function(domains) {
+hinoki(lifetime, 'domains', console.log).then(function(domains) {
   console.log(domains);
 });

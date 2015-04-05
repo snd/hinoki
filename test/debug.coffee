@@ -9,7 +9,7 @@ module.exports =
 
     alphaBravoPromise = Promise.resolve('alpha_bravo')
 
-    container =
+    lifetime =
       values:
         alpha: 'alpha'
       factories:
@@ -22,8 +22,8 @@ module.exports =
         alpha_charlie: (alpha, charlie) ->
           alpha + '_' + charlie
 
-    noopResolver = (name, container2, inner, debug2) ->
-      test.equal container, container2
+    noopResolver = (name, lifetime2, inner, debug2) ->
+      test.equal lifetime, lifetime2
       test.equal debug, debug2
       inner name
 
@@ -33,18 +33,18 @@ module.exports =
         {
           event: 'defaultResolverWasCalled'
           path: ['alpha_bravo']
-          container: container
+          lifetime: lifetime
           resolution:
-            factory: container.factories.alpha_bravo
+            factory: lifetime.factories.alpha_bravo
             name: 'alpha_bravo'
         }
         {
           event: 'customResolverWasCalled'
           path: ['alpha_bravo']
-          container: container
+          lifetime: lifetime
           resolver: noopResolver
           resolution:
-            factory: container.factories.alpha_bravo
+            factory: lifetime.factories.alpha_bravo
             name: 'alpha_bravo'
         }
         # alpha_bravo has a factory (get -> alpha_bravo)
@@ -52,26 +52,26 @@ module.exports =
           event: 'factoryWasResolved'
           path: ['alpha_bravo']
           resolution:
-            factory: container.factories.alpha_bravo
+            factory: lifetime.factories.alpha_bravo
             name: 'alpha_bravo'
-            container: container
+            lifetime: lifetime
         }
         # alpha_bravo factory needs alpha (get -> alpha_bravo -> alpha)
         {
           event: 'defaultResolverWasCalled',
           path: ['alpha', 'alpha_bravo']
-          container: container
+          lifetime: lifetime
           resolution:
-            value: container.values.alpha
+            value: lifetime.values.alpha
             name: 'alpha'
         }
         {
           event: 'customResolverWasCalled',
           path: ['alpha', 'alpha_bravo']
-          container: container
+          lifetime: lifetime
           resolver: noopResolver
           resolution:
-            value: container.values.alpha
+            value: lifetime.values.alpha
             name: 'alpha'
         }
         # alpha has a value (get -> alpha_bravo -> alpha)
@@ -79,26 +79,26 @@ module.exports =
           event: 'valueWasResolved',
           path: ['alpha', 'alpha_bravo']
           resolution:
-            value: container.values.alpha
+            value: lifetime.values.alpha
             name: 'alpha'
-            container: container
+            lifetime: lifetime
         }
         # alpha_bravo needs bravo (get -> alpha_bravo -> bravo)
         {
           event: 'defaultResolverWasCalled',
           path: ['bravo', 'alpha_bravo']
-          container: container
+          lifetime: lifetime
           resolution:
-            factory: container.factories.bravo
+            factory: lifetime.factories.bravo
             name: 'bravo'
         }
         {
           event: 'customResolverWasCalled',
           path: ['bravo', 'alpha_bravo']
-          container: container
+          lifetime: lifetime
           resolver: noopResolver
           resolution:
-            factory: container.factories.bravo
+            factory: lifetime.factories.bravo
             name: 'bravo'
         }
         # bravo has a factory (get -> alpha_bravo -> bravo)
@@ -106,9 +106,9 @@ module.exports =
           event: 'factoryWasResolved'
           path: ['bravo', 'alpha_bravo']
           resolution:
-            factory: container.factories.bravo
+            factory: lifetime.factories.bravo
             name: 'bravo'
-            container: container
+            lifetime: lifetime
         }
         # end of sync part of alpha_bravo
 
@@ -116,18 +116,18 @@ module.exports =
         {
           event: 'defaultResolverWasCalled'
           path: ['bravo_charlie']
-          container: container
+          lifetime: lifetime
           resolution:
-            factory: container.factories.bravo_charlie
+            factory: lifetime.factories.bravo_charlie
             name: 'bravo_charlie'
         }
         {
           event: 'customResolverWasCalled'
           path: ['bravo_charlie']
-          container: container
+          lifetime: lifetime
           resolver: noopResolver
           resolution:
-            factory: container.factories.bravo_charlie
+            factory: lifetime.factories.bravo_charlie
             name: 'bravo_charlie'
         }
         # bravo_charlie has a factory (get -> bravo_charlie)
@@ -135,26 +135,26 @@ module.exports =
           event: 'factoryWasResolved'
           path: ['bravo_charlie']
           resolution:
-            factory: container.factories.bravo_charlie
+            factory: lifetime.factories.bravo_charlie
             name: 'bravo_charlie'
-            container: container
+            lifetime: lifetime
         }
         # bravo_charlie needs bravo (get -> bravo_charlie -> bravo)
         {
           event: 'defaultResolverWasCalled',
           path: ['bravo', 'bravo_charlie']
-          container: container
+          lifetime: lifetime
           resolution:
-            factory: container.factories.bravo
+            factory: lifetime.factories.bravo
             name: 'bravo'
         }
         {
           event: 'customResolverWasCalled',
           path: ['bravo', 'bravo_charlie']
-          container: container
+          lifetime: lifetime
           resolver: noopResolver
           resolution:
-            factory: container.factories.bravo
+            factory: lifetime.factories.bravo
             name: 'bravo'
         }
         # bravo has a factory (get -> bravo_charlie -> bravo)
@@ -162,36 +162,36 @@ module.exports =
           event: 'factoryWasResolved'
           path: ['bravo', 'bravo_charlie']
           resolution:
-            factory: container.factories.bravo
+            factory: lifetime.factories.bravo
             name: 'bravo'
-            container: container
+            lifetime: lifetime
         }
         # bravos factory was already called (get -> bravo_charlie -> bravo)
         {
           event: 'valueIsAlreadyAwaitingResolution'
           path: ['bravo', 'bravo_charlie']
           resolution:
-            factory: container.factories.bravo
+            factory: lifetime.factories.bravo
             name: 'bravo'
-            container: container
-          promise: container.promisesAwaitingResolution?.bravo
+            lifetime: lifetime
+          promise: lifetime.promisesAwaitingResolution?.bravo
         }
         # bravo_charlie needs charlie (get -> bravo_charlie -> charlie)
         {
           event: 'defaultResolverWasCalled'
           path: ['charlie', 'bravo_charlie']
-          container: container
+          lifetime: lifetime
           resolution:
-            factory: container.factories.charlie
+            factory: lifetime.factories.charlie
             name: 'charlie'
         }
         {
           event: 'customResolverWasCalled'
           path: ['charlie', 'bravo_charlie']
-          container: container
+          lifetime: lifetime
           resolver: noopResolver
           resolution:
-            factory: container.factories.charlie
+            factory: lifetime.factories.charlie
             name: 'charlie'
         }
         # charlie has a factory (get -> bravo_charlie -> charlie)
@@ -199,9 +199,9 @@ module.exports =
           event: 'factoryWasResolved'
           path: ['charlie', 'bravo_charlie']
           resolution:
-            factory: container.factories.charlie
+            factory: lifetime.factories.charlie
             name: 'charlie'
-            container: container
+            lifetime: lifetime
         }
         # end of sync part of bravo_charlie
 
@@ -209,18 +209,18 @@ module.exports =
         {
           event: 'defaultResolverWasCalled'
           path: ['alpha_charlie']
-          container: container
+          lifetime: lifetime
           resolution:
-            factory: container.factories.alpha_charlie
+            factory: lifetime.factories.alpha_charlie
             name: 'alpha_charlie'
         }
         {
           event: 'customResolverWasCalled'
           path: ['alpha_charlie']
-          container: container
+          lifetime: lifetime
           resolver: noopResolver
           resolution:
-            factory: container.factories.alpha_charlie
+            factory: lifetime.factories.alpha_charlie
             name: 'alpha_charlie'
         }
         # alpha_charlie has a factory (get -> alpha_charlie)
@@ -228,26 +228,26 @@ module.exports =
           event: 'factoryWasResolved'
           path: ['alpha_charlie']
           resolution:
-            factory: container.factories.alpha_charlie
+            factory: lifetime.factories.alpha_charlie
             name: 'alpha_charlie'
-            container: container
+            lifetime: lifetime
         }
         # alpha_charlie factory needs alpha (get -> alpha_charlie -> alpha)
         {
           event: 'defaultResolverWasCalled',
           path: ['alpha', 'alpha_charlie']
-          container: container
+          lifetime: lifetime
           resolution:
-            value: container.values.alpha
+            value: lifetime.values.alpha
             name: 'alpha'
         }
         {
           event: 'customResolverWasCalled',
           path: ['alpha', 'alpha_charlie']
-          container: container
+          lifetime: lifetime
           resolver: noopResolver
           resolution:
-            value: container.values.alpha
+            value: lifetime.values.alpha
             name: 'alpha'
         }
         # alpha has a value (get -> alpha_charlie -> alpha)
@@ -255,26 +255,26 @@ module.exports =
           event: 'valueWasResolved',
           path: ['alpha', 'alpha_charlie']
           resolution:
-            value: container.values.alpha
+            value: lifetime.values.alpha
             name: 'alpha'
-            container: container
+            lifetime: lifetime
         }
         # alpha_charlie needs charlie (get -> alpha_charlie -> charlie)
         {
           event: 'defaultResolverWasCalled'
           path: ['charlie', 'alpha_charlie']
-          container: container
+          lifetime: lifetime
           resolution:
-            factory: container.factories.charlie
+            factory: lifetime.factories.charlie
             name: 'charlie'
         }
         {
           event: 'customResolverWasCalled'
           path: ['charlie', 'alpha_charlie']
-          container: container
+          lifetime: lifetime
           resolver: noopResolver
           resolution:
-            factory: container.factories.charlie
+            factory: lifetime.factories.charlie
             name: 'charlie'
         }
         # charlie has a factory (get -> alpha_charlie -> charlie)
@@ -282,19 +282,19 @@ module.exports =
           event: 'factoryWasResolved'
           path: ['charlie', 'alpha_charlie']
           resolution:
-            factory: container.factories.charlie
+            factory: lifetime.factories.charlie
             name: 'charlie'
-            container: container
+            lifetime: lifetime
         }
         # charlies factory was already called (get -> alpha_charlie -> bravo)
         {
           event: 'valueIsAlreadyAwaitingResolution'
           path: ['charlie', 'alpha_charlie']
           resolution:
-            factory: container.factories.charlie
+            factory: lifetime.factories.charlie
             name: 'charlie'
-            container: container
-          promise: container.promisesAwaitingResolution?.charlie
+            lifetime: lifetime
+          promise: lifetime.promisesAwaitingResolution?.charlie
         }
         # end of sync part of alpha_charlie
 
@@ -303,37 +303,37 @@ module.exports =
         {
           event: 'valueWasCreated'
           path: ['bravo', 'alpha_bravo']
-          factory: container.factories.bravo
+          factory: lifetime.factories.bravo
           value: 'bravo'
-          container: container
+          lifetime: lifetime
         }
         {
           event: 'valueWasCreated'
           path: ['charlie', 'bravo_charlie']
-          factory: container.factories.charlie
+          factory: lifetime.factories.charlie
           value: 'charlie'
-          container: container
+          lifetime: lifetime
         }
         {
           event: 'valueWasCreated'
           path: ['alpha_charlie']
-          factory: container.factories.alpha_charlie
+          factory: lifetime.factories.alpha_charlie
           value: 'alpha_charlie'
-          container: container
+          lifetime: lifetime
         }
         {
           event: 'promiseWasCreated'
           path: ['alpha_bravo']
-          factory: container.factories.alpha_bravo
+          factory: lifetime.factories.alpha_bravo
           promise: alphaBravoPromise
-          container: container
+          lifetime: lifetime
         }
         {
           event: 'valueWasCreated'
           path: ['bravo_charlie']
-          factory: container.factories.bravo_charlie
+          factory: lifetime.factories.bravo_charlie
           value: 'bravo_charlie'
-          container: container
+          lifetime: lifetime
         }
 
         # async... on a following tick
@@ -341,9 +341,9 @@ module.exports =
         {
           event: 'promiseWasResolved'
           path: ['alpha_bravo']
-          factory: container.factories.alpha_bravo
+          factory: lifetime.factories.alpha_bravo
           value: 'alpha_bravo'
-          container: container
+          lifetime: lifetime
         }
       ]
 
@@ -353,19 +353,19 @@ module.exports =
       expectedEvent = expectedEvents()[callToDebug++]
       test.deepEqual expectedEvent, actualEvent
 
-    container.resolvers = noopResolver
+    lifetime.resolvers = noopResolver
 
-    hinoki(container, ['alpha_bravo', 'bravo_charlie', 'alpha_charlie'], debug)
+    hinoki(lifetime, ['alpha_bravo', 'bravo_charlie', 'alpha_charlie'], debug)
       .spread (alpha_bravo, bravo_charlie, alpha_charlie) ->
         test.equal alpha_bravo, 'alpha_bravo'
         test.equal bravo_charlie, 'bravo_charlie'
         test.equal alpha_charlie, 'alpha_charlie'
-        test.deepEqual container.values,
+        test.deepEqual lifetime.values,
           alpha: 'alpha'
           bravo: 'bravo'
           charlie: 'charlie'
           alpha_charlie: 'alpha_charlie'
           bravo_charlie: 'bravo_charlie'
           alpha_bravo: 'alpha_bravo'
-        test.ok not container.promisesAwaitingResolution?
+        test.ok not lifetime.promisesAwaitingResolution?
         test.done()
