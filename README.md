@@ -4,34 +4,363 @@
 [![Build Status](https://travis-ci.org/snd/hinoki.svg?branch=master)](https://travis-ci.org/snd/hinoki/branches)
 [![Dependencies](https://david-dm.org/snd/hinoki.svg)](https://david-dm.org/snd/hinoki)
 
->  magical inversion of control for nodejs and the browser
+**magical inversion of control for Node.js and the browser**
 
-hinoki is a powerful and flexible asynchronous dependency injection system
-designed to manage complexity in large applications
+<!---
+hands on examples are big
+abstract information is small
+-->
 
+<!---
+> beautiful inversion of control for nodejs and the browser
+-->
+
+hinoki is a powerful yet simple asynchronous dependency injection system
+designed to manage complexity in applications and (asynchronous) computation.
+
+<!---
+perfect for managing complexity
+predestined to manage complexity
+
+### is it any good ?
+
+more abstactly:
+defining the structure between values.
+asking for specific values and having hinoki figure out
+
+enables some things that are not usually possible with javascript
+and which can greatly reduce the code needed to accomplish some things
+and the complexity of the remaining code.
+-->
+
+<small>
 hinoki is inspired by [prismatic's graph](https://github.com/Prismatic/plumbing#graph-the-functional-swiss-army-knife) and [angular's dependency injection](http://docs.angularjs.org/guide/di).
+</small>
 
-*hinoki takes its name from the hinoki cypress, a tree that only grows in japan and is the preferred wood for building palaces, temples and shrines...*
+<small>
+hinoki takes its name from the hinoki cypress,
+a tree that only grows in japan and is the preferred wood for building palaces,
+temples and shrines.
+</small>
 
-### hinoki features
+<!---
+</small>
+we hope you do to !
 
-in a nutshell
+we prefer hinoki as the material for building amazing web applications, virtual palaces.  
+we hope you prefer hinoki as the substance/material for building virtual palaces, temples and shrines.
+</small>
+-->
 
-- [large test suite](test)
-- [below 500 lines of code](src/hinoki.coffee)
-- battle-tested in production
-- [a functional data-driven approach with localized mutable state](#containers)
+<!---
+### testimonials
+-->
+
+> Hinoki seems to be the least surprising IoC container available for Node.  
+> I definitely do like its ascetic worldview.  
+> Thanks a lot for this!  
+> <small>[andrey](https://github.com/snd/hinoki/issues/3)</small>
+
+<!---
+### features
+-->
+
+<!---
+write this in text form as well
+-->
+
+<!---
+- stable
+  - [large, thorough test suite](test)
+  - battletested for 1.5 years in production
+- anywhere
+  - Node.js
+  - IO.js
+  - AMD
+  - browser
+-->
+
+<!---
+- careful, simple design
+- bare
+- makes little assumptions about how you might use it
+- sound model
+- powerful
+  - use multiple stacked lifetimes
+- powerful
+  -
+- simple
+  - truly simple, carefully-designed underlying model and terminology and API
+  - [small (~500 LOC), elegant, hackable codebase](src/hinoki.coffee)
+  - carefully designed features and API
+- full support for promise based asynchchronous
+  - works with promises
+- functional, value-oriented, data, closures
+- hinoki is a bendable [flexible] base for your [individual] dependency injection needs
+- [simulate method-missing by generating dependencies on demand]()
+- powerful error handling using promises
+-->
+
+``` javascript
+var hinoki = require('hinoki');
+```
+
+### **_values_** are the building blocks of your application
+
+hinoki is useful when your problem, application, problem or computation
+consists of multiple **_values_** that depend on each other.
+
+<!---
+most applications, problems or computations
+-->
+
+a **_value_** can be anything: an integer, an object, a function, a class, ...
+
+for example:  
+the **_value_** of *a controller action* might depend on  
+the **_value_** of *a function to retrieve some data from a database* which might depend on
+the **_value_** of *a connection pool* which might depend on  
+the **_value_** of *an url to the database*...
+
+<!---
+the **_value_** of *a function that checks if the current user is permitted to an action* might depend on  
+the **_value_** of *the current users rights* which might depend on  
+the **_value_** of *the current user* which might depend on  
+the **_value_** of *the id of the current user* which might depend on  
+the **_value_** of *the session* which might depend on  
+the **_value_** of *the cookie*...
+
+-->
+
+<!---
+insert sketch here
+-->
+
+a **_name_** is - you guessed it - the name of a **_value_**.
+
+<!---
+
+<small>
+those computations can even be [asynchronous](#on-promises).
+</small>
+-->
+
+### **_factories_** are simply functions that return **_values_**
+
+within hinoki you use **factories** to model
+the [dependency graph](https://en.wikipedia.org/wiki/Dependency_graph) of your
+application, problem or computation.
+
+a **_factory_** has a **_name_**.
+a **_factory_** takes **_dependencies_** as arguments and returns the **_value_**
+for its **_name_**.
+the **_dependencies_** are **_values_** as well.
+the **_names_** of the arguments are the **_names_** of the **_values_**
+the **_factory_** depends on.
+
+let's imagine for a moment that you want to compute several
+interdependent statistics of a series of numbers.
+
+<!---
+let's use that knowledge to define the **_factories_** of our statistics example:
+-->
+
+let's use our knowledge to define the **_factories_** for that:
+
+``` javascript
+var factories = {
+  sumFn: function() {
+    return function(xs) {
+      return xs.reduce(function(acc, x) { return acc + x; }, 0);
+    }
+  },
+  numbersSquared: function(numbers) {
+    return numbers.map(function(x) { return x * x; });
+  },
+  numbersSorted: function(numbers) {
+    return numbers.slice().sort();
+  }
+  count: function(numbers) {
+    return numbers.length;
+  },
+  median: function(numbersSorted, count) {
+    return numbersSorted[Math.round(count)];
+  },
+  mean: function(numbers, count, sumFn) {
+    return sumFn(numbers) / count;
+  },
+  meanOfSquares: function(numbersSquared, count, sumFn) {
+    return sumFn(numbersSquared) / count;
+  },
+  variance: function(mean, meanOfSquares) {
+    return meanOfSquares - mean * mean;
+  }
+};
+```
+
+<!---
+the idea is that you define and the can evaluate parts of the graph.
+
+**_factories_** can be thought of as the recipes to get to the values.
+-->
+
+the *factory* for the *product* `variance` depends on
+the *products* `mean`and `meanOfSquares`...
+
+### _factories_ + _values_ = _lifetimes_
+
+**lifetimes** are used to record the values returned by factories.
+
+a **_lifetime_** is simply a tuple of **_factories_** and **_values_**.
+
+**_values_**
+
+the concrete values are cached in the lifetime.
+and the concrete **_values_** retrieved.
+
+lifetimes manage state.
+lifetimes manage how long state lives.
+lifetimes manage the lifetime of certain state.
+
+lifetimes also hold hooks that let
+more on that [later](#on-hooks)
+
+associate an object with initial values that also records
+the values returned by factories with an object containing factories.
+
+values returned by factories are cached in lifetimes
+
+**lifetimes** manage state:
+values for
+and factories for those values that have
+
+``` javascript
+var lifetime = {
+  factories: factories,
+  values: {
+    numbers: [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
+  }
+};
+
+```
+
+**lifetimes** are plain old javascript objects.
+
+### on getting values
+
+we can give hinoki a lifetime and a name and it will kindly give us a
+[promise](...) that will resolve to the value of that name:
+
+``` javascript
+hinoki(lifetime, 'mean').then(function(mean) {
+  console.log(mean); // ->
+});
+```
+
+hinoki will side effect the lifetime by caching values in it:
+
+``` javascript
+console.log(lifetime.values)
+// -> {
+//   ...
+// }
+```
+
+<small>you can disable caching by setting the `$nocache` property of a factory to `true`</small>
+
+if we pass in an array of **_names_** hinoki will return a promise
+that resolves to the array of **_values_** for those **_names_**:
+
+``` javascript
+hinoki(lifetime, ['mean', 'variance']).spread(function(mean, variance) {
+  console.log(mean); // ->
+  console.log(variance); // ->
+});
+```
+
+if we pass in a function as the second argument hinoki will parse the dependencies
+from the function arguments
+
+``` javascript
+hinoki(lifetime, function(variance, median) {
+  console.log(variance); // ->
+  console.log(median); // ->
+}).error(function(error) {
+
+});
+```
+
+if we want to use a different series of numbers we can just use a new lifetime.
+
+<small>
+hinoki always returns a promise: to normalize synchronous and asynchronous
+dependencies and to simplify error handling.
+</small>
+
+<small>
+and if something goes wrong the promise will be rejected with an [error](#on-errors).
+</small>
+
+hinoki has only generated
+
+if we ask again for `meanOfSquares` again it is not computed
+again instead
+
+### on promises
+
+see ... for a real async example
+
+<!---
+### stacking lifetimes
+
+you can use this to
+
+requests
+events
+
+inside the callback for the request/event you would create a new lifetime
+and use both that and the ... lifetime
+
+the ... lifetime is shared by all requests
+
+-->
+
+<!---
+insert sketch
+-->
+
+<!---
+### factory objects
+-->
+
+<!---
+### factory arrays
+-->
+
+<!---
+### sources
+-->
+
+<!---
+### on hooks
+-->
+
+<!---
+
+- [a functional data-driven approach with localized mutable state](#lifetimes)
 - a simple carefully-designed (underlying) model
 flexible core
 a simple, carefully-designed and flexible core with many useful qualities
 
-Use multiple Containers with different lifetimes that reference each Other
+Use multiple lifetimes with different lifetimes that reference each Other
 
-containers with lower lifetimes can depend on containers with higher lifetimes
+lifetimes with lower lifetimes can depend on lifetimes with higher lifetimes
 
 A is active during a request but depends on some Things in b which lives through the entire process
 
-containers can depend on other containers
+hinoki lifetimes
+
+lifetimes can depend on other lifetimes
 granular control over
 that allows functionality/features to emerge around it
 that enables a lot of emerging functionality to be build with it.
@@ -40,7 +369,7 @@ that enables a lot of emerging functionality to be build with it.
 - works in [node.js](#nodejs-setup) and in the [browser](#browser-setup)
 - [powerful error handling](#error-handling)
 - [powerful logging & debugging for every step of the dependency injection process](#logging-debugging)
-- [the ability to use multiple containers opens up interesting possibilities](#multiple-containers)
+- [the ability to use multiple lifetimes opens up interesting possibilities](#multiple-lifetimes)
 - [ability to intercept](#resolvers)
 
 #### ~~ HINOKI IS A WORK IN PROGRESS ~~
@@ -64,18 +393,18 @@ if you use hinoki i am very happy to hear from you.
 - [browser setup](#browser-setup)
 - [getting started](#getting-started)
 - [in depth](#in-depth)
-  - [containers](#containers)
+  - [lifetimes](#lifetimes)
   - [asynchronous dependencies](#asynchronous-dependencies)
   - [parsing dependencies from function arguments](#parsing-dependencies-from-function-arguments)
   - [dependencies of factory functions](#dependencies-of-factory-functions)
   - [null and undefined](#null-and-undefined)
-  - [multiple containers](#multiple-containers)
+  - [multiple lifetimes](#multiple-lifetimes)
   - [logging & debugging](#logging-debugging)
   - [error handling](#error-handling)
   - [resolvers](#resolvers)
 - [reference](#reference)
   - [API](#api)
-    - [`hinoki.get`](#hinokiget)
+    - [`hinoki`](#hinokiget)
   - [errors](#errors)
 - [changelog](#changelog)
 - [license](#license-mit)
@@ -91,7 +420,7 @@ libraries, functions for accessing the database
 
 hinoki solves the problem of composing all those parts
 
-dependency injection is a 
+dependency injection is a
 
 building blocks
 
@@ -118,8 +447,8 @@ dont use hinoki dependencies for libraries
 
 use them for application code!!!
 
-By making it very easy to 
-Get a hold of a Part of the system 
+By making it very easy to
+Get a hold of a Part of the system
 
 Don't repeat yourself is encouraged
 
@@ -138,27 +467,6 @@ var hinoki = require('hinoki');
 ## browser setup
 
 your markup should look something like the following
-
-```html
-<html>
-  <body>
-    <!-- content... -->
-
-    <!-- hinoki requires bluebird -->
-    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/bluebird/1.2.2/bluebird.js"></script>
-    <!-- take src/hinoki.js from this repository and include it -->
-    <script type="text/javascript" src="hinoki.js"></script>
-    <!-- your script can now access hinoki through the global var `hinoki` -->
-    <script type="text/javascript" src="example.js"></script>
-  </body>
-</html>
-```
-
-[hinoki.js](src/hinoki.js) makes the global variable `hinoki` available
-
-*its best to fetch bluebird with [bower](http://bower.io/),
-[hinoki with npm](https://www.npmjs.org/package/hinoki) and then use
-a build system like [gulp](http://gulpjs.com/) to bring everything together*
 
 ## getting started
 
@@ -215,13 +523,10 @@ var container = {
 a **CONTAINER** can be asked for the **VALUE** of a **NAME**:
 
 ```javascript
-hinoki.get(container, 'mean').then(function(mean) {
+hinoki(container, 'mean').then(function(mean) {
   console.log(mean);  // -> 3
 });
 ```
-
-hinoki always returns a promise: to normalize synchronous and asynchronous
-dependencies and to simplify error handling.
 
 asking for an uncached **NAME** will ask for its dependencies (and their dependencies...),
 call its **FACTORY** to get the **VALUE** and cache the new **VALUES** in
@@ -238,13 +543,13 @@ console.log(container.values);
 asking for a cached **NAME** again will return the cached **VALUE**.
 
 ```javascript
-hinoki.get(container, 'count').then(function(count) {
+hinoki(container, 'count').then(function(count) {
   console.log(mean);  // -> 3
 });
 ```
 
 ```javascript
-hinoki.get(container, 'variance').then(function(variance) {
+hinoki(container, 'variance').then(function(variance) {
   console.log(variance);  // -> 3.5
 
   console.log(container.values);
@@ -295,7 +600,7 @@ var otherContainer = {
   values: otherValues
 };
 
-hinoki.get(otherContainer, 'mean').then(function(mean) {
+hinoki(otherContainer, 'mean').then(function(mean) {
   console.log(mean);  // -> 3.5
   console.log(otherContainer.values);
   // ->
@@ -331,10 +636,10 @@ var factory = function(variance, mean) {
   /* ... */
 };
 
-var dependencyNames = hinoki.getFunctionArguments(factory);
+var dependencyNames = hinokiFunctionArguments(factory);
 // -> ['variance', 'mean']
 
-hinoki.get(container, dependencyNames).spread(factory);
+hinoki(container, dependencyNames).spread(factory);
 ```
 
 asks container for `variance` and `mean` and calls `factory` with them.
@@ -366,7 +671,7 @@ var container = {
   factories: factories
 };
 
-hinoki.get(container, 'acd', console.log).then(function(acd) {
+hinoki(container, 'acd', console.log).then(function(acd) {
   console.log(acd);  // -> 'acd'
   // dependency names have been cached
   console.log(factories.a.$inject); // -> []
@@ -407,11 +712,11 @@ this opens new possibilities for web development - demo application coming soon!
 
 ### logging & debugging
 
-pass in a callback as the third argument to `hinoki.get`
+pass in a callback as the third argument to `hinoki`
 and it will be called on various steps during the dependency injection process:
 
 ```javascript
-hinoki.get(container, 'variance', console.log)
+hinoki(container, 'variance', console.log)
   .then(function(variance) {
     /* ... */
   });
@@ -434,7 +739,7 @@ filter on event type
 ### error handling
 
 ```javascript
-hinoki.get(container, 'variance')
+hinoki(container, 'variance')
   .catch(hinoki.CircularDependencyError, function(error) {
     /* just on circular dependencies... */
   }
@@ -475,7 +780,7 @@ container = {
 resolvers must be pure (deterministic) functions: given the same inputs they must return the same outputs.
 they must not depend on uncontrollably changing factors like randomness or time or external services
 
-there are 
+there are
 but the same is true for value resolvers -
 just replace **FACTORY** with **VALUE** in your mind.
 
@@ -496,7 +801,7 @@ you can manipulate the resolvers:
 container.factoryResolvers.push(myFactoryResolver);
 ```
 
-resolvers can be used to 
+resolvers can be used to
 
 resolvers can be used to generate factories and values on the fly.
 they can return factories without them being in `container.factories`.
@@ -508,7 +813,7 @@ interesting alternative to rubys method missing
 
 ### API
 
-#### `hinoki.get`
+#### `hinoki`
 
 takes one or many **CONTAINERS** and one or many **NAMES**.
 
@@ -517,21 +822,21 @@ the promise is rejected in case of [errors](#errors).
 side effect the container
 
 ```javascript
-hinoki.get(container, 'variance')
+hinoki(container, 'variance')
   .then(function(variance) {
     /* ... */
   });
 ```
 
 ```javascript
-hinoki.get(container, ['variance', 'mean'])
+hinoki(container, ['variance', 'mean'])
   .spread(function(variance, mean) {
     /* ... */
   });
 ```
 
 ```javascript
-hinoki.get([container1, container2], ['variance', 'mean'])
+hinoki([container1, container2], ['variance', 'mean'])
   .spread(function(variance, mean) {
     /* ... */
   });
@@ -541,14 +846,14 @@ you can pass a function as a third argument which is called
 on various events (to see exactly what is going on under the hood which is useful for debugging).
 
 ```javascript
-hinoki.get(container, 'variance', console.log)
+hinoki(container, 'variance', console.log)
   .then(function(variance) { /* ... */ })
   .catch(function(error) { /* ... */ });
 ```
 
 #### `hinoki.parseFunctionArguments`
 
-#### `hinoki.getNamesToInject`
+#### `hinokiNamesToInject`
 
 #### `hinoki.resolveFactoryInContainers`
 
@@ -561,7 +866,7 @@ hinoki.get(container, 'variance', console.log)
 when there is a cycle in the dependency graph described by the factory dependencies
 
 ```javascript
-hinoki.get(container, 'variance')
+hinoki(container, 'variance')
   .catch(hinoki.CircularDependencyError, function(error) { /* ... */ });
 ```
 
@@ -570,7 +875,7 @@ hinoki.get(container, 'variance')
 when no resolver returns a factory for a name
 
 ```javascript
-hinoki.get(container, 'variance')
+hinoki(container, 'variance')
   .catch(hinoki.UnresolvableFactoryError, function(error) { /* ... */ });
 ```
 
@@ -579,7 +884,7 @@ hinoki.get(container, 'variance')
 when a factory throws an error
 
 ```javascript
-hinoki.get(container, 'variance')
+hinoki(container, 'variance')
   .catch(hinoki.ExceptionInFactoryError, function(error) { /* ... */ });
 ```
 
@@ -588,7 +893,7 @@ hinoki.get(container, 'variance')
 when a factory returns a promise and that promise is rejected
 
 ```javascript
-hinoki.get(container, 'variance')
+hinoki(container, 'variance')
   .catch(hinoki.PromiseRejectedError, function(error) { /* ... */ });
 ```
 
@@ -597,7 +902,7 @@ hinoki.get(container, 'variance')
 when a resolver returns a value that is not a function
 
 ```javascript
-hinoki.get(container, 'variance')
+hinoki(container, 'variance')
   .catch(hinoki.FactoryNotFunctionError, function(error) { /* ... */ });
 ```
 
@@ -606,10 +911,56 @@ hinoki.get(container, 'variance')
 when a factory returns undefined
 
 ```javascript
-hinoki.get(container, 'variance')
+hinoki(container, 'variance')
   .catch(hinoki.FactoryReturnedUndefinedError, function(error) { /* ... */ });
 ```
 
+-->
+
+<!---
 ## changelog
+-->
+
+### future plans
+
+- ok'ish readme
+- merge `beta` into `master`
+- merge `experiments` into `master`
+- finish documentation
+- test the examples
+- remove debug callback and add alternative better debugging solution
+- replace resolvers by
+  - sources
+    - `lifetime.factories` can be array of sources
+      - sources are tried in order
+      - a source is either an object of factories
+      - or a forge
+        - `function(name : string) -> factory or undefined`
+        - used for forge
+  - proxies or wrappers or decorators
+    - `mapFactory(factory, name)`
+      - used for tracing
+    - `mapValue(value, name)`
+  - mappers
+    - `mapName(string) -> string`
+      - used for aliasing
+- implement [factory arrays](https://github.com/snd/hinoki/issues/3)
+- implement [factory objects](https://github.com/snd/hinoki/issues/3)
+- port to js
+  - use compiled js and go from there
+- performance
+  - add benchmark
+    - what ?
+    - microbenchmark
+  - record benchmark results
+  - assert optimization status in unit test
+  - use lodash
+  - make sure that all but the outer function can be optimized
+    - make inner functions monomorphic
+  - pick low hanging fruits to improve performance
+  - ensure that optimizations actually improved performance
+- logo
+- reddit
+- hackernews
 
 ## [license: MIT](LICENSE)
