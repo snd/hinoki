@@ -1,0 +1,26 @@
+{
+  camelcase: true,
+  freeze: true,
+  funcscope: true,
+  indent: 2,
+  latedef: true,
+  maxcomplexity: 6,
+  maxdepth: 3,
+  maxlen: 80,
+  maxparams: 6,
+  maxstatements: 7,
+  newcap: true,
+  noarg: true,
+  noempty: true,
+  nonbsp: true,
+  nonew: true,
+  quotmark: "single",
+  shadow: "outer",
+  undef: true,
+  unused: true,
+  globals: {
+    define: false,
+    require: false,
+    module: false
+  }
+}
