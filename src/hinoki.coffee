@@ -14,7 +14,7 @@
   # get
 
   # polymorphic
-  hinoki = (oneOrManyLifetimes, nameOrNamesOrFunction, debug) ->
+  hinoki = (oneOrManyLifetimes, nameOrNamesOrFunction) ->
     lifetimes = hinoki.coerceToArray oneOrManyLifetimes
 
     if lifetimes.length is 0
@@ -24,25 +24,24 @@
       return hinoki(
         oneOrManyLifetimes
         hinoki.getNamesToInject(nameOrNamesOrFunction).map(hinoki.coerceToArray)
-        debug
       ).spread(nameOrNamesOrFunction)
 
 
     if Array.isArray nameOrNamesOrFunction
       paths = hinoki.coerceToArray(nameOrNamesOrFunction).map(hinoki.coerceToArray)
-      return hinoki.many lifetimes, paths, debug
+      return hinoki.many lifetimes, paths
 
     path = hinoki.coerceToArray(nameOrNamesOrFunction)
-    hinoki.one lifetimes, path, debug
+    hinoki.one lifetimes, path
 
-  hinoki.many = (lifetimes, paths, debug) ->
+  hinoki.many = (lifetimes, paths) ->
       Promise.all paths.map (path) ->
-        hinoki.one lifetimes, path, debug
+        hinoki.one lifetimes, path
 
-  hinoki.one = (lifetimes, path, debug) ->
+  hinoki.one = (lifetimes, path) ->
     # try-catch prevents optimization
     try
-      resolution = hinoki.resolveInLifetimes lifetimes, path, debug
+      resolution = hinoki.resolveInLifetimes lifetimes, path
     catch error
       return Promise.reject new hinoki.ErrorInResolversError path, lifetimes, error
 
@@ -63,7 +62,7 @@
       return Promise.reject new hinoki.InvalidResolutionError path, resolution, resolutionErrors
 
     unless hinoki.isUndefined resolution.value
-      debug? {
+      resolution.lifetime.debug? {
         event: 'valueWasResolved'
         path: path
         resolution: resolution
@@ -82,7 +81,7 @@
 
     # no cycle - yeah!
 
-    debug? {
+    resolution.lifetime.debug? {
       event: 'factoryWasResolved'
       path: path
       resolution: resolution
@@ -97,7 +96,7 @@
       promiseAwaitingResolution = resolution.lifetime.promisesAwaitingResolution?[resolution.name]
 
       if promiseAwaitingResolution?
-        debug? {
+        resolution.lifetime.debug? {
           event: 'valueIsAlreadyAwaitingResolution'
           path: path
           resolution: resolution
@@ -124,7 +123,7 @@
 
     dependenciesPromise =
       if dependencyPaths.length isnt 0
-        hinoki.many remainingLifetimes, dependencyPaths, debug
+        hinoki.many remainingLifetimes, dependencyPaths
       else
         Promise.resolve([])
 
@@ -132,7 +131,7 @@
       # the dependencies are ready!
       # we can finally call the factory!
 
-      hinoki.callFactory resolution.lifetime, newPath, resolution.factory, dependencyValues, debug
+      hinoki.callFactory resolution.lifetime, newPath, resolution.factory, dependencyValues
 
     # cache the promise.
     # this code is reached synchronously from the start of the function call
@@ -169,7 +168,7 @@
   # call factory
 
   # normalizes sync and async values returned by factories
-  hinoki.callFactory = (lifetime, path, factory, dependencyValues, debug) ->
+  hinoki.callFactory = (lifetime, path, factory, dependencyValues) ->
     try
       valueOrPromise = factory.apply null, dependencyValues
     catch error
@@ -177,7 +176,7 @@
 
     unless hinoki.isThenable valueOrPromise
       # valueOrPromise is not a promise but an value
-      debug? {
+      lifetime.debug? {
         event: 'valueWasCreated',
         path: path
         value: valueOrPromise
@@ -188,7 +187,7 @@
 
     # valueOrPromise is a promise
 
-    debug? {
+    lifetime.debug? {
       event: 'promiseWasCreated'
       path: path
       promise: valueOrPromise
@@ -198,7 +197,7 @@
 
     Promise.resolve(valueOrPromise)
       .then (value) ->
-        debug? {
+        lifetime.debug? {
           event: 'promiseWasResolved'
           path: path
           value: value
@@ -212,10 +211,10 @@
   ###################################################################################
   # functions that resolve factories
 
-  hinoki.resolveInLifetime = (lifetime, path, debug) ->
+  hinoki.resolveInLifetime = (lifetime, path) ->
     defaultResolver = (name) ->
       resolution = hinoki.defaultResolver name, lifetime
-      debug? {
+      lifetime.debug? {
         event: 'defaultResolverWasCalled'
         path: path
         lifetime: lifetime
@@ -226,8 +225,8 @@
     resolvers = hinoki.coerceToArray(lifetime.resolvers || [])
     accum = (inner, resolver) ->
       (name) ->
-        resolution = resolver name, lifetime, inner, debug
-        debug? {
+        resolution = resolver name, lifetime, inner
+        lifetime.debug? {
           event: 'customResolverWasCalled'
           resolver: resolver
           path: path
@@ -244,9 +243,9 @@
 
     return resolution
 
-  hinoki.resolveInLifetimes = (lifetimes, path, debug) ->
+  hinoki.resolveInLifetimes = (lifetimes, path) ->
     hinoki.some lifetimes, (lifetime) ->
-      hinoki.resolveInLifetime lifetime, path, debug
+      hinoki.resolveInLifetime lifetime, path
 
   ###################################################################################
   # resolution

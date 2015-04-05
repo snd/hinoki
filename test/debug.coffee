@@ -5,7 +5,7 @@ hinoki = require '../src/hinoki'
 module.exports =
 
   'hinokis way of working and calls to debug are deterministic': (test) ->
-    test.expect 58
+    test.expect 49
 
     alphaBravoPromise = Promise.resolve('alpha_bravo')
 
@@ -22,9 +22,8 @@ module.exports =
         alpha_charlie: (alpha, charlie) ->
           alpha + '_' + charlie
 
-    noopResolver = (name, lifetime2, inner, debug2) ->
+    noopResolver = (name, lifetime2, inner) ->
       test.equal lifetime, lifetime2
-      test.equal debug, debug2
       inner name
 
     expectedEvents = ->
@@ -349,13 +348,13 @@ module.exports =
 
     callToDebug = 0
 
-    debug = (actualEvent) ->
+    lifetime.debug = (actualEvent) ->
       expectedEvent = expectedEvents()[callToDebug++]
       test.deepEqual expectedEvent, actualEvent
 
     lifetime.resolvers = noopResolver
 
-    hinoki(lifetime, ['alpha_bravo', 'bravo_charlie', 'alpha_charlie'], debug)
+    hinoki(lifetime, ['alpha_bravo', 'bravo_charlie', 'alpha_charlie'])
       .spread (alpha_bravo, bravo_charlie, alpha_charlie) ->
         test.equal alpha_bravo, 'alpha_bravo'
         test.equal bravo_charlie, 'bravo_charlie'
