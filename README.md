@@ -945,11 +945,8 @@ hinoki(container, 'variance')
 ### future plans
 
 - ok'ish readme
-- merge `beta` into `master`
-- merge `experiments` into `master`
 - finish documentation
 - test the examples
-- better debugging solution
 - replace resolvers by
   - sources
     - `lifetime.factories` can be array of sources
@@ -967,6 +964,7 @@ hinoki(container, 'variance')
       - used for aliasing
 - implement [factory arrays](https://github.com/snd/hinoki/issues/3)
 - implement [factory objects](https://github.com/snd/hinoki/issues/3)
+- better debugging solution
 - port to js
   - use compiled js and go from there
 - performance
