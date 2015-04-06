@@ -34,9 +34,9 @@
     hinoki.one lifetimes, 0, hinoki.coerceToArray(nameOrNamesOrFunction)
 
   # getValues
-  hinoki.many = (lifetimes, lifetimeOffset, paths) ->
+  hinoki.many = (lifetimes, lifetimeIndex, paths) ->
       Promise.all paths.map (path) ->
-        hinoki.one lifetimes, lifetimeOffset, path
+        hinoki.one lifetimes, lifetimeIndex, path
 
   # getValue
   hinoki.one = (lifetimes, lifetimeIndex, path) ->
