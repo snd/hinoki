@@ -952,21 +952,16 @@ hinoki(container, 'variance')
 - ok'ish readme
 - finish documentation
 - test the examples
-- replace resolvers by
-  - sources
-    - `lifetime.factories` can be array of sources
-      - sources are tried in order
-      - a source is either an object of factories
-      - or a forge
-        - `function(name : string) -> factory or undefined`
-        - used for forge
-  - proxies or wrappers or decorators
-    - `mapFactory(factory, name)`
-      - used for tracing
-    - `mapValue(value, name)`
-  - mappers
-    - `mapName(string) -> string`
-      - used for aliasing
+- add mappers
+  - mappers for debugging ???
+  - `mapFactory(factory, name)`
+    - used for tracing
+  - `mapValue(value, name)` before it is returned
+  - `mapCache`
+  - `mapPromise(value, `
+  - `mapName`
+    - used for aliasing
+  - `mapPath`
 - implement [factory arrays](https://github.com/snd/hinoki/issues/3)
 - implement [factory objects](https://github.com/snd/hinoki/issues/3)
 - better debugging solution
