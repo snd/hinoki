@@ -275,13 +275,30 @@ module.exports =
       test.done()
 
   'a factory with $nocache property is not cached': (test) ->
-    c =
+    lifetime =
       factories:
         x: -> 1
 
-    c.factories.x.$nocache = true
+    lifetime.factories.x.$nocache = true
 
-    hinoki(c, 'x').then (x) ->
+    hinoki(lifetime, 'x').then (x) ->
       test.equal x, 1
-      test.ok not c.values?
+      test.ok not lifetime.values?
       test.done()
+
+  'single factory source function': (test) ->
+    lifetime =
+      factories: (name) ->
+        switch name
+          when 'a' then -> 0
+          when 'b' then -> 1
+          when 'c' then (a, b) -> a + b
+          when 'd' then (b, c) -> b + c
+
+    hinoki(lifetime, 'd')
+      .then (d) ->
+        test.equal d, 2
+        hinoki(lifetime, 'e')
+      .catch hinoki.UnresolvableError, (error) ->
+        test.equal error.message, "unresolvable name 'e' (e)"
+        test.done()
