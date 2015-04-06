@@ -39,19 +39,16 @@
         hinoki.one lifetimes, lifetimeOffset, path
 
   # getValue
-  hinoki.one = (lifetimes, lifetimeOffset, path) ->
-    name = path[0]
-
+  hinoki.one = (lifetimes, lifetimeIndex, path) ->
     # these may be set at the end of the following loop
-    lifetime = undefined
     factorySource = undefined
     factory = undefined
 
-    newLifetimeOffset = lifetimeOffset - 1
+    newLifetimeIndex = lifetimeIndex - 1
     lifetimeLength = lifetimes.length
-    while ++newLifetimeOffset < lifetimeLength
-      lifetime = lifetimes[newLifetimeOffset]
-      value = lifetime.values?[name]
+    while ++newLifetimeIndex < lifetimeLength
+      lifetime = lifetimes[newLifetimeIndex]
+      value = lifetime.values?[path[0]]
       # null is allowed as a value
       unless hinoki.isUndefined value
         lifetime.debug? {
@@ -60,7 +57,7 @@
           value: value
         }
         return Promise.resolve value
-      promise = lifetime.promisesAwaitingResolution?[name]
+      promise = lifetime.promisesAwaitingResolution?[path[0]]
       if promise?
         # if the value is already being constructed
         # wait for that instead of starting a second construction.
@@ -87,13 +84,18 @@
           break
 
       factorySource = lifetime.factories
-      factory = factorySource?[name]
+      factory = factorySource?[path[0]]
       if factory?
         break
 
     unless factory?
       # we are out of luck: the factory could not be found
       return Promise.reject new hinoki.UnresolvableError path, lifetimes
+
+    hinoki.withFactory lifetimes, newLifetimeIndex, path, factorySource, factory
+
+  hinoki.withFactory = (lifetimes, lifetimeIndex, path, factorySource, factory) ->
+    lifetime = lifetimes[lifetimeIndex]
 
     # we've got a factory.
     # let's check for cycles first since
@@ -120,7 +122,6 @@
     dependencyNames = hinoki.getAndCacheNamesToInject factory
 
     newPath = path.slice()
-    newPath[0] = name
 
     dependencyPaths = dependencyNames.map (x) ->
       hinoki.coerceToArray(x).concat newPath
@@ -130,7 +131,7 @@
 
     dependenciesPromise =
       if dependencyPaths.length isnt 0
-        hinoki.many lifetimes, newLifetimeOffset, dependencyPaths
+        hinoki.many lifetimes, lifetimeIndex, dependencyPaths
       else
         Promise.resolve([])
 
@@ -148,7 +149,7 @@
 
     unless factory.$nocache
       lifetime.promisesAwaitingResolution ?= {}
-      lifetime.promisesAwaitingResolution[name] = factoryCallResultPromise
+      lifetime.promisesAwaitingResolution[path[0]] = factoryCallResultPromise
 
     factoryCallResultPromise
       .then (value) ->
@@ -159,7 +160,7 @@
         # cache
         unless factory.$nocache
           lifetime.values ?= {}
-          lifetime.values[name] = value
+          lifetime.values[path[0]] = value
 
         return value
       .finally ->
@@ -167,7 +168,7 @@
         # this prevents errored promises from being reused
         # and allows further requests for the errored names to succeed
         unless factory.$nocache
-          delete lifetime.promisesAwaitingResolution[name]
+          delete lifetime.promisesAwaitingResolution[path[0]]
           if Object.keys(lifetime.promisesAwaitingResolution).length is 0
             delete lifetime.promisesAwaitingResolution
 
