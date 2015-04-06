@@ -4,7 +4,7 @@
 [![Build Status](https://travis-ci.org/snd/hinoki.svg?branch=master)](https://travis-ci.org/snd/hinoki/branches)
 [![Dependencies](https://david-dm.org/snd/hinoki.svg)](https://david-dm.org/snd/hinoki)
 
-**magical inversion of control for Node.js and the browser**
+**magical inversion of control for Node.js and browsers**
 
 <!---
 hands on examples are big
@@ -944,6 +944,7 @@ hinoki(container, 'variance')
 
 ### future plans
 
+- test full statistics example
 - ok'ish readme
 - finish documentation
 - test the examples
