@@ -10,91 +10,108 @@
     root.hinoki = factory(root.Promise)
 )(this, (Promise) ->
 
-  ###################################################################################
-  # get
+################################################################################
+# get
 
   # polymorphic
-  hinoki = (oneOrManyLifetimes, nameOrNamesOrFunction) ->
-    lifetimes = hinoki.coerceToArray oneOrManyLifetimes
+  hinoki = (lifetimeOrLifetimes, nameOrNamesOrFunction) ->
+    lifetimes =
+      if Array.isArray lifetimeOrLifetimes
+        lifetimeOrLifetimes
+      else
+        [lifetimeOrLifetimes]
 
     if lifetimes.length is 0
       throw new Error 'at least 1 lifetime is required'
 
     if 'function' is typeof nameOrNamesOrFunction
-      return hinoki.many(
-        lifetimes
-        0
-        hinoki.getNamesToInject(nameOrNamesOrFunction).map(hinoki.coerceToArray)
-      ).spread(nameOrNamesOrFunction)
+      names = hinoki.getNamesToInject(nameOrNamesOrFunction)
+      paths = names.map(hinoki.coerceToArray)
+      return hinoki.getValuesInLifetimes(lifetimes, 0, paths)
+        .spread(nameOrNamesOrFunction)
 
     if Array.isArray nameOrNamesOrFunction
-      paths = hinoki.coerceToArray(nameOrNamesOrFunction).map(hinoki.coerceToArray)
-      return hinoki.many lifetimes, 0, paths
+      names = hinoki.coerceToArray(nameOrNamesOrFunction)
+      paths = names.map(hinoki.coerceToArray)
+      return hinoki.getValuesInLifetimes lifetimes, 0, paths
 
-    hinoki.one lifetimes, 0, hinoki.coerceToArray(nameOrNamesOrFunction)
+    path = hinoki.coerceToArray(nameOrNamesOrFunction)
+    hinoki.getValueInLifetimes lifetimes, 0, path
 
-  # getValues
-  hinoki.many = (lifetimes, lifetimeIndex, paths) ->
+  # monomorphic
+  hinoki.getValuesInLifetimes = (lifetimes, lifetimeStartIndex, paths) ->
     Promise.all paths.map (path) ->
-      hinoki.one lifetimes, lifetimeIndex, path
+      hinoki.getValueInLifetimes lifetimes, lifetimeStartIndex, path
 
-  # getValue
-  hinoki.one = (lifetimes, lifetimeIndex, path) ->
-    # these may be set at the end of the following loop
-    factorySource = undefined
-    factory = undefined
+  # monomorphic
+  hinoki.getValueInLifetimes = (lifetimes, lifetimeStartIndex, path) ->
+    # try lifetimes in order
+    index = lifetimeStartIndex - 1
+    length = lifetimes.length
+    while ++index < length
+      result = hinoki.getValueInLifetime lifetimes, index, path
+      if result?
+        return result
 
-    newLifetimeIndex = lifetimeIndex - 1
-    lifetimeLength = lifetimes.length
-    while ++newLifetimeIndex < lifetimeLength
-      lifetime = lifetimes[newLifetimeIndex]
-      value = lifetime.values?[path[0]]
-      # null is allowed as a value
-      unless hinoki.isUndefined value
-        lifetime.debug? {
-          event: 'valueWasResolved'
-          path: path
-          value: value
-        }
-        return Promise.resolve value
-      promise = lifetime.promisesAwaitingResolution?[path[0]]
-      if promise?
-        # if the value is already being constructed
-        # wait for that instead of starting a second construction.
-        lifetime.debug? {
-          event: 'valueIsAlreadyAwaitingResolution'
-          path: path
-          promise: promise
-        }
-        return promise
-      if Array.isArray lifetime.factories
-        factorySourceIndex = -1
-        factorySourceLength = lifetime.factories.length
-        while ++factorySourceIndex < factorySourceLength
-          factorySource = lifetime.factories[factorySourceIndex]
-          # factory source function
-          if 'function' is typeof factorySource
-            factory = factorySource(name)
-          # factory source object
-          else
-            factory = factorySource[name]
-          if factory?
-            break
+    Promise.reject new hinoki.UnresolvableError path, lifetimes
+
+  hinoki.getFactoryInLifetime = (lifetimes, lifetimeIndex, path) ->
+    if Array.isArray lifetime.factories
+      factorySourceIndex = -1
+      factorySourceLength = lifetime.factories.length
+      while ++factorySourceIndex < factorySourceLength
+        factorySource = lifetime.factories[factorySourceIndex]
+        # factory source function
+        if 'function' is typeof factorySource
+          factory = factorySource(name)
+        # factory source object
+        else
+          factory = factorySource[name]
         if factory?
-          break
+          return hinoki.withFactory lifetimes, lifetimeIndex, path, factorySource, factory
+      return
 
-      factorySource = lifetime.factories
-      factory = factorySource?[path[0]]
-      if factory?
-        break
+    factorySource = lifetime.factories
+    factory = factorySource?[path[0]]
+    unless factory?
+      return
+
+
+  # monomorphic
+  hinoki.getValueInLifetime = (lifetimes, lifetimeIndex, path) ->
+    lifetime = lifetimes[lifetimeIndex]
+
+    value = lifetime.values?[path[0]]
+    # null is allowed as a value
+    unless hinoki.isUndefined value
+      lifetime.debug? {
+        event: 'valueWasResolved'
+        path: path
+        value: value
+      }
+      return Promise.resolve value
+
+    promise = lifetime.promisesAwaitingResolution?[path[0]]
+    if promise?
+      # if the value is already being constructed
+      # wait for that instead of starting a second construction.
+      lifetime.debug? {
+        event: 'valueIsAlreadyAwaitingResolution'
+        path: path
+        promise: promise
+      }
+      return promise
+
+    # we need to use a factory
+
+    factory = hinoki.getFactoryInLifetime lifetimes, lifetimeIndex, path
 
     unless factory?
-      # we are out of luck: the factory could not be found
-      return Promise.reject new hinoki.UnresolvableError path, lifetimes
+      return
 
-    hinoki.withFactory lifetimes, newLifetimeIndex, path, factorySource, factory
+    hinoki.withFactory lifetimes, lifetimeIndex, path, factorySource, factory
 
-   # monomorphic
+  # monomorphic
   hinoki.withFactory = (lifetimes, lifetimeIndex, path, factorySource, factory) ->
     lifetime = lifetimes[lifetimeIndex]
 
@@ -132,7 +149,7 @@
 
     dependenciesPromise =
       if dependencyPaths.length isnt 0
-        hinoki.many lifetimes, lifetimeIndex, dependencyPaths
+        hinoki.getValuesInLifetimes lifetimes, lifetimeIndex, dependencyPaths
       else
         Promise.resolve([])
 
@@ -173,8 +190,8 @@
           if Object.keys(lifetime.promisesAwaitingResolution).length is 0
             delete lifetime.promisesAwaitingResolution
 
-  ###################################################################################
-  # call factory
+################################################################################
+# call factory
 
   # normalizes sync and async values returned by factories
   hinoki.callFactory = (lifetime, path, factory, dependencyValues) ->
@@ -214,8 +231,8 @@
       .catch (rejection) ->
         Promise.reject new hinoki.PromiseRejectedError path, lifetime, rejection
 
-  ###################################################################################
-  # errors
+################################################################################
+# errors
 
   hinoki.inherits = (constructor, superConstructor) ->
     if 'function' is typeof Object.create
@@ -303,14 +320,14 @@
 
   hinoki.inherits hinoki.PromiseRejectedError, hinoki.BaseError
 
-  ###################################################################################
-  # path
+################################################################################
+# path
 
   hinoki.pathToString = (path) ->
     path.join ' <- '
 
-  ###################################################################################
-  # util
+################################################################################
+# util
 
   hinoki.isObject = (x) ->
     x is Object(x)
