@@ -52,30 +52,7 @@
       result = hinoki.getValueInLifetime lifetimes, index, path
       if result?
         return result
-
     Promise.reject new hinoki.UnresolvableError path, lifetimes
-
-  hinoki.getFactoryInLifetime = (lifetimes, lifetimeIndex, path) ->
-    if Array.isArray lifetime.factories
-      factorySourceIndex = -1
-      factorySourceLength = lifetime.factories.length
-      while ++factorySourceIndex < factorySourceLength
-        factorySource = lifetime.factories[factorySourceIndex]
-        # factory source function
-        if 'function' is typeof factorySource
-          factory = factorySource(name)
-        # factory source object
-        else
-          factory = factorySource[name]
-        if factory?
-          return hinoki.withFactory lifetimes, lifetimeIndex, path, factorySource, factory
-      return
-
-    factorySource = lifetime.factories
-    factory = factorySource?[path[0]]
-    unless factory?
-      return
-
 
   # monomorphic
   hinoki.getValueInLifetime = (lifetimes, lifetimeIndex, path) ->
@@ -102,17 +79,35 @@
       }
       return promise
 
-    # we need to use a factory
+    hinoki.weNeedAFactory lifetimes, lifetimeIndex, path
 
-    factory = hinoki.getFactoryInLifetime lifetimes, lifetimeIndex, path
+  # monomorphic
+  hinoki.weNeedAFactory = (lifetimes, lifetimeIndex, path) ->
+    lifetime = lifetimes[lifetimeIndex]
+    if Array.isArray lifetime.factories
+      factorySourceIndex = -1
+      factorySourceLength = lifetime.factories.length
+      while ++factorySourceIndex < factorySourceLength
+        factorySource = lifetime.factories[factorySourceIndex]
+        # factory source function
+        if 'function' is typeof factorySource
+          factory = factorySource(name)
+        # factory source object
+        else
+          factory = factorySource[name]
+        if factory?
+          return hinoki.withFactory lifetimes, lifetimeIndex, path, factorySource, factory
+      return
 
+    factorySource = lifetime.factories
+    factory = factorySource?[path[0]]
     unless factory?
       return
 
-    hinoki.withFactory lifetimes, lifetimeIndex, path, factorySource, factory
+    hinoki.weHaveAFactory lifetimes, lifetimeIndex, path, factorySource, factory
 
   # monomorphic
-  hinoki.withFactory = (lifetimes, lifetimeIndex, path, factorySource, factory) ->
+  hinoki.weHaveAFactory = (lifetimes, lifetimeIndex, path, factorySource, factory) ->
     lifetime = lifetimes[lifetimeIndex]
 
     # we've got a factory.
@@ -189,9 +184,6 @@
           delete lifetime.promisesAwaitingResolution[path[0]]
           if Object.keys(lifetime.promisesAwaitingResolution).length is 0
             delete lifetime.promisesAwaitingResolution
-
-################################################################################
-# call factory
 
   # normalizes sync and async values returned by factories
   hinoki.callFactory = (lifetime, path, factory, dependencyValues) ->
