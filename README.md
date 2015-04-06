@@ -25,6 +25,9 @@ dead simple
 very fast
 
 lean and mean
+
+most behaviour is the simple result of [after] trying several more complex
+solutions
 -->
 
 hinoki is a powerful yet simple asynchronous dependency injection system
@@ -946,24 +949,30 @@ hinoki(container, 'variance')
 
 ### future plans
 
-- test sources
+- test sources feature
 - better debug event names
   - valueFound
   - factoryFound
-- test full statistics example
-- ok'ish readme
+- test new statistics example
+- write reasonably complete readme
 - finish documentation
 - test the examples
+  - test/examples instead of examples/
 - add mappers
-  - mappers for debugging ???
   - `mapFactory(factory, name)`
     - used for tracing
-  - `mapValue(value, name)` before it is returned
-  - `mapCache`
-  - `mapPromise(value, `
   - `mapName`
     - used for aliasing
-  - `mapPath`
+  - less important
+    - `mapFactoryReturnValue(factory, name)`
+    - `mapFactoryReturnPromise(value, `
+    - `mapResolvedValue(value, `
+    - `beforeCache`
+    - `beforeInject`
+    - `beforeReturn`
+    - `mapValue(value, name)` before it is returned
+    - `mapPath`
+  - use mappers for debugging ???
 - implement [factory arrays](https://github.com/snd/hinoki/issues/3)
 - implement [factory objects](https://github.com/snd/hinoki/issues/3)
 - better debugging solution
