@@ -81,6 +81,14 @@
 
     hinoki.weNeedAFactory lifetimes, lifetimeIndex, path
 
+  hinoki.getFactoryFromSource = (factorySource, name) ->
+    # factory source function
+    if 'function' is typeof factorySource
+      return factorySource(name)
+    # factory source object
+    else
+      return factorySource[name]
+
   # monomorphic
   hinoki.weNeedAFactory = (lifetimes, lifetimeIndex, path) ->
     lifetime = lifetimes[lifetimeIndex]
@@ -89,18 +97,15 @@
       factorySourceLength = lifetime.factories.length
       while ++factorySourceIndex < factorySourceLength
         factorySource = lifetime.factories[factorySourceIndex]
-        # factory source function
-        if 'function' is typeof factorySource
-          factory = factorySource(name)
-        # factory source object
-        else
-          factory = factorySource[name]
+        factory = hinoki.getFactoryFromSource factorySource, path[0]
         if factory?
-          return hinoki.withFactory lifetimes, lifetimeIndex, path, factorySource, factory
+          return hinoki.weHaveAFactory lifetimes, lifetimeIndex, path, factorySource, factory
       return
 
     factorySource = lifetime.factories
-    factory = factorySource?[path[0]]
+    unless factorySource?
+      return
+    factory = hinoki.getFactoryFromSource factorySource, path[0]
     unless factory?
       return
 
