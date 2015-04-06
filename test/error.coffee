@@ -13,162 +13,13 @@ module.exports =
       test.equal error.name, 'FactoryReturnedUndefinedError'
       test.done()
 
-  'ErrorInResolversError':
+  'UnresolvableError': (test) ->
+    lifetime = {}
 
-    'thrown': (test) ->
-      x = new Error 'fail'
-      lifetime =
-        resolvers: ->
-          throw x
-
-      hinoki(lifetime, 'a').catch hinoki.ErrorInResolversError, (error) ->
-        test.equal error.name, 'ErrorInResolversError'
-        test.equal error.message, "error in resolvers for 'a' (a). original error: Error: fail"
-        test.equal 'string', typeof error.stack
-        test.ok error.stack.split('\n').length > 8
-
-        test.deepEqual error.path, ['a']
-        test.equal error.error, x
-        test.ok not lifetime.promisesAwaitingResolution?
-
-        test.done()
-
-    'returned': (test) ->
-      x = new Error 'fail'
-      lifetime =
-        resolvers: ->
-          x
-
-      hinoki(lifetime, 'a').catch hinoki.ErrorInResolversError, (error) ->
-        test.equal error.message, "error in resolvers for 'a' (a). original error: Error: fail"
-        test.deepEqual error.path, ['a']
-        test.equal error.error, x
-        test.ok not lifetime.promisesAwaitingResolution?
-        test.done()
-
-  'UnresolvableError':
-
-    'custom resolver': (test) ->
-      lifetime =
-        resolvers: ->
-
-      hinoki(lifetime, 'a').catch hinoki.UnresolvableError, (error) ->
-        test.equal error.name, 'UnresolvableError'
-        test.equal error.message, "unresolvable name 'a' (a)"
-        test.equal 'string', typeof error.stack
-        test.ok error.stack.split('\n').length > 8
-
-        test.deepEqual error.path, ['a']
-        test.ok not lifetime.promisesAwaitingResolution?
-
-        test.done()
-
-    'default resolver': (test) ->
-      lifetime = {}
-
-      hinoki(lifetime, 'a').catch hinoki.UnresolvableError, (error) ->
-        test.equal error.message, "unresolvable name 'a' (a)"
-        test.deepEqual error.path, ['a']
-        test.ok not lifetime.promisesAwaitingResolution?
-        test.done()
-
-  'resolutionErrors':
-
-    'null value': (test) ->
-      errors = hinoki.resolutionErrors
-        value: null
-        name: 'a'
-      test.equal errors, null
-      test.done()
-
-    'value': (test) ->
-      errors = hinoki.resolutionErrors
-        value: {}
-        name: 'a'
-      test.equal errors, null
-      test.done()
-
-    'factory': (test) ->
-      errors = hinoki.resolutionErrors
-        factory: ->
-        name: 'a'
-      test.equal errors, null
-      test.done()
-
-    'factory nocache': (test) ->
-      errors = hinoki.resolutionErrors
-        factory: ->
-        name: 'a'
-        nocache: true
-      test.equal errors, null
-      test.done()
-
-    'not an object': (test) ->
-      errors = hinoki.resolutionErrors()
-      test.deepEqual errors, [
-        "must be an object"
-        "must have the 'name' property which is a string"
-        "must have either the 'value' or the 'factory' property"
-      ]
-      test.done()
-
-    'empty object': (test) ->
-      errors = hinoki.resolutionErrors {}
-      test.deepEqual errors, [
-        "must have the 'name' property which is a string"
-        "must have either the 'value' or the 'factory' property"
-      ]
-      test.done()
-
-    'object with name': (test) ->
-      errors = hinoki.resolutionErrors
-        name: 'test'
-      test.deepEqual errors, [
-        "must have either the 'value' or the 'factory' property"
-      ]
-      test.done()
-
-    'both value and factory': (test) ->
-      errors = hinoki.resolutionErrors
-        name: 'test'
-        value: 1
-        factory: 2
-      test.deepEqual errors, [
-        "must have either the 'value' or the 'factory' property - not both"
-      ]
-      test.done()
-
-    'factory is not a function': (test) ->
-      errors = hinoki.resolutionErrors
-        name: 'test'
-        factory: 2
-      test.deepEqual errors, [
-        "the 'factory' property must be a function"
-      ]
-      test.done()
-
-  'InvalidResolutionError': (test) ->
-    resolution =
-      factory: 'test'
-    lifetime =
-      resolvers: ->
-        resolution
-
-    hinoki(lifetime, 'a').catch hinoki.InvalidResolutionError, (error) ->
-      test.equal error.name, 'InvalidResolutionError'
-      lines = [
-        "errors in resolution returned by resolvers for 'a' (a):"
-        "must have the 'name' property which is a string"
-        "the 'factory' property must be a function"
-      ]
-      test.equal error.message, lines.join('\n')
-      test.equal 'string', typeof error.stack
-      test.ok error.stack.split('\n').length > 8
-
-      test.equal error.resolution, resolution
+    hinoki(lifetime, 'a').catch hinoki.UnresolvableError, (error) ->
+      test.equal error.message, "unresolvable name 'a' (a)"
       test.deepEqual error.path, ['a']
       test.ok not lifetime.promisesAwaitingResolution?
-
       test.done()
 
   'CircularDependencyError': (test) ->
@@ -183,6 +34,8 @@ module.exports =
       test.ok error.stack.split('\n').length > 8
 
       test.deepEqual error.path, ['a', 'a']
+      test.equal error.lifetime, lifetime
+      test.equal error.factory, lifetime.factories.a
       test.ok not lifetime.promisesAwaitingResolution?
 
       test.done()
@@ -202,6 +55,7 @@ module.exports =
 
       test.deepEqual error.path, ['a']
       test.equal error.lifetime, lifetime
+      test.equal error.factory, lifetime.factories.a
       test.equal error.error, exception
       test.ok not lifetime.promisesAwaitingResolution?
 

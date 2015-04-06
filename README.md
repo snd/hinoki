@@ -944,6 +944,10 @@ hinoki(container, 'variance')
 
 ### future plans
 
+- test sources
+- better debug event names
+  - valueFound
+  - factoryFound
 - test full statistics example
 - ok'ish readme
 - finish documentation
