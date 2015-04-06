@@ -23,6 +23,8 @@ ultra lightweight
 dead simple
 
 very fast
+
+lean and mean
 -->
 
 hinoki is a powerful yet simple asynchronous dependency injection system
