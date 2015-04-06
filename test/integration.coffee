@@ -302,3 +302,28 @@ module.exports =
       .catch hinoki.UnresolvableError, (error) ->
         test.equal error.message, "unresolvable name 'e' (e)"
         test.done()
+
+  'multiple factory sources': (test) ->
+    lifetime =
+      factories: [
+        (name) ->
+          if name is 'd'
+            (b, c) -> b + c
+        {
+          a: -> 0
+        }
+        (name) ->
+          if name is 'b'
+            -> 1
+        {
+          c: (a, b) -> a + b
+        }
+      ]
+
+    hinoki(lifetime, 'd')
+      .then (d) ->
+        test.equal d, 2
+        hinoki(lifetime, 'e')
+      .catch hinoki.UnresolvableError, (error) ->
+        test.equal error.message, "unresolvable name 'e' (e)"
+        test.done()

@@ -949,10 +949,6 @@ hinoki(container, 'variance')
 
 ### future plans
 
-- test sources feature
-- better debug event names
-  - valueFound
-  - factoryFound
 - test new statistics example
 - write reasonably complete readme
 - finish documentation
@@ -975,6 +971,9 @@ hinoki(container, 'variance')
   - use mappers for debugging ???
 - implement [factory arrays](https://github.com/snd/hinoki/issues/3)
 - implement [factory objects](https://github.com/snd/hinoki/issues/3)
+- better debug event names
+  - valueFound
+  - factoryFound
 - better debugging solution
 - port to js
   - use compiled js and go from there
