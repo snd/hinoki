@@ -31,36 +31,6 @@ module.exports =
 
     test.done()
 
-  'some':
-
-    'array': (test) ->
-      test.ok hinoki.isUndefined hinoki.some []
-
-      test.equal 1, hinoki.some [1, null, null]
-      test.equal 2, hinoki.some [null, null, 2]
-
-      test.done()
-
-    'array and predicate': (test) ->
-      test.ok hinoki.isUndefined hinoki.some [], hinoki.identity, -> true
-      test.equal 1, hinoki.some [1], hinoki.identity, (x) -> x is 1
-      test.ok hinoki.isUndefined hinoki.some [1], hinoki.identity, (x) -> x is 2
-      test.equal 2, hinoki.some [1, 2, 3], hinoki.identity, (x) -> x > 1
-      test.ok hinoki.isUndefined hinoki.some [1, 2, 3], hinoki.identity, (x) -> x > 3
-      test.ok hinoki.isUndefined hinoki.some [1, 2, 3], hinoki.identity, (x) -> x > 3
-
-      shouldBeNull = hinoki.some [1, 2, null], hinoki.identity, (x) -> x is null
-      test.ok not hinoki.isUndefined shouldBeNull
-      test.ok hinoki.isNull shouldBeNull
-
-      test.done()
-
-    'array, predicate, transform and sentinel': (test) ->
-      test.equal 'sentinel',
-          hinoki.some [], hinoki.identity, hinoki.exists, 'sentinel'
-
-      test.done()
-
   'arrayOfStringsHasDuplicates': (test) ->
     test.ok not hinoki.arrayOfStringsHasDuplicates []
     test.ok not hinoki.arrayOfStringsHasDuplicates ['a']
@@ -77,15 +47,6 @@ module.exports =
     test.deepEqual [1, 2, 3], hinoki.coerceToArray [1, 2, 3]
     test.deepEqual [1], hinoki.coerceToArray 1
     test.deepEqual [], hinoki.coerceToArray null
-    test.done()
-
-  'startingWith': (test) ->
-    test.deepEqual [], hinoki.startingWith [], 1
-    test.deepEqual [], hinoki.startingWith [1], 2
-    test.deepEqual [], hinoki.startingWith [1, 2, 3], 4
-    test.deepEqual [1, 2, 3], hinoki.startingWith [1, 2, 3], 1
-    test.deepEqual [2, 3], hinoki.startingWith [1, 2, 3], 2
-    test.deepEqual [3], hinoki.startingWith [1, 2, 3], 3
     test.done()
 
   'parseFunctionArguments': (test) ->

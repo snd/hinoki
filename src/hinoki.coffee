@@ -94,6 +94,7 @@
 
     hinoki.withFactory lifetimes, newLifetimeIndex, path, factorySource, factory
 
+   # monomorphic
   hinoki.withFactory = (lifetimes, lifetimeIndex, path, factorySource, factory) ->
     lifetime = lifetimes[lifetimeIndex]
 
@@ -329,25 +330,6 @@
   hinoki.identity = (x) ->
     x
 
-  # calls iterator for the values in array in sequence (with the index as the second argument).
-  # returns the first value returned by iterator for which predicate returns true.
-  # otherwise returns sentinel.
-
-  hinoki.some = (
-    array
-    iterator = hinoki.identity
-    predicate = hinoki.isExisting
-    sentinel = undefined
-  ) ->
-    i = 0
-    length = array.length
-    while i < length
-      result = iterator array[i], i
-      if predicate result, i
-        return result
-      i++
-    return sentinel
-
   # returns whether an array of strings contains duplicates.
   #
   # complexity: O(n) since hash lookup is O(1)
@@ -380,18 +362,6 @@
     unless arg?
       return []
     [arg]
-
-  # returns the first sequence of elements in `xs` which starts with `x`
-  #
-  # example:
-  # startingWith ['a', 'b', 'c', 'd'], 'c'
-  # => ['c', 'd']
-
-  hinoki.startingWith = (xs, x) ->
-    index = xs.indexOf x
-    if index is -1
-      return []
-    xs.slice index
 
   # example:
   # parseFunctionArguments (a, b c) ->
