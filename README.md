@@ -195,7 +195,7 @@ var factories = {
   },
   numbersSorted: function(numbers) {
     return numbers.slice().sort();
-  }
+  },
   count: function(numbers) {
     return numbers.length;
   },
@@ -949,32 +949,30 @@ hinoki(container, 'variance')
 
 ### future plans
 
-- test new statistics example
+- ever more complicated usage examples in test
+  - test the readme example `'README.md example'`
+  - test/examples.js instead of examples/
+- lifetime interface
+  - ENSURE THAT IT SUPPORTS ALL USE CASES
+  - getValue(lifetime, name)
+    - aliasing
+    - namespacing
+  - setValue(lifetime, name, value)
+  - getFactory(lifetime, name)
+    - tracing
+    - aliasing
+    - namespacing
+  - getPromise(lifetime, name)
+    - aliasing
+    - namespacing
+  - setPromise(lifetime, name, promise)
+  - deletePromise(lifetime, name)
+- remove lifetime.debug as that is now possible with the lifetime interface
+- explain everything with one example
 - write reasonably complete readme
 - finish documentation
-- test the examples
-  - test/examples instead of examples/
-- add mappers
-  - `mapFactory(factory, name)`
-    - used for tracing
-  - `mapName`
-    - used for aliasing
-  - less important
-    - `mapFactoryReturnValue(factory, name)`
-    - `mapFactoryReturnPromise(value, `
-    - `mapResolvedValue(value, `
-    - `beforeCache`
-    - `beforeInject`
-    - `beforeReturn`
-    - `mapValue(value, name)` before it is returned
-    - `mapPath`
-  - use mappers for debugging ???
 - implement [factory arrays](https://github.com/snd/hinoki/issues/3)
 - implement [factory objects](https://github.com/snd/hinoki/issues/3)
-- better debug event names
-  - valueFound
-  - factoryFound
-- better debugging solution
 - port to js
   - use compiled js and go from there
 - performance

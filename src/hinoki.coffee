@@ -57,8 +57,11 @@
   # monomorphic
   hinoki.getValueInLifetime = (lifetimes, lifetimeIndex, path) ->
     lifetime = lifetimes[lifetimeIndex]
+    name = path[0]
+    if lifetime.mapName?
+      name = lifetime.mapName name
 
-    value = lifetime.values?[path[0]]
+    value = lifetime.values?[name]
     # null is allowed as a value
     unless hinoki.isUndefined value
       lifetime.debug? {
@@ -68,7 +71,7 @@
       }
       return Promise.resolve value
 
-    promise = lifetime.promisesAwaitingResolution?[path[0]]
+    promise = lifetime.promisesAwaitingResolution?[name]
     if promise?
       # if the value is already being constructed
       # wait for that instead of starting a second construction.
@@ -92,24 +95,22 @@
   # monomorphic
   hinoki.weNeedAFactory = (lifetimes, lifetimeIndex, path) ->
     lifetime = lifetimes[lifetimeIndex]
+    unless lifetime.factories?
+      return
     if Array.isArray lifetime.factories
-      factorySourceIndex = -1
-      factorySourceLength = lifetime.factories.length
-      while ++factorySourceIndex < factorySourceLength
-        factorySource = lifetime.factories[factorySourceIndex]
-        factory = hinoki.getFactoryFromSource factorySource, path[0]
-        if factory?
-          return hinoki.weHaveAFactory lifetimes, lifetimeIndex, path, factorySource, factory
-      return
+      factorySources = lifetime.factories
+    else
+      factorySources = [lifetime.factories]
 
-    factorySource = lifetime.factories
-    unless factorySource?
-      return
-    factory = hinoki.getFactoryFromSource factorySource, path[0]
-    unless factory?
-      return
-
-    hinoki.weHaveAFactory lifetimes, lifetimeIndex, path, factorySource, factory
+    factorySourceIndex = -1
+    factorySourceLength = factorySources.length
+    while ++factorySourceIndex < factorySourceLength
+      factorySource = factorySources[factorySourceIndex]
+      factory = hinoki.getFactoryFromSource factorySource, path[0]
+      if factory?
+        if lifetime.mapFactory?
+          factory = lifetime.mapFactory factory
+        return hinoki.weHaveAFactory lifetimes, lifetimeIndex, path, factorySource, factory
 
   # monomorphic
   hinoki.weHaveAFactory = (lifetimes, lifetimeIndex, path, factorySource, factory) ->
