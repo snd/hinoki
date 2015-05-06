@@ -74,7 +74,7 @@ we hope you prefer hinoki as the substance/material for building virtual palaces
 > Hinoki seems to be the least surprising IoC container available for Node.  
 > I definitely do like its ascetic worldview.  
 > Thanks a lot for this!  
-> <small>[@andrey](https://github.com/snd/hinoki/issues/3)</small>
+> [@andrey](https://github.com/snd/hinoki/issues/3)
 
 <!---
 ### features
@@ -118,7 +118,7 @@ write this in text form as well
 -->
 
 ``` javascript
-var hinoki = require('hinoki');
+> var hinoki = require('hinoki');
 ```
 
 ### **_values_** are the building blocks of your application
@@ -130,7 +130,7 @@ consists of multiple **_values_** that depend on each other.
 most applications, problems or computations
 -->
 
-a **_value_** can be anything: an integer, an object, a function, a class, ...
+a **_value_** can be anything: an integer, a function, a string, an object, a class, ...
 
 for example:  
 the **_value_** of *a controller action* might depend on  
