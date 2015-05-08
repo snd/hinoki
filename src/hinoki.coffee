@@ -1,61 +1,68 @@
 ((root, factory) ->
   # amd
   if ('function' is typeof define) and define.amd?
-    define(['bluebird'], factory)
-  # commonjs
+    define(['bluebird', 'lodash'], factory)
+  # nodejs
   else if exports?
-    module.exports = factory(require('bluebird'))
+    module.exports = factory(
+      require('bluebird')
+      require('lodash')
+      require('fs')
+      require('path')
+    )
   # other
   else
-    root.hinoki = factory(root.Promise)
-)(this, (Promise) ->
+    root.hinoki = factory(root.Promise, root.lodash)
+)(this, (Promise, _, fs, path) ->
 
 ################################################################################
 # get
 
   # polymorphic
-  hinoki = (lifetimeOrLifetimes, nameOrNamesOrFunction) ->
-    lifetimes =
-      if Array.isArray lifetimeOrLifetimes
-        lifetimeOrLifetimes
-      else
-        [lifetimeOrLifetimes]
+  hinoki = (arg1, arg2, arg3) ->
+    source = hinoki.source arg1
 
-    if lifetimes.length is 0
-      throw new Error 'at least 1 lifetime is required'
+    if arg3?
+      lifetimes = hinoki.coerceToArray arg2
+      nameOrNamesOrFunction = arg3
+    else
+      lifetimes = [{}]
+      nameOrNamesOrFunction = arg2
+
+    cacheTarget = 0
 
     if 'function' is typeof nameOrNamesOrFunction
       names = hinoki.getNamesToInject(nameOrNamesOrFunction)
       paths = names.map(hinoki.coerceToArray)
-      return hinoki.getValuesInLifetimes(lifetimes, 0, paths)
+      return hinoki.getValuesInLifetimes(lifetimes, 0, paths, cacheTarget)
         .spread(nameOrNamesOrFunction)
 
     if Array.isArray nameOrNamesOrFunction
       names = hinoki.coerceToArray(nameOrNamesOrFunction)
       paths = names.map(hinoki.coerceToArray)
-      return hinoki.getValuesInLifetimes lifetimes, 0, paths
+      return hinoki.getValuesInLifetimes lifetimes, 0, paths, cacheTarget
 
     path = hinoki.coerceToArray(nameOrNamesOrFunction)
-    hinoki.getValueInLifetimes lifetimes, 0, path
+    hinoki.getValueInLifetimes lifetimes, 0, path, cacheTarget
 
   # monomorphic
-  hinoki.getValuesInLifetimes = (lifetimes, lifetimeStartIndex, paths) ->
+  hinoki.getValuesInLifetimes = (lifetimes, lifetimeStartIndex, paths, cacheTarget) ->
     Promise.all paths.map (path) ->
-      hinoki.getValueInLifetimes lifetimes, lifetimeStartIndex, path
+      hinoki.getValueInLifetimes lifetimes, lifetimeStartIndex, path, cacheTarget
 
   # monomorphic
-  hinoki.getValueInLifetimes = (lifetimes, lifetimeStartIndex, path) ->
+  hinoki.getValueInLifetimes = (lifetimes, lifetimeStartIndex, path, cacheTarget) ->
     # try lifetimes in order
     index = lifetimeStartIndex - 1
     length = lifetimes.length
     while ++index < length
-      result = hinoki.getValueInLifetime lifetimes, index, path
+      result = hinoki.getValueInLifetime lifetimes, index, path, cacheTarget
       if result?
         return result
     Promise.reject new hinoki.UnresolvableError path, lifetimes
 
   # monomorphic
-  hinoki.getValueInLifetime = (lifetimes, lifetimeIndex, path) ->
+  hinoki.getValueInLifetime = (lifetimes, lifetimeIndex, path, cacheTarget) ->
     lifetime = lifetimes[lifetimeIndex]
     name = path[0]
     if lifetime.mapName?
@@ -136,8 +143,6 @@
 
     # first lets resolve the dependencies of the factory
 
-    # TODO this isnt really useful when factorySource is a function
-    # TODO separate sources property ?
     dependencyNames = hinoki.getAndCacheNamesToInject factory
 
     newPath = path.slice()
@@ -167,8 +172,8 @@
     # to promisesAwaitingResolution before the factory is actually called !
 
     unless factory.$nocache
-      lifetime.promisesAwaitingResolution ?= {}
-      lifetime.promisesAwaitingResolution[path[0]] = factoryCallResultPromise
+      lifetime.__promises ?= {}
+      lifetime.__promises[path[0]] = factoryCallResultPromise
 
     factoryCallResultPromise
       .then (value) ->
@@ -191,13 +196,39 @@
           if Object.keys(lifetime.promisesAwaitingResolution).length is 0
             delete lifetime.promisesAwaitingResolution
 
-  # normalizes sync and async values returned by factories
-  hinoki.callFactory = (lifetime, path, factory, dependencyValues) ->
+  hinoki.callFactoryFunction = (factoryFunction, dependencies) ->
     try
-      valueOrPromise = factory.apply null, dependencyValues
+      valueOrPromise = factoryFunction.apply null, valuesOfDependencies
     catch error
-      return Promise.reject new hinoki.ThrowInFactoryError path, lifetime, factory, error
+      return Promise.reject new hinoki.ThrowInFactoryError path, lifetime, factoryFunction, error
 
+  hinoki.callFactoryObjectArray = (factoryObject, dependenciesObject) ->
+    iterator = (f) ->
+      if 'function' is typeof f
+        names = hinoki.getNamesToInject f
+        dependencies = _.map names, (name) ->
+          dependenciesObject[name]
+        hinoki.callFactoryFunction f, dependencies
+      else
+        # supports nesting
+        hinoki.callFactoryObjectArray(f, dependenciesObject)
+
+    if Array.isArray factory
+      Promise.all(factory).map(iterator)
+    # object !
+    else
+      Promise.props _.mapValues factory, iterator
+
+  # normalizes sync and async values returned by factories
+  hinoki.callFactoryAndHandleResult = (lifetime, path, factory, dependencyValues) ->
+    if 'function' is typeof factory
+      valueOrPromise = hinoki.callFactoryFunction factory, dependencyValues
+    else
+      names = hinoki.getNamesToInject factory
+      dependenciesObject = _.zipObject names, dependencyValues
+      valueOrPromise = hinoki.callFactoryObjectArray factory, dependenciesObject
+
+    # TODO also return directly if promise is already fulfilled
     unless hinoki.isThenable valueOrPromise
       # valueOrPromise is not a promise but an value
       lifetime.debug? {
@@ -398,18 +429,98 @@
       []
 
   hinoki.getNamesToInject = (factory) ->
-    if factory.$inject?
-      factory.$inject
-    else
-      hinoki.parseFunctionArguments factory
+    hinoki.baseGetNamesToInject factory, false
 
-  hinoki.getAndCacheNamesToInject = (factory) ->
-    if factory.$inject?
-      factory.$inject
-    else
+  hinoki.baseGetNamesToInject = (factory, cache) ->
+    if factory.__inject?
+      return factory.__inject
+    else if 'function' is typeof factory
       names = hinoki.parseFunctionArguments factory
-      factory.$inject = names
+      if cache
+        factory.__inject = names
       return names
+    else if Array.isArray factory or 'object' is typeof factory
+      namesSet = {}
+      _.forEach factory, (subFactory) ->
+        subNames = hinoki.baseGetNamesToInject(subFactory, cache)
+        _.forEach subNames, (subName) ->
+          namesSet[subName] = true
+      names = Object.keys(namesSet)
+      if cache
+        factory.__inject = names
+      return names
+    else
+      throw new Error 'factory has to be a function, object of factories or array of factories'
+
+################################################################################
+# functions for working with sources
+
+  # returns an object containing all the exported properties
+  # of all `*.js` and `*.coffee` files in `filepath`.
+  # if `filepath` is a directory recurse into every file and subdirectory.
+
+  if fs? and path?
+    hinoki.requireSource = (filepath) ->
+      unless 'string' is typeof filepath
+        throw new Error 'argument must be a string'
+      hinoki.source.baseRequire filepath, {}
+
+    # TODO call this something like fromExports
+    hinoki.baseRequireSource = (filepath, object) ->
+      stat = fs.statSync(filepath)
+      if stat.isFile()
+        extension = path.extname(filepath)
+
+        if extension isnt '.js' and extension isnt '.coffee'
+          return
+
+        # coffeescript is only required on demand when the project contains .coffee files
+        # in order to support pure javascript projects
+        if extension is '.coffee'
+          require('coffee-script/register')
+
+        extension = require(filepath)
+
+        Object.keys(extension).map (key) ->
+          unless 'function' is typeof extension[key]
+            throw new Error('export is not a function: ' + key + ' in :' + filepath)
+          if object[key]?
+            throw new Error('duplicate export: ' + key + ' in: ' + filepath + '. first was in: ' + object[key].$file)
+          object[key] = extension[key]
+          # add filename as metadata
+          object[key].$file = filepath
+
+      else if stat.isDirectory()
+        filenames = fs.readdirSync(filepath)
+        filenames.forEach (filename) ->
+          loadFactories object, path.join(filepath, filename)
+
+      return object
+
+  hinoki.source = (arg) ->
+    if 'function' is typeof arg
+      arg
+    else if Array.isArray arg
+      coercedSources = arg.map hinoki.source
+      (name) ->
+        # try all sources in order
+        index = -1
+        length = sources.length
+        while ++index < length
+          result = coercedSources[index](name)
+          if result?
+            return result
+        return null
+    else if 'string' is typeof arg
+      hinoki.source hinoki.requireSource arg
+    else if 'object' is typeof arg
+      (name) ->
+        hinoki.source functionOrObject[name]
+    else
+      throw new Error 'argument must be a function, string, object or array of these'
+
+################################################################################
+# return the hinoki object from the factory
 
   return hinoki
 )

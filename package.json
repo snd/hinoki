@@ -33,7 +33,8 @@
     "node": ">=0.10.0"
   },
   "dependencies": {
-    "bluebird": "2.9.25"
+    "bluebird": "2.9.25",
+    "lodash": "3.8.0"
   },
   "devDependencies": {
     "coffee-script": "1.9.2",
