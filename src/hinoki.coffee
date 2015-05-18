@@ -34,116 +34,99 @@
     if 'function' is typeof nameOrNamesOrFunction
       names = hinoki.getNamesToInject(nameOrNamesOrFunction)
       paths = names.map(hinoki.coerceToArray)
-      return hinoki.getValuesInLifetimes(lifetimes, 0, paths, cacheTarget)
-        .spread(nameOrNamesOrFunction)
+      return hinoki.getValuesAndCacheTarget(
+        source,
+        lifetimes,
+        paths,
+        cacheTarget
+      ).promise.spread(nameOrNamesOrFunction)
 
     if Array.isArray nameOrNamesOrFunction
       names = hinoki.coerceToArray(nameOrNamesOrFunction)
       paths = names.map(hinoki.coerceToArray)
-      return hinoki.getValuesInLifetimes lifetimes, 0, paths, cacheTarget
+      return hinoki.getValuesAndCacheTarget(
+        source,
+        lifetimes,
+        paths,
+        cacheTarget
+      ).promise
 
     path = hinoki.coerceToArray(nameOrNamesOrFunction)
-    hinoki.getValueInLifetimes lifetimes, 0, path, cacheTarget
+    return hinoki.getValueAndCacheTarget(
+      source,
+      lifetimes,
+      path,
+      cacheTarget
+    ).promise
 
   # monomorphic
-  hinoki.getValuesInLifetimes = (lifetimes, lifetimeStartIndex, paths, cacheTarget) ->
-    Promise.all paths.map (path) ->
-      hinoki.getValueInLifetimes lifetimes, lifetimeStartIndex, path, cacheTarget
+  hinoki.PromiseAndCacheTarget = (promise, cacheTarget) ->
+    this.promise = promise
+    this.cacheTarget = cacheTarget
+    return this
 
   # monomorphic
-  hinoki.getValueInLifetimes = (lifetimes, lifetimeStartIndex, path, cacheTarget) ->
-    # try lifetimes in order
-    index = lifetimeStartIndex - 1
-    length = lifetimes.length
-    while ++index < length
-      result = hinoki.getValueInLifetime lifetimes, index, path, cacheTarget
-      if result?
-        return result
-    Promise.reject new hinoki.UnresolvableError path, lifetimes
+  hinoki.getValuesAndCacheTarget = (source, lifetimes, paths, cacheTarget) ->
+    # result.cacheTarget is determined synchronously
+    nextCacheTarget = cacheTarget
+    # result.promise is fulfilled asynchronously
+    promise = Promise.all(_.map(paths, (path) ->
+      result = hinoki.getValueAndCacheTarget(
+        source
+        lifetimes
+        path
+        cacheTarget
+      )
+      nextCacheTarget = Math.max(nextCacheTarget, result.cacheTarget)
+      return result.promise
+    ))
+    return new hinoki.PromiseAndCacheTarget promise, nextCacheTarget
 
   # monomorphic
-  hinoki.getValueInLifetime = (lifetimes, lifetimeIndex, path, cacheTarget) ->
-    lifetime = lifetimes[lifetimeIndex]
+  hinoki.getValueAndCacheTarget = (source, lifetimes, path, cacheTarget) ->
     name = path[0]
-    if lifetime.mapName?
-      name = lifetime.mapName name
+    # look if there already is a value for that name in one of the lifetimes
+    valueIndex = hinoki.getIndexOfFirstObjectHavingProperty lifetimes, name
+    if valueIndex?
+      valueOrPromise = lifetimes[valueIndex][name]
+      promise =
+        if hinoki.isThenable valueOrPromise
+          # if the value is already being constructed
+          # wait for that instead of starting a second construction.
+          valueOrPromise
+        else
+          Promise.resolve valueOrPromise
+      return new hinoki.PromiseAndCacheTarget promise, valueIndex
 
-    value = lifetime.values?[name]
-    # null is allowed as a value
-    unless hinoki.isUndefined value
-      lifetime.debug? {
-        event: 'valueWasResolved'
-        path: path
-        value: value
-      }
-      return Promise.resolve value
-
-    promise = lifetime.promisesAwaitingResolution?[name]
-    if promise?
-      # if the value is already being constructed
-      # wait for that instead of starting a second construction.
-      lifetime.debug? {
-        event: 'valueIsAlreadyAwaitingResolution'
-        path: path
-        promise: promise
-      }
-      return promise
-
-    hinoki.weNeedAFactory lifetimes, lifetimeIndex, path
-
-  hinoki.getFactoryFromSource = (factorySource, name) ->
-    # factory source function
-    if 'function' is typeof factorySource
-      return factorySource(name)
-    # factory source object
-    else
-      return factorySource[name]
-
-  # monomorphic
-  hinoki.weNeedAFactory = (lifetimes, lifetimeIndex, path) ->
-    lifetime = lifetimes[lifetimeIndex]
-    unless lifetime.factories?
-      return
-    if Array.isArray lifetime.factories
-      factorySources = lifetime.factories
-    else
-      factorySources = [lifetime.factories]
-
-    factorySourceIndex = -1
-    factorySourceLength = factorySources.length
-    while ++factorySourceIndex < factorySourceLength
-      factorySource = factorySources[factorySourceIndex]
-      factory = hinoki.getFactoryFromSource factorySource, path[0]
-      if factory?
-        if lifetime.mapFactory?
-          factory = lifetime.mapFactory factory
-        return hinoki.weHaveAFactory lifetimes, lifetimeIndex, path, factorySource, factory
-
-  # monomorphic
-  hinoki.weHaveAFactory = (lifetimes, lifetimeIndex, path, factorySource, factory) ->
-    lifetime = lifetimes[lifetimeIndex]
+    # we have no value
+    # look if there is a factory for that name in the source
+    factory = source(name)
+    unless factory?
+      return new hinoki.PromiseAndCacheTarget(
+        Promise.reject(new hinoki.UnresolvableError(path))
+        cacheTarget
+      )
 
     # we've got a factory.
     # let's check for cycles first since
     # we can't use the factory if the path contains a cycle.
 
+    # TODO check if a value introduces a cycle to speed this up
+    # already in
     if hinoki.arrayOfStringsHasDuplicates path
-      return Promise.reject new hinoki.CircularDependencyError path, lifetime, factory
+      # TODO we dont know the lifetime here
+      return new hinoki.PromiseAndCacheTarget(
+        Promise.reject(new hinoki.CircularDependencyError(path, {}, factory))
+        cacheTarget
+      )
 
     # no cycle - yeah!
-
-    lifetime.debug? {
-      event: 'factoryWasResolved'
-      path: path
-      factorySource: factorySource
-      factory: factory
-    }
 
     # lets make a value
 
     # first lets resolve the dependencies of the factory
 
-    dependencyNames = hinoki.getAndCacheNamesToInject factory
+    dependencyNames = hinoki.baseGetNamesToInject factory, true
 
     newPath = path.slice()
 
@@ -153,54 +136,69 @@
     # this code is reached synchronously from the start of the function call
     # without interleaving.
 
-    dependenciesPromise =
-      if dependencyPaths.length isnt 0
-        hinoki.getValuesInLifetimes lifetimes, lifetimeIndex, dependencyPaths
-      else
-        Promise.resolve([])
+    if dependencyPaths.length isnt 0
+      result = hinoki.getValuesAndCacheTarget(
+        source,
+        lifetimes,
+        dependencyPaths,
+        cacheTarget
+      )
+      dependenciesPromise = result.promise
+      nextCacheTarget = result.cacheTarget
+    else
+      dependenciesPromise = Promise.resolve([])
+      nextCacheTarget = cacheTarget
 
     factoryCallResultPromise = dependenciesPromise.then (dependencyValues) ->
       # the dependencies are ready!
       # we can finally call the factory!
 
-      hinoki.callFactory lifetime, newPath, factory, dependencyValues
+      return hinoki.callFactoryAndNormalizeResult(
+        lifetimes,
+        newPath,
+        factory,
+        dependencyValues,
+        nextCacheTarget
+      )
 
-    # cache the promise.
+    # cache the promise:
     # this code is reached synchronously from the start of the function call
     # without interleaving.
     # its important that the factoryCallResultPromise is added
-    # to promisesAwaitingResolution before the factory is actually called !
+    # to lifetimes[maxCacheTarget] synchronously
+    # because as soon as control is given back to the sheduler
+    # another process might request the value as well.
+    # this way that process just reuses the factoryCallResultPromise
+    # instead of building it all over again.
 
-    unless factory.$nocache
-      lifetime.__promises ?= {}
-      lifetime.__promises[path[0]] = factoryCallResultPromise
+    unless factory.__nocache
+      lifetimes[nextCacheTarget][name] = factoryCallResultPromise
 
-    factoryCallResultPromise
+    returnPromise = factoryCallResultPromise
       .then (value) ->
         # note that a null value is allowed!
         if hinoki.isUndefined value
-          return Promise.reject new hinoki.FactoryReturnedUndefinedError newPath, lifetime, factory
+          return Promise.reject(new hinoki.FactoryReturnedUndefinedError(newPath, {}, factory))
 
         # cache
-        unless factory.$nocache
-          lifetime.values ?= {}
-          lifetime.values[path[0]] = value
+        unless factory.__nocache
+          lifetimes[nextCacheTarget][name] = value
 
         return value
-      .finally ->
-        # whether success or error: remove promise from promise cache
-        # this prevents errored promises from being reused
-        # and allows further requests for the errored names to succeed
-        unless factory.$nocache
-          delete lifetime.promisesAwaitingResolution[path[0]]
-          if Object.keys(lifetime.promisesAwaitingResolution).length is 0
-            delete lifetime.promisesAwaitingResolution
+      .catch (error) ->
+        # prevent errored promises from being reused
+        # and allow further requests for the errored names to succeed.
+        unless factory.__nocache
+          delete lifetimes[nextCacheTarget][name]
+        return Promise.reject error
 
-  hinoki.callFactoryFunction = (factoryFunction, dependencies) ->
+    return new hinoki.PromiseAndCacheTarget(returnPromise, nextCacheTarget)
+
+  hinoki.callFactoryFunction = (factoryFunction, valuesOfDependencies) ->
     try
       valueOrPromise = factoryFunction.apply null, valuesOfDependencies
     catch error
-      return Promise.reject new hinoki.ThrowInFactoryError path, lifetime, factoryFunction, error
+      return Promise.reject new hinoki.ThrowInFactoryError path, {}, factoryFunction, error
 
   hinoki.callFactoryObjectArray = (factoryObject, dependenciesObject) ->
     iterator = (f) ->
@@ -220,7 +218,7 @@
       Promise.props _.mapValues factory, iterator
 
   # normalizes sync and async values returned by factories
-  hinoki.callFactoryAndHandleResult = (lifetime, path, factory, dependencyValues) ->
+  hinoki.callFactoryAndNormalizeResult = (lifetime, path, factory, dependencyValues) ->
     if 'function' is typeof factory
       valueOrPromise = hinoki.callFactoryFunction factory, dependencyValues
     else
@@ -231,31 +229,31 @@
     # TODO also return directly if promise is already fulfilled
     unless hinoki.isThenable valueOrPromise
       # valueOrPromise is not a promise but an value
-      lifetime.debug? {
-        event: 'valueWasCreated',
-        path: path
-        value: valueOrPromise
-        factory: factory
-      }
+      # lifetime.debug? {
+      #   event: 'valueWasCreated',
+      #   path: path
+      #   value: valueOrPromise
+      #   factory: factory
+      # }
       return Promise.resolve valueOrPromise
 
     # valueOrPromise is a promise
 
-    lifetime.debug? {
-      event: 'promiseWasCreated'
-      path: path
-      promise: valueOrPromise
-      factory: factory
-    }
+    # lifetime.debug? {
+    #   event: 'promiseWasCreated'
+    #   path: path
+    #   promise: valueOrPromise
+    #   factory: factory
+    # }
 
     Promise.resolve(valueOrPromise)
       .then (value) ->
-        lifetime.debug? {
-          event: 'promiseWasResolved'
-          path: path
-          value: value
-          factory: factory
-        }
+        # lifetime.debug? {
+        #   event: 'promiseWasResolved'
+        #   path: path
+        #   value: value
+        #   factory: factory
+        # }
         return value
       .catch (rejection) ->
         Promise.reject new hinoki.PromiseRejectedError path, lifetime, rejection
@@ -452,6 +450,15 @@
     else
       throw new Error 'factory has to be a function, object of factories or array of factories'
 
+  hinoki.getIndexOfFirstObjectHavingProperty = (objects, property) ->
+    index = -1
+    length = objects.length
+    while ++index < length
+      # TODO maybe use hasownproperty
+      unless hinoki.isUndefined objects[index][property]
+        return index
+    return null
+
 ################################################################################
 # functions for working with sources
 
@@ -463,7 +470,7 @@
     hinoki.requireSource = (filepath) ->
       unless 'string' is typeof filepath
         throw new Error 'argument must be a string'
-      hinoki.source.baseRequire filepath, {}
+      hinoki.baseRequireSource filepath, {}
 
     # TODO call this something like fromExports
     hinoki.baseRequireSource = (filepath, object) ->
@@ -493,7 +500,7 @@
       else if stat.isDirectory()
         filenames = fs.readdirSync(filepath)
         filenames.forEach (filename) ->
-          loadFactories object, path.join(filepath, filename)
+          hinoki.baseRequireSource path.join(filepath, filename), object
 
       return object
 
@@ -505,7 +512,7 @@
       (name) ->
         # try all sources in order
         index = -1
-        length = sources.length
+        length = arg.length
         while ++index < length
           result = coercedSources[index](name)
           if result?
@@ -515,7 +522,7 @@
       hinoki.source hinoki.requireSource arg
     else if 'object' is typeof arg
       (name) ->
-        hinoki.source functionOrObject[name]
+        arg[name]
     else
       throw new Error 'argument must be a function, string, object or array of these'
 
