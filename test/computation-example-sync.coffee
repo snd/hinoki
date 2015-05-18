@@ -17,10 +17,9 @@ factories =
 module.exports =
 
   'ask for count': (test) ->
+    source = hinoki.source factories
     lifetime =
       xs: [1, 2, 3, 6]
-
-    source = hinoki.source factories
 
     hinoki(source, lifetime, 'count')
       .then (count) ->
@@ -30,46 +29,43 @@ module.exports =
           count: 4
         test.done()
 
-#   'ask for mean': (test) ->
-#     lifetime =
-#       factories: factories
-#       values:
-#         xs: [1, 2, 3, 6]
-#
-#     hinoki(lifetime, 'mean').then (mean) ->
-#       test.equal mean, 3
-#       test.deepEqual lifetime.values,
-#         xs: [1, 2, 3, 6]
-#         count: 4
-#         mean: 3
-#       test.done()
-#
-#   'ask for meanOfSquares': (test) ->
-#     lifetime =
-#       factories: factories
-#       values:
-#         xs: [1, 2, 3, 6]
-#
-#     hinoki(lifetime, 'meanOfSquares').then (meanOfSquares) ->
-#       test.equal meanOfSquares, 12.5
-#       test.deepEqual lifetime.values,
-#         xs: [1, 2, 3, 6]
-#         count: 4
-#         meanOfSquares: 12.5
-#       test.done()
-#
-#   'ask for variance': (test) ->
-#     lifetime =
-#       factories: factories
-#       values:
-#         xs: [1, 2, 3, 6]
-#
-#     hinoki(lifetime, 'variance').then (variance) ->
-#       test.equal variance, 3.5
-#       test.deepEqual lifetime.values,
-#         xs: [1, 2, 3, 6]
-#         count: 4
-#         mean: 3
-#         meanOfSquares: 12.5
-#         variance: 3.5
-#       test.done()
+  'ask for mean': (test) ->
+    source = hinoki.source factories
+    lifetime =
+      xs: [1, 2, 3, 6]
+
+    hinoki(source, lifetime, 'mean').then (mean) ->
+      test.equal mean, 3
+      test.deepEqual lifetime,
+        xs: [1, 2, 3, 6]
+        count: 4
+        mean: 3
+      test.done()
+
+  'ask for meanOfSquares': (test) ->
+    source = hinoki.source factories
+    lifetime =
+      xs: [1, 2, 3, 6]
+
+    hinoki(source, lifetime, 'meanOfSquares').then (meanOfSquares) ->
+      test.equal meanOfSquares, 12.5
+      test.deepEqual lifetime,
+        xs: [1, 2, 3, 6]
+        count: 4
+        meanOfSquares: 12.5
+      test.done()
+
+  'ask for variance': (test) ->
+    source = hinoki.source factories
+    lifetime =
+      xs: [1, 2, 3, 6]
+
+    hinoki(source, lifetime, 'variance').then (variance) ->
+      test.equal variance, 3.5
+      test.deepEqual lifetime,
+        xs: [1, 2, 3, 6]
+        count: 4
+        mean: 3
+        meanOfSquares: 12.5
+        variance: 3.5
+      test.done()
