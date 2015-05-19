@@ -106,48 +106,59 @@ module.exports =
       test.deepEqual fibonacci, [0, 1, 1, 2, 3, 5, 8, 13]
       test.done()
 
-#   'a value is cached in the last lifetime that contains values it directly or indirectly depends on': (test) ->
-#     source = hinoki.source
-#       c: (d) ->
-#         d + 1
-#     l1 =
-#       factories:
-#         a: (b) ->
-#           b + 1
-#
-#     l2 =
-#       factories:
-#         b: (c) ->
-#           c + 1
-#
-#     l3 =
-#       d: 1
-#
-#     hinoki([l1, l2, l3], ['a', 'd']).spread (a, d) ->
-#       test.equal a, 4
-#       test.equal d, 1
-#
-#       test.equal l1.values.a, 4
-#       test.equal l2.values.b, 3
-#       test.equal l3.values.c, 2
-#       test.equal l3.values.d, 1
-#
-#       test.done()
+  'a value is cached in the last lifetime that contains values it directly or indirectly depends on': (test) ->
+    req = {}
+    res = {}
+    params = {}
+    next = ->
+    currentUser = {}
+    env = {}
+    databaseConnection = {}
+    isUserAllowedToAccessResource = ->
+    selectUser = ->
+    databaseUrl = 'kjsldkfjd'
 
-#   'lifetimes can not depend on previous lifetimes': (test) ->
-#     l1 =
-#       factories:
-#         a: ->
-#           1
-#
-#     l2 =
-#       factories:
-#         b: (a) ->
-#           a + 1
-#
-#     hinoki([l1, l2], 'b').catch hinoki.UnresolvableError, (error) ->
-#       test.deepEqual error.path, ['a', 'b']
-#       test.done()
+    source = hinoki.source
+      currentUser: (req, selectUser) -> currentUser
+      isCurrentUserAllowedToAccessResource: (params, currentUser) -> true
+      env: -> env
+      databaseUrl: (env) -> databaseUrl
+      databaseConnection: (databaseUrl) -> databaseConnection
+      isUserAllowedToAccessResource: (databaseConnection) -> isUserAllowedToAccessResource
+      selectUser: (databaseConnection) -> selectUser
+
+    applicationLifetime = {}
+
+    requestLifetime =
+      req: req
+      res: res
+
+    middlewareLifetime =
+      params: params
+      next: next
+
+    lifetimes = [
+      applicationLifetime
+      requestLifetime
+      middlewareLifetime
+    ]
+
+    hinoki source, lifetimes, (isCurrentUserAllowedToAccessResource) ->
+      test.deepEqual applicationLifetime,
+        env: env
+        databaseUrl: databaseUrl
+        databaseConnection: databaseConnection
+        selectUser: selectUser
+      test.deepEqual requestLifetime,
+        req: req
+        res: res
+        currentUser: currentUser
+      test.deepEqual middlewareLifetime,
+        params: params
+        next: next
+        isCurrentUserAllowedToAccessResource: true
+
+      test.done()
 
   'a factory is called no more than once': (test) ->
     callsTo =

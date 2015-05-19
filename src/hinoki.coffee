@@ -13,7 +13,7 @@
   # other
   else
     root.hinoki = factory(root.Promise, root.lodash)
-)(this, (Promise, _, fs, path) ->
+)(this, (Promise, _, fs, pathModule) ->
 
 ################################################################################
 # get
@@ -98,16 +98,6 @@
           Promise.resolve valueOrPromise
       return new hinoki.PromiseAndCacheTarget promise, valueIndex
 
-    # we have no value
-    # look if there is a factory for that name in the source
-    factory = source(name)
-    unless factory?
-      return new hinoki.PromiseAndCacheTarget(
-        Promise.reject(new hinoki.UnresolvableError(path))
-        cacheTarget
-      )
-
-    # we've got a factory.
     # let's check for cycles first since
     # we can't use the factory if the path contains a cycle.
 
@@ -116,12 +106,22 @@
     if hinoki.arrayOfStringsHasDuplicates path
       # TODO we dont know the lifetime here
       return new hinoki.PromiseAndCacheTarget(
-        Promise.reject(new hinoki.CircularDependencyError(path, {}, factory))
+        Promise.reject(new hinoki.CircularDependencyError(path))
         cacheTarget
       )
 
     # no cycle - yeah!
 
+    # we have no value
+    # look if there is a factory for that name in the source
+    factory = source(name)
+    unless factory?
+      return new hinoki.PromiseAndCacheTarget(
+        Promise.reject(new hinoki.NotFoundError(path))
+        cacheTarget
+      )
+
+    # we've got a factory.
     # lets make a value
 
     # first lets resolve the dependencies of the factory
@@ -152,14 +152,7 @@
     factoryCallResultPromise = dependenciesPromise.then (dependencyValues) ->
       # the dependencies are ready!
       # we can finally call the factory!
-
-      return hinoki.callFactoryAndNormalizeResult(
-        lifetimes,
-        newPath,
-        factory,
-        dependencyValues,
-        nextCacheTarget
-      )
+      return hinoki.callFactory(newPath, factory, dependencyValues)
 
     # cache the promise:
     # this code is reached synchronously from the start of the function call
@@ -176,14 +169,9 @@
 
     returnPromise = factoryCallResultPromise
       .then (value) ->
-        # note that a null value is allowed!
-        if hinoki.isUndefined value
-          return Promise.reject(new hinoki.FactoryReturnedUndefinedError(newPath, {}, factory))
-
         # cache
         unless factory.__nocache
           lifetimes[nextCacheTarget][name] = value
-
         return value
       .catch (error) ->
         # prevent errored promises from being reused
@@ -194,22 +182,40 @@
 
     return new hinoki.PromiseAndCacheTarget(returnPromise, nextCacheTarget)
 
-  hinoki.callFactoryFunction = (factoryFunction, valuesOfDependencies) ->
+  # try catch prevents functions from being optimized.
+  # wrapping it into a function keeps the unoptimized part small.
+  hinoki.tryCatch = (fun, args) ->
     try
-      valueOrPromise = factoryFunction.apply null, valuesOfDependencies
+      return fun.apply null, args
     catch error
-      return Promise.reject new hinoki.ThrowInFactoryError path, {}, factoryFunction, error
+      if _.isError error
+        return error
+      else
+        return new Error error.toString()
 
-  hinoki.callFactoryObjectArray = (factoryObject, dependenciesObject) ->
+  # returns a promise
+  hinoki.callFactoryFunction = (path, factoryFunction, args) ->
+    result = hinoki.tryCatch(factoryFunction, args)
+    if _.isUndefined result
+      # note that a null value is allowed!
+      return Promise.reject new hinoki.FactoryReturnedUndefinedError path, factoryFunction
+    if _.isError(result)
+      return Promise.reject new hinoki.ErrorInFactory path, factoryFunction, result
+    if hinoki.isThenable result
+      return result.catch (rejection) ->
+        Promise.reject new hinoki.PromiseRejectedError path, factoryFunction, rejection
+    return Promise.resolve result
+
+  hinoki.callFactoryObjectArray = (path, factoryObject, dependenciesObject) ->
     iterator = (f) ->
       if 'function' is typeof f
         names = hinoki.getNamesToInject f
         dependencies = _.map names, (name) ->
           dependenciesObject[name]
-        hinoki.callFactoryFunction f, dependencies
+        return hinoki.callFactoryFunction(path, f, dependencies)
       else
         # supports nesting
-        hinoki.callFactoryObjectArray(f, dependenciesObject)
+        return hinoki.callFactoryObjectArray(path, f, dependenciesObject)
 
     if Array.isArray factory
       Promise.all(factory).map(iterator)
@@ -217,46 +223,13 @@
     else
       Promise.props _.mapValues factory, iterator
 
-  # normalizes sync and async values returned by factories
-  hinoki.callFactoryAndNormalizeResult = (lifetime, path, factory, dependencyValues) ->
+  hinoki.callFactory = (path, factory, dependencyValues) ->
     if 'function' is typeof factory
-      valueOrPromise = hinoki.callFactoryFunction factory, dependencyValues
+      return hinoki.callFactoryFunction path, factory, dependencyValues
     else
       names = hinoki.getNamesToInject factory
       dependenciesObject = _.zipObject names, dependencyValues
-      valueOrPromise = hinoki.callFactoryObjectArray factory, dependenciesObject
-
-    # TODO also return directly if promise is already fulfilled
-    unless hinoki.isThenable valueOrPromise
-      # valueOrPromise is not a promise but an value
-      # lifetime.debug? {
-      #   event: 'valueWasCreated',
-      #   path: path
-      #   value: valueOrPromise
-      #   factory: factory
-      # }
-      return Promise.resolve valueOrPromise
-
-    # valueOrPromise is a promise
-
-    # lifetime.debug? {
-    #   event: 'promiseWasCreated'
-    #   path: path
-    #   promise: valueOrPromise
-    #   factory: factory
-    # }
-
-    Promise.resolve(valueOrPromise)
-      .then (value) ->
-        # lifetime.debug? {
-        #   event: 'promiseWasResolved'
-        #   path: path
-        #   value: value
-        #   factory: factory
-        # }
-        return value
-      .catch (rejection) ->
-        Promise.reject new hinoki.PromiseRejectedError path, lifetime, rejection
+      return hinoki.callFactoryObjectArray path, factory, dependenciesObject
 
 ################################################################################
 # errors
@@ -281,67 +254,62 @@
   hinoki.BaseError = ->
   hinoki.inherits hinoki.BaseError, Error
 
-  hinoki.UnresolvableError = (path, lifetime) ->
-    this.name = 'UnresolvableError'
-    this.message = "unresolvable name '#{path[0]}' (#{hinoki.pathToString path})"
+  hinoki.NotFoundError = (path) ->
+    this.name = 'NotFoundError'
+    this.message = "neither value nor factory found for name `#{path[0]}` in path `#{hinoki.pathToString path}`"
     if Error.captureStackTrace?
       # second argument excludes the constructor from inclusion in the stack trace
       Error.captureStackTrace(this, this.constructor)
 
     this.path = path
-    this.lifetime = lifetime
     return
 
-  hinoki.inherits hinoki.UnresolvableError, hinoki.BaseError
+  hinoki.inherits hinoki.NotFoundError, hinoki.BaseError
 
-  hinoki.CircularDependencyError = (path, lifetime, factory) ->
+  hinoki.CircularDependencyError = (path) ->
     this.name = 'CircularDependencyError'
-    this.message = "circular dependency #{hinoki.pathToString path}"
+    this.message = "circular dependency `#{hinoki.pathToString path}`"
     if Error.captureStackTrace?
       Error.captureStackTrace(this, this.constructor)
 
     this.path = path
-    this.lifetime = lifetime
-    this.factory = factory
     return
 
   hinoki.inherits hinoki.CircularDependencyError, hinoki.BaseError
 
-  hinoki.ThrowInFactoryError = (path, lifetime, factory, error) ->
-    this.name = 'ThrowInFactoryError'
-    this.message = "error in factory for '#{path[0]}'. original error: #{error.toString()}"
+  hinoki.ErrorInFactory = (path, factory, error) ->
+    this.name = 'ErrorInFactory'
+    this.message = "error in factory for `#{path[0]}`. original error `#{error.toString()}`"
     if Error.captureStackTrace?
       Error.captureStackTrace(this, this.constructor)
 
     this.path = path
-    this.lifetime = lifetime
     this.factory = factory
     this.error = error
     return
 
-  hinoki.inherits hinoki.ThrowInFactoryError, hinoki.BaseError
+  hinoki.inherits hinoki.ErrorInFactory, hinoki.BaseError
 
-  hinoki.FactoryReturnedUndefinedError = (path, lifetime, factory) ->
+  hinoki.FactoryReturnedUndefinedError = (path, factory) ->
     this.name = 'FactoryReturnedUndefinedError'
-    this.message = "factory for '#{path[0]}' returned undefined"
+    this.message = "factory for `#{path[0]}` returned undefined"
     if Error.captureStackTrace?
       Error.captureStackTrace(this, this.constructor)
 
     this.path = path
-    this.lifetime = lifetime
     this.factory = factory
     return
 
   hinoki.inherits hinoki.FactoryReturnedUndefinedError, hinoki.BaseError
 
-  hinoki.PromiseRejectedError = (path, lifetime, error) ->
+  hinoki.PromiseRejectedError = (path, factory, error) ->
     this.name = 'PromiseRejectedError'
-    this.message = "promise returned from factory for '#{path[0]}' was rejected. original error: #{error.toString()}"
+    this.message = "promise returned from factory for `#{path[0]}` was rejected. original error `#{error.toString()}`"
     if Error.captureStackTrace?
       Error.captureStackTrace(this, this.constructor)
 
     this.path = path
-    this.lifetime = lifetime
+    this.factory = factory
     this.error = error
     return
 
@@ -466,7 +434,7 @@
   # of all `*.js` and `*.coffee` files in `filepath`.
   # if `filepath` is a directory recurse into every file and subdirectory.
 
-  if fs? and path?
+  if fs? and pathModule?
     hinoki.requireSource = (filepath) ->
       unless 'string' is typeof filepath
         throw new Error 'argument must be a string'
@@ -476,7 +444,7 @@
     hinoki.baseRequireSource = (filepath, object) ->
       stat = fs.statSync(filepath)
       if stat.isFile()
-        extension = path.extname(filepath)
+        extension = pathModule.extname(filepath)
 
         if extension isnt '.js' and extension isnt '.coffee'
           return
@@ -500,7 +468,7 @@
       else if stat.isDirectory()
         filenames = fs.readdirSync(filepath)
         filenames.forEach (filename) ->
-          hinoki.baseRequireSource path.join(filepath, filename), object
+          hinoki.baseRequireSource pathModule.join(filepath, filename), object
 
       return object
 

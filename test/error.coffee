@@ -5,95 +5,113 @@ hinoki = require '../src/hinoki'
 module.exports =
 
   'errors can be catched as BaseError': (test) ->
-    lifetime =
-      factories:
-        a: ->
+    source = hinoki.source
+      a: ->
+    lifetime = {}
 
-    hinoki(lifetime, 'a').catch hinoki.BaseError, (error) ->
+    hinoki(source, lifetime, 'a').catch hinoki.BaseError, (error) ->
       test.equal error.name, 'FactoryReturnedUndefinedError'
       test.done()
 
-  'UnresolvableError': (test) ->
+  'NotFoundError': (test) ->
+    source = ->
     lifetime = {}
 
-    hinoki(lifetime, 'a').catch hinoki.UnresolvableError, (error) ->
-      test.equal error.message, "unresolvable name 'a' (a)"
+    hinoki(source, lifetime, 'a').catch hinoki.NotFoundError, (error) ->
+      test.equal error.message, "neither value nor factory found for name `a` in path `a`"
       test.deepEqual error.path, ['a']
-      test.ok not lifetime.promisesAwaitingResolution?
       test.done()
 
-  'CircularDependencyError': (test) ->
-    lifetime =
-      factories:
+  'CircularDependencyError':
+    '2': (test) ->
+      source = hinoki.source
         a: (a) ->
+      lifetime = {}
 
-    hinoki(lifetime, 'a').catch hinoki.CircularDependencyError, (error) ->
-      test.equal error.name, 'CircularDependencyError'
-      test.equal error.message, "circular dependency a <- a"
-      test.equal 'string', typeof error.stack
-      test.ok error.stack.split('\n').length > 8
+      hinoki(source, lifetime, 'a').catch hinoki.CircularDependencyError, (error) ->
+        test.equal error.name, 'CircularDependencyError'
+        test.equal error.message, "circular dependency `a <- a`"
+        test.equal 'string', typeof error.stack
+        test.ok error.stack.split('\n').length > 8
 
-      test.deepEqual error.path, ['a', 'a']
-      test.equal error.lifetime, lifetime
-      test.equal error.factory, lifetime.factories.a
-      test.ok not lifetime.promisesAwaitingResolution?
+        test.deepEqual error.path, ['a', 'a']
+        test.deepEqual lifetime, {}
 
-      test.done()
+        test.done()
 
-  'ThrowInFactoryError': (test) ->
+    '3': (test) ->
+      source = hinoki.source
+        a: (b) ->
+        b: (a) ->
+      lifetime = {}
+
+      hinoki(source, lifetime, 'a').catch hinoki.CircularDependencyError, (error) ->
+        test.equal error.name, 'CircularDependencyError'
+        test.equal error.message, "circular dependency `a <- b <- a`"
+        test.equal 'string', typeof error.stack
+        test.ok error.stack.split('\n').length > 8
+
+        test.deepEqual error.path, ['a', 'b', 'a']
+        test.deepEqual lifetime, {}
+
+        test.done()
+
+  'ErrorInFactory': (test) ->
     exception = new Error 'fail'
+    a = -> throw exception
 
-    lifetime =
-      factories:
-        a: -> throw exception
+    source = hinoki.source
+      a: a
+    lifetime = {}
 
-    hinoki(lifetime, 'a').catch hinoki.ThrowInFactoryError, (error) ->
-      test.equal error.name, 'ThrowInFactoryError'
-      test.equal error.message, "error in factory for 'a'. original error: Error: fail"
+    hinoki(source, lifetime, 'a').catch hinoki.ErrorInFactory, (error) ->
+      test.equal error.name, 'ErrorInFactory'
+      test.equal error.message, "error in factory for `a`. original error `Error: fail`"
       test.equal 'string', typeof error.stack
       test.ok error.stack.split('\n').length > 8
 
       test.deepEqual error.path, ['a']
-      test.equal error.lifetime, lifetime
-      test.equal error.factory, lifetime.factories.a
+      test.equal error.factory, a
       test.equal error.error, exception
-      test.ok not lifetime.promisesAwaitingResolution?
+      test.deepEqual lifetime, {}
 
       test.done()
 
   'FactoryReturnedUndefinedError': (test) ->
-    lifetime =
-      factories:
-        a: ->
+    a = ->
+    source = hinoki.source
+      a: a
+    lifetime = {}
 
-    hinoki(lifetime, 'a').catch hinoki.FactoryReturnedUndefinedError, (error) ->
+    hinoki(source, lifetime, 'a').catch hinoki.FactoryReturnedUndefinedError, (error) ->
       test.equal error.name, 'FactoryReturnedUndefinedError'
-      test.equal error.message, "factory for 'a' returned undefined"
+      test.equal error.message, "factory for `a` returned undefined"
       test.equal 'string', typeof error.stack
       test.ok error.stack.split('\n').length > 8
 
       test.deepEqual error.path, ['a']
-      test.equal error.lifetime, lifetime
-      test.ok not lifetime.promisesAwaitingResolution?
+      test.equal error.factory, a
+      test.deepEqual lifetime, {}
 
       test.done()
 
   'PromiseRejectedError': (test) ->
     rejection = new Error 'fail'
+    a = -> Promise.reject rejection
 
-    lifetime =
-      factories:
-        a: -> Promise.reject rejection
+    source = hinoki.source
+      a: a
+    lifetime = {}
 
-    hinoki(lifetime, 'a').catch hinoki.PromiseRejectedError, (error) ->
+    hinoki(source, lifetime, 'a').catch hinoki.PromiseRejectedError, (error) ->
       test.equal error.name, 'PromiseRejectedError'
-      test.equal error.message, "promise returned from factory for 'a' was rejected. original error: Error: fail"
+      test.equal error.message, "promise returned from factory for `a` was rejected. original error `Error: fail`"
       test.equal 'string', typeof error.stack
       test.ok error.stack.split('\n').length > 8
 
       test.deepEqual error.path, ['a']
-      test.equal error.lifetime, lifetime
       test.equal error.error, rejection
-      test.ok not lifetime.promisesAwaitingResolution?
+      test.equal error.factory, a
+      test.deepEqual lifetime, {}
 
       test.done()

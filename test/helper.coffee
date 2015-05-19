@@ -1,4 +1,5 @@
 hinoki = require '../src/hinoki'
+_ = require 'lodash'
 
 module.exports =
 
@@ -48,6 +49,53 @@ module.exports =
     test.deepEqual [1], hinoki.coerceToArray 1
     test.deepEqual [], hinoki.coerceToArray null
     test.done()
+
+  'tryCatch':
+
+    'no error': (test) ->
+      fun = (a, b) ->
+        test.equal a, 1
+        test.equal b, 2
+        return a + b
+      result = hinoki.tryCatch fun, [1, 2]
+      test.ok not _.isError result
+      test.equal result, 3
+      test.done()
+
+    'return error': (test) ->
+      error = new Error 'test'
+      fun = (a, b) ->
+        test.equal a, 1
+        test.equal b, 2
+        return error
+      result = hinoki.tryCatch fun, [1, 2]
+      test.ok _.isError result
+      test.equal error, result
+      test.done()
+
+    'throw error': (test) ->
+      error = new Error 'test'
+      fun = (a, b) ->
+        test.equal a, 1
+        test.equal b, 2
+        throw error
+      result = hinoki.tryCatch fun, [1, 2]
+      test.ok _.isError result
+      test.equal error, result
+      test.done()
+
+    'throw something': (test) ->
+      error = 'test'
+      fun = (a, b) ->
+        test.equal a, 1
+        test.equal b, 2
+        throw error
+      result = hinoki.tryCatch fun, [1, 2]
+      test.ok not _.isError error
+      test.ok _.isError result
+      test.equal result.message, 'test'
+      test.notEqual error, result
+      test.done()
 
   'parseFunctionArguments': (test) ->
     try

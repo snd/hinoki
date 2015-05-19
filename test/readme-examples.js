@@ -4,7 +4,7 @@ var hinoki = require('../lib/hinoki');
 
 module.exports = {
   'readme example': function(test) {
-    var factories = {
+    var source = hinoki.source({
       sumFn: function() {
         return function(xs) {
           return xs.reduce(function(acc, x) { return acc + x; }, 0);
@@ -31,26 +31,23 @@ module.exports = {
       variance: function(mean, meanOfSquares) {
         return meanOfSquares - mean * mean;
       }
-    };
+    });
 
     var lifetime = {
-      factories: factories,
-      values: {
-        // TODO shuffle this around
-        numbers: [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
-      }
+      // TODO shuffle this around
+      numbers: [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
     };
 
-    hinoki(lifetime, 'mean')
+    hinoki(source, lifetime, 'mean')
       .then(function(mean) {
         test.equal(mean, 8.8);
-        return hinoki(lifetime, ['mean', 'variance', 'numbersSorted']);
+        return hinoki(source, lifetime, ['mean', 'variance', 'numbersSorted']);
       })
       .spread(function(mean, variance, numbersSorted) {
         console.log('mean', mean); // ->
         console.log('variance', variance); // ->
         console.log('numbersSorted', numbersSorted); // ->
-        return hinoki(lifetime, function(variance, median) {
+        return hinoki(source, lifetime, function(variance, median) {
           console.log('variance', variance); // ->
           console.log('median', median); // ->
         });
