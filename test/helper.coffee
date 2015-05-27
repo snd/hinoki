@@ -3,35 +3,6 @@ _ = require 'lodash'
 
 module.exports =
 
-  'isNull': (test) ->
-    test.ok hinoki.isNull null
-    test.ok not hinoki.isNull undefined
-    test.ok not hinoki.isNull 0
-    test.ok not hinoki.isNull false
-    test.ok not hinoki.isNull ''
-
-    test.done()
-
-  'isUndefined': (test) ->
-    test.ok hinoki.isUndefined undefined
-    test.ok not hinoki.isUndefined null
-    test.ok not hinoki.isUndefined 0
-    test.ok not hinoki.isUndefined false
-    test.ok not hinoki.isUndefined ''
-
-    test.done()
-
-  'isExisting': (test) ->
-    test.ok hinoki.isExisting {}
-    test.ok hinoki.isExisting false
-    test.ok hinoki.isExisting 0
-    test.ok hinoki.isExisting ''
-
-    test.ok not hinoki.isExisting null
-    test.ok not hinoki.isExisting undefined
-
-    test.done()
-
   'arrayOfStringsHasDuplicates': (test) ->
     test.ok not hinoki.arrayOfStringsHasDuplicates []
     test.ok not hinoki.arrayOfStringsHasDuplicates ['a']
@@ -41,13 +12,6 @@ module.exports =
     test.ok hinoki.arrayOfStringsHasDuplicates ['a', 'a', 'b']
     test.ok hinoki.arrayOfStringsHasDuplicates ['b', 'a', 'b']
     test.ok hinoki.arrayOfStringsHasDuplicates ['a', 'b', 'b']
-    test.done()
-
-  'coerceToArray': (test) ->
-    test.deepEqual [], hinoki.coerceToArray []
-    test.deepEqual [1, 2, 3], hinoki.coerceToArray [1, 2, 3]
-    test.deepEqual [1], hinoki.coerceToArray 1
-    test.deepEqual [], hinoki.coerceToArray null
     test.done()
 
   'tryCatch':
@@ -96,43 +60,6 @@ module.exports =
       test.equal result.message, 'test'
       test.notEqual error, result
       test.done()
-
-  'parseFunctionArguments': (test) ->
-    try
-      hinoki.parseFunctionArguments 0
-    catch err
-      test.equal err.message, 'argument must be a function'
-    test.deepEqual [], hinoki.parseFunctionArguments ->
-    test.deepEqual ['first'],
-      hinoki.parseFunctionArguments (first) ->
-    test.deepEqual ['first', 'second'],
-      hinoki.parseFunctionArguments (first, second) ->
-    test.deepEqual ['first', 'second', 'third'],
-      hinoki.parseFunctionArguments (first, second, third) ->
-    test.done()
-
-  'getIndexOfFirstObjectHavingProperty': (test) ->
-    test.equals null, hinoki.getIndexOfFirstObjectHavingProperty(
-      []
-      'a'
-    )
-    test.equals null, hinoki.getIndexOfFirstObjectHavingProperty(
-      [{}, {}, {b: 'b'}]
-      'a'
-    )
-    test.equals 0, hinoki.getIndexOfFirstObjectHavingProperty(
-      [{a: 'a'}, {}, {b: 'b'}]
-      'a'
-    )
-    test.equals null, hinoki.getIndexOfFirstObjectHavingProperty(
-      [{a: undefined}, {}, {b: 'b'}]
-      'a'
-    )
-    test.equals 3, hinoki.getIndexOfFirstObjectHavingProperty(
-      [{}, {}, {b: 'b'}, {a: null}]
-      'a'
-    )
-    test.done()
 
   'source':
 

@@ -1,19 +1,20 @@
 ((root, factory) ->
   # amd
   if ('function' is typeof define) and define.amd?
-    define(['bluebird', 'lodash'], factory)
+    define(['bluebird', 'helfer', 'lodash'], factory)
   # nodejs
   else if exports?
     module.exports = factory(
       require('bluebird')
       require('lodash')
+      require('helfer')
       require('fs')
       require('path')
     )
   # other
   else
-    root.hinoki = factory(root.Promise, root.lodash)
-)(this, (Promise, _, fs, pathModule) ->
+    root.hinoki = factory(root.Promise, root.helfer, root.lodash)
+)(this, (Promise, _, helfer, fs, pathModule) ->
 
 ################################################################################
 # get
@@ -23,7 +24,7 @@
     source = hinoki.source arg1
 
     if arg3?
-      lifetimes = hinoki.coerceToArray arg2
+      lifetimes = helfer.coerceToArray arg2
       nameOrNamesOrFunction = arg3
     else
       lifetimes = [{}]
@@ -33,7 +34,7 @@
 
     if 'function' is typeof nameOrNamesOrFunction
       names = hinoki.getNamesToInject(nameOrNamesOrFunction)
-      paths = names.map(hinoki.coerceToArray)
+      paths = names.map(helfer.coerceToArray)
       return hinoki.getValuesAndCacheTarget(
         source,
         lifetimes,
@@ -42,8 +43,8 @@
       ).promise.spread(nameOrNamesOrFunction)
 
     if Array.isArray nameOrNamesOrFunction
-      names = hinoki.coerceToArray(nameOrNamesOrFunction)
-      paths = names.map(hinoki.coerceToArray)
+      names = helfer.coerceToArray(nameOrNamesOrFunction)
+      paths = names.map(helfer.coerceToArray)
       return hinoki.getValuesAndCacheTarget(
         source,
         lifetimes,
@@ -51,7 +52,7 @@
         cacheTarget
       ).promise
 
-    path = hinoki.coerceToArray(nameOrNamesOrFunction)
+    path = helfer.coerceToArray(nameOrNamesOrFunction)
     return hinoki.getValueAndCacheTarget(
       source,
       lifetimes,
@@ -86,11 +87,11 @@
   hinoki.getValueAndCacheTarget = (source, lifetimes, path, cacheTarget) ->
     name = path[0]
     # look if there already is a value for that name in one of the lifetimes
-    valueIndex = hinoki.getIndexOfFirstObjectHavingProperty lifetimes, name
-    if valueIndex?
+    valueIndex = helfer.findIndexWhereProperty lifetimes, name
+    unless valueIndex is -1
       valueOrPromise = lifetimes[valueIndex][name]
       promise =
-        if hinoki.isThenable valueOrPromise
+        if helfer.isThenable valueOrPromise
           # if the value is already being constructed
           # wait for that instead of starting a second construction.
           valueOrPromise
@@ -131,7 +132,7 @@
     newPath = path.slice()
 
     dependencyPaths = dependencyNames.map (x) ->
-      hinoki.coerceToArray(x).concat newPath
+      helfer.coerceToArray(x).concat newPath
 
     # this code is reached synchronously from the start of the function call
     # without interleaving.
@@ -165,12 +166,18 @@
     # instead of building it all over again.
 
     unless factory.__nocache
+      # if lifetimes[nextCacheTarget][name]?
+      # TODO this should never happen. we might add resolve to an error here
+      #   return new hinoki.Malfunctioning
       lifetimes[nextCacheTarget][name] = factoryCallResultPromise
 
     returnPromise = factoryCallResultPromise
       .then (value) ->
         # cache
         unless factory.__nocache
+          # if lifetimes[nextCacheTarget][name]?
+          # TODO this should never happen. we might add resolve to an error here
+          #   return new hinoki.Error
           lifetimes[nextCacheTarget][name] = value
         return value
       .catch (error) ->
@@ -188,7 +195,7 @@
     try
       return fun.apply null, args
     catch error
-      if _.isError error
+      if helfer.isError error
         return error
       else
         return new Error error.toString()
@@ -196,12 +203,12 @@
   # returns a promise
   hinoki.callFactoryFunction = (path, factoryFunction, args) ->
     result = hinoki.tryCatch(factoryFunction, args)
-    if _.isUndefined result
+    if helfer.isUndefined result
       # note that a null value is allowed!
       return Promise.reject new hinoki.FactoryReturnedUndefinedError path, factoryFunction
-    if _.isError(result)
+    if helfer.isError(result)
       return Promise.reject new hinoki.ErrorInFactory path, factoryFunction, result
-    if hinoki.isThenable result
+    if helfer.isThenable result
       return result.catch (rejection) ->
         Promise.reject new hinoki.PromiseRejectedError path, factoryFunction, rejection
     return Promise.resolve result
@@ -234,25 +241,12 @@
 ################################################################################
 # errors
 
-  hinoki.inherits = (constructor, superConstructor) ->
-    if 'function' is typeof Object.create
-      constructor.prototype = Object.create(superConstructor.prototype)
-      constructor.prototype.constructor = constructor
-    else
-      # if there is no Object.create we use a proxyConstructor
-      # to make a new object that has superConstructor as its prototype
-      # and make it the prototype of constructor
-      proxyConstructor = ->
-      proxyConstructor.prototype = superConstructor.prototype
-      constructor.prototype = new proxyConstructor
-      constructor.prototype.constructor = constructor
-
   # constructors for errors which are catchable with bluebirds `catch`
 
   # the base error for all other hinoki errors
   # not to be instantiated directly
   hinoki.BaseError = ->
-  hinoki.inherits hinoki.BaseError, Error
+  helfer.inherits hinoki.BaseError, Error
 
   hinoki.NotFoundError = (path) ->
     this.name = 'NotFoundError'
@@ -263,8 +257,7 @@
 
     this.path = path
     return
-
-  hinoki.inherits hinoki.NotFoundError, hinoki.BaseError
+  helfer.inherits hinoki.NotFoundError, hinoki.BaseError
 
   hinoki.CircularDependencyError = (path) ->
     this.name = 'CircularDependencyError'
@@ -274,8 +267,7 @@
 
     this.path = path
     return
-
-  hinoki.inherits hinoki.CircularDependencyError, hinoki.BaseError
+  helfer.inherits hinoki.CircularDependencyError, hinoki.BaseError
 
   hinoki.ErrorInFactory = (path, factory, error) ->
     this.name = 'ErrorInFactory'
@@ -287,8 +279,7 @@
     this.factory = factory
     this.error = error
     return
-
-  hinoki.inherits hinoki.ErrorInFactory, hinoki.BaseError
+  helfer.inherits hinoki.ErrorInFactory, hinoki.BaseError
 
   hinoki.FactoryReturnedUndefinedError = (path, factory) ->
     this.name = 'FactoryReturnedUndefinedError'
@@ -299,8 +290,7 @@
     this.path = path
     this.factory = factory
     return
-
-  hinoki.inherits hinoki.FactoryReturnedUndefinedError, hinoki.BaseError
+  helfer.inherits hinoki.FactoryReturnedUndefinedError, hinoki.BaseError
 
   hinoki.PromiseRejectedError = (path, factory, error) ->
     this.name = 'PromiseRejectedError'
@@ -312,8 +302,7 @@
     this.factory = factory
     this.error = error
     return
-
-  hinoki.inherits hinoki.PromiseRejectedError, hinoki.BaseError
+  helfer.inherits hinoki.PromiseRejectedError, hinoki.BaseError
 
 ################################################################################
 # path
@@ -323,24 +312,6 @@
 
 ################################################################################
 # util
-
-  hinoki.isObject = (x) ->
-    x is Object(x)
-
-  hinoki.isThenable = (x) ->
-    hinoki.isObject(x) and 'function' is typeof x.then
-
-  hinoki.isUndefined =  (x) ->
-    'undefined' is typeof x
-
-  hinoki.isNull = (x) ->
-    null is x
-
-  hinoki.isExisting = (x) ->
-    x?
-
-  hinoki.identity = (x) ->
-    x
 
   # returns whether an array of strings contains duplicates.
   #
@@ -358,42 +329,6 @@
       i++
     return false
 
-  # coerces `arg` into an array.
-  #
-  # returns `arg` if it is an array.
-  # returns `[arg]` otherwise.
-  # returns `[]` if `arg` is null.
-  #
-  # example:
-  # coerceToArray 'a'
-  # => ['a']
-
-  hinoki.coerceToArray = (arg) ->
-    if Array.isArray arg
-      return arg
-    unless arg?
-      return []
-    [arg]
-
-  # example:
-  # parseFunctionArguments (a, b c) ->
-  # => ['a', 'b‘, 'c']
-
-  hinoki.parseFunctionArguments = (fun) ->
-    unless 'function' is typeof fun
-      throw new Error 'argument must be a function'
-
-    string = fun.toString()
-
-    argumentPart = string.slice(string.indexOf('(') + 1, string.indexOf(')'))
-
-    dependencies = argumentPart.match(/([^\s,]+)/g)
-
-    if dependencies
-      dependencies
-    else
-      []
-
   hinoki.getNamesToInject = (factory) ->
     hinoki.baseGetNamesToInject factory, false
 
@@ -401,7 +336,7 @@
     if factory.__inject?
       return factory.__inject
     else if 'function' is typeof factory
-      names = hinoki.parseFunctionArguments factory
+      names = helfer.parseFunctionArguments factory
       if cache
         factory.__inject = names
       return names
@@ -417,15 +352,6 @@
       return names
     else
       throw new Error 'factory has to be a function, object of factories or array of factories'
-
-  hinoki.getIndexOfFirstObjectHavingProperty = (objects, property) ->
-    index = -1
-    length = objects.length
-    while ++index < length
-      # TODO maybe use hasownproperty
-      unless hinoki.isUndefined objects[index][property]
-        return index
-    return null
 
 ################################################################################
 # functions for working with sources
@@ -493,6 +419,18 @@
         arg[name]
     else
       throw new Error 'argument must be a function, string, object or array of these'
+
+  hinoki.decorateSourceToAlsoLookupWithPrefix = (innerSource, prefix) ->
+    (name) ->
+      result = innerSource(name)
+      if result?
+        return result
+
+      prefixedName = prefix + name
+      # factory that resolves to the same value
+      wrapperFactory = (wrapped) -> wrapped
+      wrapperFactory.__inject = [prefixedName]
+      return wrapperFactory
 
 ################################################################################
 # return the hinoki object from the factory

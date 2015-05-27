@@ -1,4 +1,5 @@
 Promise = require 'bluebird'
+helfer = require 'helfer'
 
 hinoki = require '../src/hinoki'
 
@@ -6,51 +7,51 @@ module.exports =
 
   'return null or undefined': (test) ->
     f = ->
-    test.ok not hinoki.isNull f()
-    test.ok hinoki.isUndefined f()
+    test.ok not helfer.isNull f()
+    test.ok helfer.isUndefined f()
 
     g = -> return
-    test.ok not hinoki.isNull g()
-    test.ok hinoki.isUndefined g()
+    test.ok not helfer.isNull g()
+    test.ok helfer.isUndefined g()
 
     h = -> return undefined
-    test.ok not hinoki.isNull h()
-    test.ok hinoki.isUndefined h()
+    test.ok not helfer.isNull h()
+    test.ok helfer.isUndefined h()
 
     h = -> return null
-    test.ok hinoki.isNull h()
-    test.ok not hinoki.isUndefined h()
+    test.ok helfer.isNull h()
+    test.ok not helfer.isUndefined h()
 
     test.done()
 
   'properties null or undefined': (test) ->
     a = {}
-    test.ok not hinoki.isNull a.test
-    test.ok hinoki.isUndefined a.test
-    test.ok not hinoki.isNull a['test']
-    test.ok hinoki.isUndefined a['test']
+    test.ok not helfer.isNull a.test
+    test.ok helfer.isUndefined a.test
+    test.ok not helfer.isNull a['test']
+    test.ok helfer.isUndefined a['test']
 
     b =
       test: undefined
-    test.ok not hinoki.isNull b.test
-    test.ok hinoki.isUndefined b.test
+    test.ok not helfer.isNull b.test
+    test.ok helfer.isUndefined b.test
 
     c =
       test: null
-    test.ok hinoki.isNull c.test
-    test.ok not hinoki.isUndefined c.test
+    test.ok helfer.isNull c.test
+    test.ok not helfer.isUndefined c.test
 
     d =
       test: null
     delete d.test
-    test.ok not hinoki.isNull d.test
-    test.ok hinoki.isUndefined d.test
+    test.ok not helfer.isNull d.test
+    test.ok helfer.isUndefined d.test
 
     test.done()
 
   'promise null or undefined': (test) ->
     Promise.resolve().then (v) ->
-      test.ok not hinoki.isNull v
-      test.ok hinoki.isUndefined v
+      test.ok not helfer.isNull v
+      test.ok helfer.isUndefined v
 
       test.done()

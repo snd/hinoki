@@ -1,4 +1,5 @@
 Promise = require 'bluebird'
+helfer = require 'helfer'
 
 hinoki = require '../src/hinoki'
 
@@ -21,7 +22,7 @@ module.exports =
       x: null
 
     hinoki(source, lifetime, 'x').then (x) ->
-      test.ok hinoki.isNull x
+      test.ok helfer.isNull x
       test.done()
 
   'sync get from factory without dependencies': (test) ->
@@ -40,8 +41,8 @@ module.exports =
     lifetime = {}
 
     hinoki(source, lifetime, 'x').then (x) ->
-      test.ok hinoki.isNull x
-      test.ok hinoki.isNull lifetime.x
+      test.ok helfer.isNull x
+      test.ok helfer.isNull lifetime.x
       test.done()
 
   'async get from factory without dependencies': (test) ->
@@ -60,8 +61,8 @@ module.exports =
     lifetime = {}
 
     hinoki(source, lifetime, 'x').then (x) ->
-      test.ok hinoki.isNull x
-      test.ok hinoki.isNull lifetime.x
+      test.ok helfer.isNull x
+      test.ok helfer.isNull lifetime.x
       test.done()
 
   'sync get with dependencies': (test) ->
@@ -84,8 +85,8 @@ module.exports =
     lifetime = {}
 
     hinoki(source, lifetime, 'x').then (x) ->
-      test.ok hinoki.isNull x
-      test.ok hinoki.isNull lifetime.x
+      test.ok helfer.isNull x
+      test.ok helfer.isNull lifetime.x
       test.done()
 
   'injectable is injected correctly': (test) ->
