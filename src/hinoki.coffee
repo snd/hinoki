@@ -426,6 +426,9 @@
       if result?
         return result
 
+      if 0 is name.indexOf(prefix)
+        return null
+
       prefixedName = prefix + name
       # factory that resolves to the same value
       wrapperFactory = (wrapped) -> wrapped
