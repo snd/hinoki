@@ -164,6 +164,9 @@
     # another process might request the value as well.
     # this way that process just reuses the factoryCallResultPromise
     # instead of building it all over again.
+    # invariant:
+    # if we reach this line we are guaranteed that:
+    # lifetimes[nextCacheTarget][name] is undefined
 
     unless factory.__nocache
       # if lifetimes[nextCacheTarget][name]?
