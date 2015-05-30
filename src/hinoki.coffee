@@ -480,7 +480,7 @@
       throw new Error 'argument must be a function, string, object or array of these'
 
   hinoki.decorateSourceToAlsoLookupWithPrefix = (innerSource, prefix) ->
-    (name) ->
+    source = (name) ->
       result = innerSource(name)
       if result?
         return result
@@ -493,6 +493,9 @@
       wrapperFactory = (wrapped) -> wrapped
       wrapperFactory.__inject = [prefixedName]
       return wrapperFactory
+    if innerSource.keys?
+      source.keys = innerSource.keys
+    return source
 
 ################################################################################
 # return the hinoki object from the factory
