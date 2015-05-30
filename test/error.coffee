@@ -115,3 +115,71 @@ module.exports =
       test.deepEqual lifetime, {}
 
       test.done()
+
+  'BadFactoryError':
+
+    'flat': (test) ->
+      source = hinoki.source
+        a: 1
+      lifetime = {}
+
+      hinoki(source, lifetime, 'a').catch hinoki.BadFactoryError, (error) ->
+        test.equal error.name, 'BadFactoryError'
+        test.equal error.message, "factory for `a` has to be a function, object of factories or array of factories but is `number`"
+        test.equal 'string', typeof error.stack
+        test.ok error.stack.split('\n').length > 8
+
+        test.deepEqual error.path, ['a']
+        test.equal error.factory, 1
+        test.deepEqual lifetime, {}
+
+        test.done()
+
+    'array': (test) ->
+      source = hinoki.source
+        a:
+          b:
+            c: [
+              -> 'a'
+              -> 'b'
+              'fail'
+            ]
+        b: (a) -> a
+      lifetime = {}
+
+      hinoki(source, lifetime, 'b').catch hinoki.BadFactoryError, (error) ->
+        test.equal error.name, 'BadFactoryError'
+        test.equal error.message, "factory for `a[b][c][2]` has to be a function, object of factories or array of factories but is `string`"
+        test.equal 'string', typeof error.stack
+        test.ok error.stack.split('\n').length > 8
+
+        test.deepEqual error.path, ['a[b][c][2]', 'b']
+        test.equal error.factory, 'fail'
+        test.deepEqual lifetime, {}
+
+        test.done()
+
+    'object': (test) ->
+      source = hinoki.source
+        a: [
+          -> 'a'
+          -> 'b'
+          {
+            c:
+              d: 'fail'
+          }
+        ]
+        b: (a) -> a
+      lifetime = {}
+
+      hinoki(source, lifetime, 'b').catch hinoki.BadFactoryError, (error) ->
+        test.equal error.name, 'BadFactoryError'
+        test.equal error.message, "factory for `a[2][c][d]` has to be a function, object of factories or array of factories but is `string`"
+        test.equal 'string', typeof error.stack
+        test.ok error.stack.split('\n').length > 8
+
+        test.deepEqual error.path, ['a[2][c][d]', 'b']
+        test.equal error.factory, 'fail'
+        test.deepEqual lifetime, {}
+
+        test.done()

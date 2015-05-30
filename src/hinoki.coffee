@@ -122,6 +122,12 @@
         cacheTarget
       )
 
+    unless hinoki.isFactory factory
+      return new hinoki.PromiseAndCacheTarget(
+        Promise.reject new hinoki.BadFactoryError path, factory
+        cacheTarget
+      )
+
     hinoki.debug? {
       event: 'sourceReturnedFactory'
       path: path
@@ -256,6 +262,9 @@
       newPath = path.slice()
       newPath[0] += '[' + key + ']'
 
+      unless hinoki.isFactory f
+        return Promise.reject new hinoki.BadFactoryError newPath, f
+
       if 'function' is typeof f
         names = hinoki.getNamesToInject f
         dependencies = _.map names, (name) ->
@@ -264,12 +273,9 @@
       else if 'object' is typeof f
         # supports nesting
         return hinoki.callFactoryObjectArray(newPath, f, dependenciesObject)
-      else
-        throw new Error "f must be either array or object but is #{typeof f}"
 
     if Array.isArray factoryObject
       Promise.all(factoryObject).map(iterator)
-    # object !
     else if 'object' is typeof factoryObject
       keys = Object.keys(factoryObject)
       length = keys.length
@@ -279,9 +285,7 @@
         key = keys[i]
         unless key is '__inject'
           result[key] = iterator(factoryObject[key], key)
-      Promise.props result
-    else
-      throw new Error "factoryObject must be either array or object but is #{typeof factoryObject}"
+      return Promise.props result
 
   hinoki.callFactory = (path, factory, dependencyValues) ->
     if 'function' is typeof factory
@@ -307,7 +311,6 @@
     if Error.captureStackTrace?
       # second argument excludes the constructor from inclusion in the stack trace
       Error.captureStackTrace(this, this.constructor)
-
     this.path = path
     return
   helfer.inherits hinoki.NotFoundError, hinoki.BaseError
@@ -317,7 +320,6 @@
     this.message = "circular dependency `#{hinoki.pathToString path}`"
     if Error.captureStackTrace?
       Error.captureStackTrace(this, this.constructor)
-
     this.path = path
     return
   helfer.inherits hinoki.CircularDependencyError, hinoki.BaseError
@@ -327,7 +329,6 @@
     this.message = "error in factory for `#{path[0]}`. original error `#{error.toString()}`"
     if Error.captureStackTrace?
       Error.captureStackTrace(this, this.constructor)
-
     this.path = path
     this.factory = factory
     this.error = error
@@ -339,7 +340,6 @@
     this.message = "factory for `#{path[0]}` returned undefined"
     if Error.captureStackTrace?
       Error.captureStackTrace(this, this.constructor)
-
     this.path = path
     this.factory = factory
     return
@@ -350,21 +350,27 @@
     this.message = "promise returned from factory for `#{path[0]}` was rejected. original error `#{error.toString()}`"
     if Error.captureStackTrace?
       Error.captureStackTrace(this, this.constructor)
-
     this.path = path
     this.factory = factory
     this.error = error
     return
   helfer.inherits hinoki.PromiseRejectedError, hinoki.BaseError
 
-################################################################################
-# path
-
-  hinoki.pathToString = (path) ->
-    path.join ' <- '
+  hinoki.BadFactoryError = (path, factory) ->
+    this.name = 'BadFactoryError'
+    this.message = "factory for `#{path[0]}` has to be a function, object of factories or array of factories but is `#{typeof factory}`"
+    if Error.captureStackTrace?
+      Error.captureStackTrace(this, this.constructor)
+    this.path = path
+    this.factory = factory
+    return
+  helfer.inherits hinoki.BadFactoryError, hinoki.BaseError
 
 ################################################################################
 # helper
+
+  hinoki.pathToString = (path) ->
+    path.join ' <- '
 
   hinoki.getNamesToInject = (factory) ->
     hinoki.baseGetNamesToInject factory, false
@@ -388,7 +394,11 @@
         factory.__inject = names
       return names
     else
-      throw new Error 'factory has to be a function, object of factories or array of factories'
+      []
+
+  hinoki.isFactory = (value) ->
+    type = typeof value
+    (type is 'function') or Array.isArray(value) or (type is 'object')
 
 ################################################################################
 # functions for working with sources
