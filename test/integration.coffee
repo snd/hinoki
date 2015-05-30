@@ -329,7 +329,7 @@ module.exports =
       ]
       test.done()
 
-  'nested': (test) ->
+  'nested factory objects and factory arrays': (test) ->
     source = hinoki.source
       alpha:
         bravo:
