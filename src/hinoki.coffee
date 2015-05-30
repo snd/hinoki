@@ -252,21 +252,36 @@
     return Promise.resolve result
 
   hinoki.callFactoryObjectArray = (path, factoryObject, dependenciesObject) ->
-    iterator = (f) ->
+    iterator = (f, key) ->
+      newPath = path.slice()
+      newPath[0] += '[' + key + ']'
+
       if 'function' is typeof f
         names = hinoki.getNamesToInject f
         dependencies = _.map names, (name) ->
           dependenciesObject[name]
-        return hinoki.callFactoryFunction(path, f, dependencies)
-      else
+        return hinoki.callFactoryFunction(newPath, f, dependencies)
+      else if 'object' is typeof f
         # supports nesting
-        return hinoki.callFactoryObjectArray(path, f, dependenciesObject)
+        return hinoki.callFactoryObjectArray(newPath, f, dependenciesObject)
+      else
+        throw new Error "f must be either array or object but is #{typeof f}"
 
     if Array.isArray factoryObject
       Promise.all(factoryObject).map(iterator)
     # object !
+    else if 'object' is typeof factoryObject
+      keys = Object.keys(factoryObject)
+      length = keys.length
+      i = -1
+      result = {}
+      while ++i < length
+        key = keys[i]
+        unless key is '__inject'
+          result[key] = iterator(factoryObject[key], key)
+      Promise.props result
     else
-      Promise.props _.mapValues factoryObject, iterator
+      throw new Error "factoryObject must be either array or object but is #{typeof factoryObject}"
 
   hinoki.callFactory = (path, factory, dependencyValues) ->
     if 'function' is typeof factory
