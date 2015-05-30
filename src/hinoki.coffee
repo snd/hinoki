@@ -167,20 +167,15 @@
     # invariant:
     # if we reach this line we are guaranteed that:
     # lifetimes[nextCacheTarget][name] is undefined
+    # because we checked that synchronously
 
     unless factory.__nocache
-      # if lifetimes[nextCacheTarget][name]?
-      # TODO this should never happen. we might add resolve to an error here
-      #   return new hinoki.Malfunctioning
       lifetimes[nextCacheTarget][name] = factoryCallResultPromise
 
     returnPromise = factoryCallResultPromise
       .then (value) ->
         # cache
         unless factory.__nocache
-          # if lifetimes[nextCacheTarget][name]?
-          # TODO this should never happen. we might add resolve to an error here
-          #   return new hinoki.Error
           lifetimes[nextCacheTarget][name] = value
         return value
       .catch (error) ->
