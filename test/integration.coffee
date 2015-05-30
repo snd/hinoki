@@ -337,7 +337,13 @@ module.exports =
             delta: (delta) -> delta
             echo:
               foxtrot: (bravo) -> bravo
-              golf: (charlie) -> charlie
+              golf: [
+                (delta, bravo) -> delta + '_' + bravo
+                [
+                  (charlie) -> charlie
+                  -> 'foxtrot'
+                ]
+              ]
       bravo: -> 'bravo'
       charlie: -> 'charlie'
       delta: -> 'delta'
@@ -351,5 +357,11 @@ module.exports =
             delta: 'delta'
             echo:
               foxtrot: 'bravo'
-              golf: 'charlie'
+              golf: [
+                'delta_bravo'
+                [
+                  'charlie'
+                  'foxtrot'
+                ]
+              ]
       test.done()
