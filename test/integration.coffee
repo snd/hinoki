@@ -289,7 +289,7 @@ module.exports =
       test.equal c, 3
       test.done()
 
-  'factory objects': (test) ->
+  'flat factory objects': (test) ->
     source = hinoki.source
       alpha:
         bravo: (bravo) -> bravo
@@ -308,7 +308,7 @@ module.exports =
         delta: 'delta'
       test.done()
 
-  'factory arrays': (test) ->
+  'flat factory arrays': (test) ->
     source = hinoki.source
       alpha: [
         (bravo) -> bravo
@@ -327,4 +327,29 @@ module.exports =
         'charlie'
         'delta'
       ]
+      test.done()
+
+  'nested': (test) ->
+    source = hinoki.source
+      alpha:
+        bravo:
+          charlie:
+            delta: (delta) -> delta
+            echo:
+              foxtrot: (bravo) -> bravo
+              golf: (charlie) -> charlie
+      bravo: -> 'bravo'
+      charlie: -> 'charlie'
+      delta: -> 'delta'
+
+    lifetime = {}
+
+    hinoki source, lifetime, (alpha) ->
+      test.deepEqual alpha,
+        bravo:
+          charlie:
+            delta: 'delta'
+            echo:
+              foxtrot: 'bravo'
+              golf: 'charlie'
       test.done()
