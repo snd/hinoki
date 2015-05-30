@@ -408,10 +408,10 @@
           unless 'function' is typeof extension[key]
             throw new Error('export is not a function: ' + key + ' in :' + filepath)
           if object[key]?
-            throw new Error('duplicate export: ' + key + ' in: ' + filepath + '. first was in: ' + object[key].$file)
+            throw new Error('duplicate export: ' + key + ' in: ' + filepath + '. first was in: ' + object[key].__file)
           object[key] = extension[key]
           # add filename as metadata
-          object[key].$file = filepath
+          object[key].__file = filepath
 
       else if stat.isDirectory()
         filenames = fs.readdirSync(filepath)
