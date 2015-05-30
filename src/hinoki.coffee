@@ -94,8 +94,20 @@
         if helfer.isThenable valueOrPromise
           # if the value is already being constructed
           # wait for that instead of starting a second construction.
+          hinoki.debug? {
+            event: 'lifetimeHasPromise'
+            path: path
+            promise: valueOrPromise
+            lifetime: lifetimes[valueIndex]
+          }
           valueOrPromise
         else
+          hinoki.debug? {
+            event: 'lifetimeHasValue'
+            path: path
+            value: valueOrPromise
+            lifetime: lifetimes[valueIndex]
+          }
           Promise.resolve valueOrPromise
       return new hinoki.PromiseAndCacheTarget promise, valueIndex
 
@@ -121,6 +133,12 @@
         Promise.reject(new hinoki.NotFoundError(path))
         cacheTarget
       )
+
+    hinoki.debug? {
+      event: 'sourceReturnedFactory'
+      path: path
+      factory: factory
+    }
 
     # we've got a factory.
     # lets make a value
@@ -207,8 +225,29 @@
     if helfer.isError(result)
       return Promise.reject new hinoki.ErrorInFactory path, factoryFunction, result
     if helfer.isThenable result
-      return result.catch (rejection) ->
-        Promise.reject new hinoki.PromiseRejectedError path, factoryFunction, rejection
+      hinoki.debug? {
+        event: 'factoryReturnedPromise'
+        path: path
+        promise: result
+        factory: factoryFunction
+      }
+      return result
+        .then (value) ->
+          hinoki.debug? {
+            event: 'promiseResolved'
+            path: path
+            value: value
+            factory: factoryFunction
+          }
+          return value
+        .catch (rejection) ->
+          Promise.reject new hinoki.PromiseRejectedError path, factoryFunction, rejection
+    hinoki.debug? {
+      event: 'factoryReturnedValue'
+      path: path
+      value: result
+      factory: factoryFunction
+    }
     return Promise.resolve result
 
   hinoki.callFactoryObjectArray = (path, factoryObject, dependenciesObject) ->
