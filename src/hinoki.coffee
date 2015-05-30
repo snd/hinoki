@@ -87,9 +87,9 @@
   hinoki.getValueAndCacheTarget = (source, lifetimes, path, cacheTarget) ->
     name = path[0]
     # look if there already is a value for that name in one of the lifetimes
-    valueIndex = helfer.findIndexWhereProperty lifetimes, name
-    unless valueIndex is -1
-      valueOrPromise = lifetimes[valueIndex][name]
+    lifetimeIndex = helfer.findIndexWhereProperty lifetimes, name
+    unless lifetimeIndex is -1
+      valueOrPromise = lifetimes[lifetimeIndex][name]
       promise =
         if helfer.isThenable valueOrPromise
           # if the value is already being constructed
@@ -98,7 +98,8 @@
             event: 'lifetimeHasPromise'
             path: path
             promise: valueOrPromise
-            lifetime: lifetimes[valueIndex]
+            lifetime: lifetimes[lifetimeIndex]
+            lifetimeIndex: lifetimeIndex
           }
           valueOrPromise
         else
@@ -106,10 +107,11 @@
             event: 'lifetimeHasValue'
             path: path
             value: valueOrPromise
-            lifetime: lifetimes[valueIndex]
+            lifetime: lifetimes[lifetimeIndex]
+            lifetimeIndex: lifetimeIndex
           }
           Promise.resolve valueOrPromise
-      return new hinoki.PromiseAndCacheTarget promise, valueIndex
+      return new hinoki.PromiseAndCacheTarget promise, lifetimeIndex
 
     # let's check for cycles first since
     # we can't use the factory if the path contains a cycle.
