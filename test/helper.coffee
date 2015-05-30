@@ -3,17 +3,6 @@ _ = require 'lodash'
 
 module.exports =
 
-  'arrayOfStringsHasDuplicates': (test) ->
-    test.ok not hinoki.arrayOfStringsHasDuplicates []
-    test.ok not hinoki.arrayOfStringsHasDuplicates ['a']
-    test.ok not hinoki.arrayOfStringsHasDuplicates ['a', 'b']
-    test.ok not hinoki.arrayOfStringsHasDuplicates ['a', 'b', 'c']
-    test.ok hinoki.arrayOfStringsHasDuplicates ['a', 'a']
-    test.ok hinoki.arrayOfStringsHasDuplicates ['a', 'a', 'b']
-    test.ok hinoki.arrayOfStringsHasDuplicates ['b', 'a', 'b']
-    test.ok hinoki.arrayOfStringsHasDuplicates ['a', 'b', 'b']
-    test.done()
-
   'tryCatch':
 
     'no error': (test) ->

@@ -113,18 +113,6 @@
           Promise.resolve valueOrPromise
       return new hinoki.PromiseAndCacheTarget promise, lifetimeIndex
 
-    # let's check for cycles first since
-    # we can't use the factory if the path contains a cycle.
-
-    # TODO check if a value introduces a cycle to speed this up
-    # already in
-    if hinoki.arrayOfStringsHasDuplicates path
-      # TODO we dont know the lifetime here
-      return new hinoki.PromiseAndCacheTarget(
-        Promise.reject(new hinoki.CircularDependencyError(path))
-        cacheTarget
-      )
-
     # no cycle - yeah!
 
     # we have no value
@@ -149,10 +137,21 @@
 
     dependencyNames = hinoki.baseGetNamesToInject factory, true
 
-    newPath = path.slice()
-
-    dependencyPaths = dependencyNames.map (x) ->
-      helfer.coerceToArray(x).concat newPath
+    dependencyNamesIndex = -1
+    dependencyNamesLength = dependencyNames.length
+    dependencyPaths = []
+    while ++dependencyNamesIndex < dependencyNamesLength
+      dependencyName = dependencyNames[dependencyNamesIndex]
+      newPath = path.slice()
+      newPath.unshift dependencyName
+      # is this name already in the path.
+      # if so then it would introduce a circular dependency.
+      if -1 isnt path.indexOf dependencyName
+        return new hinoki.PromiseAndCacheTarget(
+          Promise.reject(new hinoki.CircularDependencyError(newPath))
+          cacheTarget
+        )
+      dependencyPaths.push newPath
 
     # this code is reached synchronously from the start of the function call
     # without interleaving.
@@ -173,7 +172,7 @@
     factoryCallResultPromise = dependenciesPromise.then (dependencyValues) ->
       # the dependencies are ready!
       # we can finally call the factory!
-      return hinoki.callFactory(newPath, factory, dependencyValues)
+      return hinoki.callFactory(path, factory, dependencyValues)
 
     # cache the promise:
     # this code is reached synchronously from the start of the function call
@@ -350,23 +349,7 @@
     path.join ' <- '
 
 ################################################################################
-# util
-
-  # returns whether an array of strings contains duplicates.
-  #
-  # complexity: O(n) since hash lookup is O(1)
-
-  hinoki.arrayOfStringsHasDuplicates = (array) ->
-    i = 0
-    length = array.length
-    valuesSoFar = {}
-    while i < length
-      value = array[i]
-      if Object.prototype.hasOwnProperty.call valuesSoFar, value
-        return true
-      valuesSoFar[value] = true
-      i++
-    return false
+# helper
 
   hinoki.getNamesToInject = (factory) ->
     hinoki.baseGetNamesToInject factory, false
