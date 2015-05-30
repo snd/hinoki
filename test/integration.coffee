@@ -280,83 +280,51 @@ module.exports =
       test.equal a, value
       test.done()
 
-#   'promises awaiting resolution are not cached and reused with nocache': (test) ->
-#     test.expect 7
-#     lifetime =
-#       factories:
-#         a: ->
-#           # here a new object is created
-#           Promise.delay {}, 10
-#
-#     lifetime.factories.a.$nocache = true
-#
-#     p1 = hinoki(lifetime, 'a')
-#     test.ok not lifetime.promisesAwaitingResolution?.a?
-#     # the first promise has one step more which handles caching
-#     # and cleanup of promise caching
-#     p2 = hinoki(lifetime, 'a')
-#     test.ok not lifetime.promisesAwaitingResolution?.a?
-#     p3 = hinoki(lifetime, 'a')
-#     test.ok not lifetime.promisesAwaitingResolution?.a?
-#
-#     Promise.all([p1, p2, p3]).then ([a1, a2, a3]) ->
-#       # three different objects!
-#       test.equal 'object', typeof a1
-#       test.notEqual a1, a2
-#       test.notEqual a2, a3
-#       test.ok not lifetime.promisesAwaitingResolution?.a?
-#       test.done()
-#
-#   'a factory with $nocache property is not cached': (test) ->
-#     lifetime =
-#       factories:
-#         x: -> 1
-#
-#     lifetime.factories.x.$nocache = true
-#
-#     hinoki(lifetime, 'x').then (x) ->
-#       test.equal x, 1
-#       test.ok not lifetime.values?
-#       test.done()
-#
-#   'single factory source function': (test) ->
-#     lifetime =
-#       factories: (name) ->
-#         switch name
-#           when 'a' then -> 0
-#           when 'b' then -> 1
-#           when 'c' then (a, b) -> a + b
-#           when 'd' then (b, c) -> b + c
-#
-#     hinoki(lifetime, 'd')
-#       .then (d) ->
-#         test.equal d, 2
-#         hinoki(lifetime, 'e')
-#       .catch hinoki.UnresolvableError, (error) ->
-#         test.equal error.message, "unresolvable name 'e' (e)"
-#         test.done()
-#
-#   'multiple factory sources': (test) ->
-#     lifetime =
-#       factories: [
-#         (name) ->
-#           if name is 'd'
-#             (b, c) -> b + c
-#         {
-#           a: -> 0
-#         }
-#         (name) ->
-#           if name is 'b'
-#             -> 1
-#         {
-#           c: (a, b) -> a + b
-#         }
-#       ]
-#
-#     hinoki(lifetime, 'd')
-#       .then (d) ->
-#         test.equal d, 2
-#         hinoki(lifetime, 'e')
-#       .catch hinoki.UnresolvableError, (error) ->
-#         test.equal error.message, "unresolvable name 'e' (e)"
-#         test.done()
+  'lifetime can be omitted': (test) ->
+    source = hinoki.source
+      a: -> 1
+      b: (a) -> a + 1
+      c: (b) -> b + 1
+    hinoki source, (c) ->
+      test.equal c, 3
+      test.done()
+
+  'factory objects': (test) ->
+    source = hinoki.source
+      alpha:
+        bravo: (bravo) -> bravo
+        charlie: (charlie) -> charlie
+        delta: (delta) -> delta
+      bravo: -> 'bravo'
+      charlie: -> 'charlie'
+      delta: -> 'delta'
+
+    lifetime = {}
+
+    hinoki source, lifetime, (alpha) ->
+      test.deepEqual alpha,
+        bravo: 'bravo'
+        charlie: 'charlie'
+        delta: 'delta'
+      test.done()
+
+  'factory arrays': (test) ->
+    source = hinoki.source
+      alpha: [
+        (bravo) -> bravo
+        (charlie) -> charlie
+        (delta) -> delta
+      ]
+      bravo: -> 'bravo'
+      charlie: -> 'charlie'
+      delta: -> 'delta'
+
+    lifetime = {}
+
+    hinoki source, lifetime, (alpha) ->
+      test.deepEqual alpha, [
+        'bravo'
+        'charlie'
+        'delta'
+      ]
+      test.done()
