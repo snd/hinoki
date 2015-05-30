@@ -62,24 +62,26 @@ module.exports =
       test.done()
 
     'object': (test) ->
-      test.expect 2
       result = ->
       source = hinoki.source
         example: result
       test.equal(source('example'), result)
       test.equal(source('missing'), null)
+      test.deepEqual source.keys(), ['example']
       test.done()
 
     'path to .js file': (test) ->
       source = hinoki.source "#{__dirname}/a/a.js"
       test.equal source('a')(), 'i am factory a'
       test.equal(source('missing'), null)
+      test.deepEqual source.keys(), ['a']
       test.done()
 
     'path to .coffee file': (test) ->
       source = hinoki.source "#{__dirname}/a/b/b.coffee"
       test.equal source('b')(), 'i am factory b'
       test.equal(source('missing'), null)
+      test.deepEqual source.keys(), ['b']
       test.done()
 
     'path to folder': (test) ->
@@ -88,6 +90,7 @@ module.exports =
       test.equal(source('a'), null)
       test.equal(source('b'), null)
       test.equal(source('missing'), null)
+      test.deepEqual source.keys(), ['c']
       test.done()
 
     'path to nested folder': (test) ->
@@ -97,6 +100,7 @@ module.exports =
       test.equal source('c')(), 'i am factory c'
       test.equal source('d')(), 'i am factory d'
       test.equal(source('missing'), null)
+      test.deepEqual source.keys(), ['a', 'b', 'd', 'c']
       test.done()
 
     'array': (test) ->
@@ -123,6 +127,7 @@ module.exports =
       test.equal(source('f'), f)
       test.equal(source('g'), g)
       test.equal(source('missing'), null)
+      test.deepEqual source.keys(), ['f', 'a', 'b', 'd', 'c']
       test.done()
 
   'getNamesToInject':

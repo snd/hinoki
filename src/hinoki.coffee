@@ -408,6 +408,7 @@
   # if `filepath` is a directory recurse into every file and subdirectory.
 
   if fs? and pathModule?
+    # TODO better name
     hinoki.requireSource = (filepath) ->
       unless 'string' is typeof filepath
         throw new Error 'argument must be a string'
@@ -447,10 +448,10 @@
 
   hinoki.source = (arg) ->
     if 'function' is typeof arg
-      arg
+      return arg
     else if Array.isArray arg
       coercedSources = arg.map hinoki.source
-      (name) ->
+      source = (name) ->
         # try all sources in order
         index = -1
         length = arg.length
@@ -459,11 +460,22 @@
           if result?
             return result
         return null
+      source.keys = ->
+        keys = []
+        console.log arg
+        _.each coercedSources, (source) ->
+          if source.keys?
+            keys = keys.concat(source.keys())
+        return keys
+      return source
     else if 'string' is typeof arg
-      hinoki.source hinoki.requireSource arg
+      return hinoki.source hinoki.requireSource arg
     else if 'object' is typeof arg
-      (name) ->
+      source = (name) ->
         arg[name]
+      source.keys = ->
+        Object.keys(arg)
+      return source
     else
       throw new Error 'argument must be a function, string, object or array of these'
 
