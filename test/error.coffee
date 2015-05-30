@@ -95,7 +95,7 @@ module.exports =
 
       test.done()
 
-  'PromiseRejectedError': (test) ->
+  'PromiseRejectedError and that errored promises are removed': (test) ->
     rejection = new Error 'fail'
     a = -> Promise.reject rejection
 
