@@ -113,8 +113,6 @@
           Promise.resolve valueOrPromise
       return new hinoki.PromiseAndCacheTarget promise, lifetimeIndex
 
-    # no cycle - yeah!
-
     # we have no value
     # look if there is a factory for that name in the source
     factory = source(name)
@@ -144,7 +142,7 @@
       dependencyName = dependencyNames[dependencyNamesIndex]
       newPath = path.slice()
       newPath.unshift dependencyName
-      # is this name already in the path.
+      # is this name already in the path?
       # if so then it would introduce a circular dependency.
       if -1 isnt path.indexOf dependencyName
         return new hinoki.PromiseAndCacheTarget(
@@ -152,6 +150,8 @@
           cacheTarget
         )
       dependencyPaths.push newPath
+
+    # no cycle - yeah!
 
     # this code is reached synchronously from the start of the function call
     # without interleaving.
