@@ -179,7 +179,7 @@
     # without interleaving.
     # its important that the factoryCallResultPromise is added
     # to lifetimes[maxCacheTarget] synchronously
-    # because as soon as control is given back to the sheduler
+    # because as soon as control is given back to the scheduler
     # another process might request the value as well.
     # this way that process just reuses the factoryCallResultPromise
     # instead of building it all over again.
