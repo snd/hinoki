@@ -262,11 +262,11 @@
         # supports nesting
         return hinoki.callFactoryObjectArray(path, f, dependenciesObject)
 
-    if Array.isArray factory
-      Promise.all(factory).map(iterator)
+    if Array.isArray factoryObject
+      Promise.all(factoryObject).map(iterator)
     # object !
     else
-      Promise.props _.mapValues factory, iterator
+      Promise.props _.mapValues factoryObject, iterator
 
   hinoki.callFactory = (path, factory, dependencyValues) ->
     if 'function' is typeof factory
@@ -362,7 +362,7 @@
       if cache
         factory.__inject = names
       return names
-    else if Array.isArray factory or 'object' is typeof factory
+    else if Array.isArray(factory) or ('object' is typeof factory)
       namesSet = {}
       _.forEach factory, (subFactory) ->
         subNames = hinoki.baseGetNamesToInject(subFactory, cache)
