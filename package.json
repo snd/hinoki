@@ -33,12 +33,12 @@
     "node": ">=0.12.0"
   },
   "dependencies": {
-    "bluebird": "2.9.25",
-    "lodash": "3.8.0",
+    "bluebird": "2.9.27",
+    "lodash": "3.9.3",
     "helfer": "0.1.0"
   },
   "devDependencies": {
-    "coffee-script": "1.9.2",
+    "coffee-script": "1.9.3",
     "nodeunit": "0.9.1"
   },
   "scripts": {
