@@ -267,6 +267,19 @@ module.exports =
         test.equal lifetime.c, valueC
         test.done()
 
+  'promise in promise': (test) ->
+    value = {}
+    promise = Promise.resolve value
+    promisePromise = Promise.resolve promise
+
+    source = hinoki.source
+      a: -> promisePromise
+    lifetime = {}
+
+    hinoki source, lifetime, (a) ->
+      test.equal a, value
+      test.done()
+
 #   'promises awaiting resolution are not cached and reused with nocache': (test) ->
 #     test.expect 7
 #     lifetime =
