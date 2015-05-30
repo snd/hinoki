@@ -135,3 +135,35 @@ module.exports =
       test.equal(source('g'), g)
       test.equal(source('missing'), null)
       test.done()
+
+  'getNamesToInject':
+
+    '__inject': (test) ->
+      factory = {}
+      factory.__inject = ['a', 'b', 'c']
+      test.deepEqual hinoki.getNamesToInject(factory), ['a', 'b', 'c']
+      test.done()
+
+    'function': (test) ->
+      factory = (d, e, f) ->
+      test.deepEqual hinoki.getNamesToInject(factory), ['d', 'e', 'f']
+      test.done()
+
+    'object': (test) ->
+      factory =
+        a: ->
+        b: (a, b) ->
+        c: (a, c, d) ->
+      factory.a.__inject = ['a', 'b', 'c']
+      test.deepEqual hinoki.getNamesToInject(factory), ['a', 'b', 'c', 'd']
+      test.done()
+
+    'array': (test) ->
+      factory = [
+        ->
+        (a, b) ->
+        (c, d) ->
+      ]
+      factory[0].__inject = ['a', 'b', 'c']
+      test.deepEqual hinoki.getNamesToInject(factory), ['a', 'b', 'c', 'd']
+      test.done()
