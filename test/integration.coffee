@@ -366,4 +366,58 @@ module.exports =
               ]
       test.done()
 
-  # 'decorateSourceToAlsoLookupWithPrefix':
+  'decorateSourceToAlsoLookupWithPrefix':
+
+    'original found': (test) ->
+      value = {}
+      source = hinoki.source
+        a: -> value
+
+      source = hinoki.decorateSourceToAlsoLookupWithPrefix source, 'my_'
+      lifetime = {}
+
+      hinoki source, lifetime, (a) ->
+        test.equal a, value
+        test.equal lifetime.a, value
+        test.ok not lifetime.my_a?
+        test.done()
+
+    'already prefixed': (test) ->
+      value = {}
+      source = hinoki.source
+        my_a: -> value
+
+      source = hinoki.decorateSourceToAlsoLookupWithPrefix source, 'my_'
+      lifetime = {}
+
+      hinoki source, lifetime, (my_a) ->
+        test.equal my_a, value
+        test.equal lifetime.my_a, value
+        test.ok not lifetime.a?
+        test.done()
+
+    'prefixed found': (test) ->
+      value = {}
+      source = hinoki.source
+        my_a: -> value
+
+      source = hinoki.decorateSourceToAlsoLookupWithPrefix source, 'my_'
+      lifetime = {}
+
+      hinoki source, lifetime, (a) ->
+        test.equal a, value
+        test.equal lifetime.my_a, value
+        test.equal lifetime.a, value
+        test.done()
+
+    'not found': (test) ->
+      source = hinoki.source {}
+
+      source = hinoki.decorateSourceToAlsoLookupWithPrefix source, 'my_'
+      lifetime = {}
+
+      hinoki(source, lifetime, 'a').catch hinoki.NotFoundError, (error) ->
+        test.equal error.message, "neither value nor factory found for `my_a` in path `my_a <- a`"
+        test.deepEqual error.path, ['my_a', 'a']
+        test.deepEqual lifetime, {}
+        test.done()
