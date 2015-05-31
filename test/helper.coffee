@@ -55,8 +55,8 @@ module.exports =
     'function': (test) ->
       test.expect 2
       result = ->
-      source = hinoki.source (name) ->
-        test.equal name, 'example'
+      source = hinoki.source (key) ->
+        test.equal key, 'example'
         return result
       test.equal(source('example'), result)
       test.done()
@@ -108,15 +108,15 @@ module.exports =
       f = ->
       g = ->
       source = hinoki.source [
-        (name) ->
-          if name is 'e'
+        (key) ->
+          if key is 'e'
             return e
         {
           f: f
         }
         "#{__dirname}/a"
-        hinoki.source (name) ->
-          if name is 'g'
+        hinoki.source (key) ->
+          if key is 'g'
             return g
       ]
       test.equal source('a')(), 'i am factory a'
@@ -130,17 +130,17 @@ module.exports =
       test.deepEqual source.keys(), ['f', 'a', 'b', 'd', 'c']
       test.done()
 
-  'getNamesToInject':
+  'getKeysToInject':
 
     '__inject': (test) ->
       factory = {}
       factory.__inject = ['a', 'b', 'c']
-      test.deepEqual hinoki.getNamesToInject(factory), ['a', 'b', 'c']
+      test.deepEqual hinoki.getKeysToInject(factory), ['a', 'b', 'c']
       test.done()
 
     'function': (test) ->
       factory = (d, e, f) ->
-      test.deepEqual hinoki.getNamesToInject(factory), ['d', 'e', 'f']
+      test.deepEqual hinoki.getKeysToInject(factory), ['d', 'e', 'f']
       test.done()
 
     'object': (test) ->
@@ -149,7 +149,7 @@ module.exports =
         b: (a, b) ->
         c: (a, c, d) ->
       factory.a.__inject = ['a', 'b', 'c']
-      test.deepEqual hinoki.getNamesToInject(factory), ['a', 'b', 'c', 'd']
+      test.deepEqual hinoki.getKeysToInject(factory), ['a', 'b', 'c', 'd']
       test.done()
 
     'array': (test) ->
@@ -159,5 +159,5 @@ module.exports =
         (c, d) ->
       ]
       factory[0].__inject = ['a', 'b', 'c']
-      test.deepEqual hinoki.getNamesToInject(factory), ['a', 'b', 'c', 'd']
+      test.deepEqual hinoki.getKeysToInject(factory), ['a', 'b', 'c', 'd']
       test.done()

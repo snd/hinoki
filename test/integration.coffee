@@ -365,3 +365,5 @@ module.exports =
                 ]
               ]
       test.done()
+
+  # 'decorateSourceToAlsoLookupWithPrefix':

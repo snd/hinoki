@@ -25,26 +25,26 @@
 
     if arg3?
       lifetimes = helfer.coerceToArray arg2
-      nameOrNamesOrFunction = arg3
+      keyOrKeysOrFunction = arg3
     else
       lifetimes = [{}]
-      nameOrNamesOrFunction = arg2
+      keyOrKeysOrFunction = arg2
 
     cacheTarget = 0
 
-    if 'function' is typeof nameOrNamesOrFunction
-      names = hinoki.getNamesToInject(nameOrNamesOrFunction)
-      paths = names.map(helfer.coerceToArray)
+    if 'function' is typeof keyOrKeysOrFunction
+      keys = hinoki.getKeysToInject(keyOrKeysOrFunction)
+      paths = _.map keys, helfer.coerceToArray
       return hinoki.getValuesAndCacheTarget(
         source,
         lifetimes,
         paths,
         cacheTarget
-      ).promise.spread(nameOrNamesOrFunction)
+      ).promise.spread(keyOrKeysOrFunction)
 
-    if Array.isArray nameOrNamesOrFunction
-      names = helfer.coerceToArray(nameOrNamesOrFunction)
-      paths = names.map(helfer.coerceToArray)
+    if Array.isArray keyOrKeysOrFunction
+      keys = helfer.coerceToArray(keyOrKeysOrFunction)
+      paths = _.map keys, helfer.coerceToArray
       return hinoki.getValuesAndCacheTarget(
         source,
         lifetimes,
@@ -52,7 +52,7 @@
         cacheTarget
       ).promise
 
-    path = helfer.coerceToArray(nameOrNamesOrFunction)
+    path = helfer.coerceToArray(keyOrKeysOrFunction)
     return hinoki.getValueAndCacheTarget(
       source,
       lifetimes,
@@ -85,11 +85,11 @@
 
   # monomorphic
   hinoki.getValueAndCacheTarget = (source, lifetimes, path, cacheTarget) ->
-    name = path[0]
-    # look if there already is a value for that name in one of the lifetimes
-    lifetimeIndex = helfer.findIndexWhereProperty lifetimes, name
+    key = path[0]
+    # look if there already is a value for that key in one of the lifetimes
+    lifetimeIndex = helfer.findIndexWhereProperty lifetimes, key
     unless lifetimeIndex is -1
-      valueOrPromise = lifetimes[lifetimeIndex][name]
+      valueOrPromise = lifetimes[lifetimeIndex][key]
       promise =
         if helfer.isThenable valueOrPromise
           # if the value is already being constructed
@@ -114,8 +114,8 @@
       return new hinoki.PromiseAndCacheTarget promise, lifetimeIndex
 
     # we have no value
-    # look if there is a factory for that name in the source
-    factory = source(name)
+    # look if there is a factory for that key in the source
+    factory = source(key)
     unless factory?
       return new hinoki.PromiseAndCacheTarget(
         Promise.reject(new hinoki.NotFoundError(path))
@@ -139,18 +139,18 @@
 
     # first lets resolve the dependencies of the factory
 
-    dependencyNames = hinoki.baseGetNamesToInject factory, true
+    dependencyKeys = hinoki.baseGetKeysToInject factory, true
 
-    dependencyNamesIndex = -1
-    dependencyNamesLength = dependencyNames.length
+    dependencyKeysIndex = -1
+    dependencyKeysLength = dependencyKeys.length
     dependencyPaths = []
-    while ++dependencyNamesIndex < dependencyNamesLength
-      dependencyName = dependencyNames[dependencyNamesIndex]
+    while ++dependencyKeysIndex < dependencyKeysLength
+      dependencyKey = dependencyKeys[dependencyKeysIndex]
       newPath = path.slice()
-      newPath.unshift dependencyName
-      # is this name already in the path?
+      newPath.unshift dependencyKey
+      # is this key already in the path?
       # if so then it would introduce a circular dependency.
-      if -1 isnt path.indexOf dependencyName
+      if -1 isnt path.indexOf dependencyKey
         return new hinoki.PromiseAndCacheTarget(
           Promise.reject(new hinoki.CircularDependencyError(newPath))
           cacheTarget
@@ -191,23 +191,23 @@
     # instead of building it all over again.
     # invariant:
     # if we reach this line we are guaranteed that:
-    # lifetimes[nextCacheTarget][name] is undefined
+    # lifetimes[nextCacheTarget][key] is undefined
     # because we checked that synchronously
 
     unless factory.__nocache
-      lifetimes[nextCacheTarget][name] = factoryCallResultPromise
+      lifetimes[nextCacheTarget][key] = factoryCallResultPromise
 
     returnPromise = factoryCallResultPromise
       .then (value) ->
         # cache
         unless factory.__nocache
-          lifetimes[nextCacheTarget][name] = value
+          lifetimes[nextCacheTarget][key] = value
         return value
       .catch (error) ->
         # prevent errored promises from being reused
-        # and allow further requests for the errored names to succeed.
+        # and allow further requests for the errored keys to succeed.
         unless factory.__nocache
-          delete lifetimes[nextCacheTarget][name]
+          delete lifetimes[nextCacheTarget][key]
         return Promise.reject error
 
     return new hinoki.PromiseAndCacheTarget(returnPromise, nextCacheTarget)
@@ -266,9 +266,9 @@
         return Promise.reject new hinoki.BadFactoryError newPath, f
 
       if 'function' is typeof f
-        names = hinoki.getNamesToInject f
-        dependencies = _.map names, (name) ->
-          dependenciesObject[name]
+        dependencyKeys = hinoki.getKeysToInject f
+        dependencies = _.map dependencyKeys, (dependencyKey) ->
+          dependenciesObject[dependencyKey]
         return hinoki.callFactoryFunction(newPath, f, dependencies)
       else if 'object' is typeof f
         # supports nesting
@@ -291,8 +291,8 @@
     if 'function' is typeof factory
       return hinoki.callFactoryFunction path, factory, dependencyValues
     else
-      names = hinoki.getNamesToInject factory
-      dependenciesObject = _.zipObject names, dependencyValues
+      dependencyKeys = hinoki.getKeysToInject factory
+      dependenciesObject = _.zipObject dependencyKeys, dependencyValues
       return hinoki.callFactoryObjectArray path, factory, dependenciesObject
 
 ################################################################################
@@ -307,7 +307,7 @@
 
   hinoki.NotFoundError = (path) ->
     this.name = 'NotFoundError'
-    this.message = "neither value nor factory found for name `#{path[0]}` in path `#{hinoki.pathToString path}`"
+    this.message = "neither value nor factory found for `#{path[0]}` in path `#{hinoki.pathToString path}`"
     if Error.captureStackTrace?
       # second argument excludes the constructor from inclusion in the stack trace
       Error.captureStackTrace(this, this.constructor)
@@ -372,29 +372,29 @@
   hinoki.pathToString = (path) ->
     path.join ' <- '
 
-  hinoki.getNamesToInject = (factory) ->
-    hinoki.baseGetNamesToInject factory, false
+  hinoki.getKeysToInject = (factory) ->
+    hinoki.baseGetKeysToInject factory, false
 
-  hinoki.baseGetNamesToInject = (factory, cache) ->
+  hinoki.baseGetKeysToInject = (factory, cache) ->
     if factory.__inject?
       return factory.__inject
-    else if 'function' is typeof factory
-      names = helfer.parseFunctionArguments factory
+
+    type = typeof factory
+    if ('object' is type) or ('function' is type)
+      if ('function' is type)
+        keys = helfer.parseFunctionArguments factory
+      else
+        keysSet = {}
+        _.forEach factory, (subFactory) ->
+          subKeys = hinoki.baseGetKeysToInject(subFactory, cache)
+          _.forEach subKeys, (subKey) ->
+            keysSet[subKey] = true
+        keys = Object.keys(keysSet)
       if cache
-        factory.__inject = names
-      return names
-    else if Array.isArray(factory) or ('object' is typeof factory)
-      namesSet = {}
-      _.forEach factory, (subFactory) ->
-        subNames = hinoki.baseGetNamesToInject(subFactory, cache)
-        _.forEach subNames, (subName) ->
-          namesSet[subName] = true
-      names = Object.keys(namesSet)
-      if cache
-        factory.__inject = names
-      return names
-    else
-      []
+        factory.__inject = keys
+      return keys
+
+    return []
 
   hinoki.isFactory = (value) ->
     type = typeof value
@@ -449,49 +449,50 @@
   hinoki.source = (arg) ->
     if 'function' is typeof arg
       return arg
-    else if Array.isArray arg
-      coercedSources = arg.map hinoki.source
-      source = (name) ->
+
+    if Array.isArray arg
+      coercedSources = _.map arg, hinoki.source
+      source = (key) ->
         # try all sources in order
         index = -1
         length = arg.length
         while ++index < length
-          result = coercedSources[index](name)
+          result = coercedSources[index](key)
           if result?
             return result
         return null
       source.keys = ->
         keys = []
-        console.log arg
         _.each coercedSources, (source) ->
           if source.keys?
             keys = keys.concat(source.keys())
         return keys
       return source
-    else if 'string' is typeof arg
+
+    if 'string' is typeof arg
       return hinoki.source hinoki.requireSource arg
-    else if 'object' is typeof arg
-      source = (name) ->
-        arg[name]
+
+    if 'object' is typeof arg
+      source = (key) ->
+        arg[key]
       source.keys = ->
         Object.keys(arg)
       return source
-    else
-      throw new Error 'argument must be a function, string, object or array of these'
+
+    throw new Error 'argument must be a function, string, object or array of these'
 
   hinoki.decorateSourceToAlsoLookupWithPrefix = (innerSource, prefix) ->
-    source = (name) ->
-      result = innerSource(name)
+    source = (key) ->
+      result = innerSource(key)
       if result?
         return result
 
-      if 0 is name.indexOf(prefix)
+      if 0 is key.indexOf(prefix)
         return null
 
-      prefixedName = prefix + name
       # factory that resolves to the same value
       wrapperFactory = (wrapped) -> wrapped
-      wrapperFactory.__inject = [prefixedName]
+      wrapperFactory.__inject = [prefix + key]
       return wrapperFactory
     if innerSource.keys?
       source.keys = innerSource.keys

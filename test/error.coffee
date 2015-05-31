@@ -18,7 +18,7 @@ module.exports =
     lifetime = {}
 
     hinoki(source, lifetime, 'a').catch hinoki.NotFoundError, (error) ->
-      test.equal error.message, "neither value nor factory found for name `a` in path `a`"
+      test.equal error.message, "neither value nor factory found for `a` in path `a`"
       test.deepEqual error.path, ['a']
       test.done()
 
