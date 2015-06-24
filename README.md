@@ -83,7 +83,7 @@ we use it in the small to tame complex asynchronous I/O flows
 *(you know... those where you do some async I/O that depends on three other 
 async results and is needed by two other...)*
 
-hinoki is inspired by prismatic's fantastic [graph](https://github.com/Prismatic/plumbing#graph-the-functional-swiss-army-knife)
+[hinoki is inspired by prismatic's fantastic graph.](https://github.com/Prismatic/plumbing#graph-the-functional-swiss-army-knife)
 
 *hinoki takes its name from the hinoki cypress,
 a tree that only grows in japan and is the preferred wood for building palaces,
@@ -456,7 +456,7 @@ hinoki(function() {}, lifetimes, ['three', 'one', 'two'])
 
 the **value** is always returned from the first **lifetime** having the **key** !
 
-multiple **lifetimes** make exiting things possible. [more on that later.](#lifetimes-in-depth)
+multiple **lifetimes** open exiting possibilities. [more on that later.](#lifetimes-in-depth)
 
 ---
 
@@ -524,13 +524,13 @@ if there is no **value** for the **key** in any of the **lifetimes** !
 
 think of **source** as a fallback on missing **key** **value** mappings.
 
-the **source** is not supposed return a **value** directly.
+the **source** is not supposed to return a **value** directly.
 instead the **source** is supposed to return a **factory** or `null`.
+
+a **factory** is simply a function that returns a **value**.
 
 returning `null` (`undefined` is fine too) signals hinoki
 that the **source** can't help making a **value** for that **key**.
-
-a **factory** is simply a function that returns a **value**.
 
 **sources** make **factories**.  
 **factories** make **values**.
@@ -604,14 +604,14 @@ other **factories** that depend on that **value** !
 at some point the promise for `'four'` resolves to `4`.  
 hinoki can now continue making everything that depends on the **value** for `'four'`:
 
-first hinoki will set `lifetime.four = 4`.
+first hinoki sets `lifetime.four = 4`.
 
 **values** returned from **factories** are stored/cached in the **lifetime** !  
 what if we have multiple **lifetimes**? [the answer is very useful and worth its own section.](#lifetimes)
 
 now hinoki can call the **factory** for `'five'` with arguments `1` and `4`.  
-the **factory** for `'five'` doesn't return a promise. hinoki doesn't have to wait.  
-hinoki will set `lifetime.five = 5`.  
+ince he **factory** for `'five'` doesn't return a promise hinoki doesn't have to wait.  
+hinoki sets `lifetime.five = 5`.  
 remember that promise hinoki has returned immediately ?
 now that we have the **value** for **key** `'five'` hinoki resolves it with `5`.
 
