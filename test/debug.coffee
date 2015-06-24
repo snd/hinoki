@@ -5,366 +5,288 @@ hinoki = require '../src/hinoki'
 module.exports =
 
   'hinokis way of working and calls to debug are deterministic': (test) ->
-    test.expect 49
+    test.expect 36
 
     alphaBravoPromise = Promise.resolve('alpha_bravo')
+    deltaPromise = Promise.resolve('delta')
 
-    lifetime =
-      values:
-        alpha: 'alpha'
-      factories:
-        bravo: -> 'bravo'
-        charlie: -> 'charlie'
-        alpha_bravo: (alpha, bravo) ->
-          alphaBravoPromise
-        bravo_charlie: (bravo, charlie) ->
-          bravo + '_' + charlie
-        alpha_charlie: (alpha, charlie) ->
-          alpha + '_' + charlie
+    factories =
+      bravo: -> 'bravo'
+      delta: -> deltaPromise
+      alpha_bravo: (alpha, bravo) ->
+        alphaBravoPromise
+      alpha_charlie: (alpha, charlie) ->
+        alpha + '_' + charlie
+      alpha_delta: (alpha, delta) ->
+        alpha + '_' + delta
+      bravo_charlie: (bravo, charlie) ->
+        bravo + '_' + charlie
+      bravo_delta: (bravo, delta) ->
+        bravo + '_' + delta
+      charlie_delta: (charlie, delta) ->
+        charlie + '_' + delta
 
-    noopResolver = (name, lifetime2, inner) ->
-      test.equal lifetime, lifetime2
-      inner name
+    source = hinoki.source factories
+
+    lifetime1 =
+      alpha: 'alpha'
+
+    lifetime2 =
+      charlie: 'charlie'
 
     expectedEvents = ->
       [
-        # get alpha_bravo (get -> alpha_bravo)
+
+################################################################################
+# sync
+
+################################################################################
+# alpha_bravo
+
         {
-          event: 'defaultResolverWasCalled'
+          event: 'sourceReturnedFactory'
           path: ['alpha_bravo']
-          lifetime: lifetime
-          resolution:
-            factory: lifetime.factories.alpha_bravo
-            name: 'alpha_bravo'
+          factory: factories.alpha_bravo
         }
         {
-          event: 'customResolverWasCalled'
-          path: ['alpha_bravo']
-          lifetime: lifetime
-          resolver: noopResolver
-          resolution:
-            factory: lifetime.factories.alpha_bravo
-            name: 'alpha_bravo'
-        }
-        # alpha_bravo has a factory (get -> alpha_bravo)
-        {
-          event: 'factoryWasResolved'
-          path: ['alpha_bravo']
-          resolution:
-            factory: lifetime.factories.alpha_bravo
-            name: 'alpha_bravo'
-            lifetime: lifetime
-        }
-        # alpha_bravo factory needs alpha (get -> alpha_bravo -> alpha)
-        {
-          event: 'defaultResolverWasCalled',
+          event: 'lifetimeHasValue',
           path: ['alpha', 'alpha_bravo']
-          lifetime: lifetime
-          resolution:
-            value: lifetime.values.alpha
-            name: 'alpha'
+          value: lifetime1.alpha
+          lifetime: lifetime1
+          lifetimeIndex: 0
         }
         {
-          event: 'customResolverWasCalled',
-          path: ['alpha', 'alpha_bravo']
-          lifetime: lifetime
-          resolver: noopResolver
-          resolution:
-            value: lifetime.values.alpha
-            name: 'alpha'
-        }
-        # alpha has a value (get -> alpha_bravo -> alpha)
-        {
-          event: 'valueWasResolved',
-          path: ['alpha', 'alpha_bravo']
-          resolution:
-            value: lifetime.values.alpha
-            name: 'alpha'
-            lifetime: lifetime
-        }
-        # alpha_bravo needs bravo (get -> alpha_bravo -> bravo)
-        {
-          event: 'defaultResolverWasCalled',
+          event: 'sourceReturnedFactory'
           path: ['bravo', 'alpha_bravo']
-          lifetime: lifetime
-          resolution:
-            factory: lifetime.factories.bravo
-            name: 'bravo'
+          factory: factories.bravo
         }
-        {
-          event: 'customResolverWasCalled',
-          path: ['bravo', 'alpha_bravo']
-          lifetime: lifetime
-          resolver: noopResolver
-          resolution:
-            factory: lifetime.factories.bravo
-            name: 'bravo'
-        }
-        # bravo has a factory (get -> alpha_bravo -> bravo)
-        {
-          event: 'factoryWasResolved'
-          path: ['bravo', 'alpha_bravo']
-          resolution:
-            factory: lifetime.factories.bravo
-            name: 'bravo'
-            lifetime: lifetime
-        }
-        # end of sync part of alpha_bravo
 
-        # get bravo_charlie (get -> bravo_charlie)
+################################################################################
+# bravo_charlie
+
         {
-          event: 'defaultResolverWasCalled'
+          event: 'sourceReturnedFactory'
           path: ['bravo_charlie']
-          lifetime: lifetime
-          resolution:
-            factory: lifetime.factories.bravo_charlie
-            name: 'bravo_charlie'
+          factory: factories.bravo_charlie
         }
         {
-          event: 'customResolverWasCalled'
-          path: ['bravo_charlie']
-          lifetime: lifetime
-          resolver: noopResolver
-          resolution:
-            factory: lifetime.factories.bravo_charlie
-            name: 'bravo_charlie'
-        }
-        # bravo_charlie has a factory (get -> bravo_charlie)
-        {
-          event: 'factoryWasResolved'
-          path: ['bravo_charlie']
-          resolution:
-            factory: lifetime.factories.bravo_charlie
-            name: 'bravo_charlie'
-            lifetime: lifetime
-        }
-        # bravo_charlie needs bravo (get -> bravo_charlie -> bravo)
-        {
-          event: 'defaultResolverWasCalled',
+          event: 'lifetimeHasPromise'
           path: ['bravo', 'bravo_charlie']
-          lifetime: lifetime
-          resolution:
-            factory: lifetime.factories.bravo
-            name: 'bravo'
+          promise: lifetime1.bravo
+          lifetime: lifetime1
+          lifetimeIndex: 0
         }
         {
-          event: 'customResolverWasCalled',
-          path: ['bravo', 'bravo_charlie']
-          lifetime: lifetime
-          resolver: noopResolver
-          resolution:
-            factory: lifetime.factories.bravo
-            name: 'bravo'
-        }
-        # bravo has a factory (get -> bravo_charlie -> bravo)
-        {
-          event: 'factoryWasResolved'
-          path: ['bravo', 'bravo_charlie']
-          resolution:
-            factory: lifetime.factories.bravo
-            name: 'bravo'
-            lifetime: lifetime
-        }
-        # bravos factory was already called (get -> bravo_charlie -> bravo)
-        {
-          event: 'valueIsAlreadyAwaitingResolution'
-          path: ['bravo', 'bravo_charlie']
-          resolution:
-            factory: lifetime.factories.bravo
-            name: 'bravo'
-            lifetime: lifetime
-          promise: lifetime.promisesAwaitingResolution?.bravo
-        }
-        # bravo_charlie needs charlie (get -> bravo_charlie -> charlie)
-        {
-          event: 'defaultResolverWasCalled'
+          event: 'lifetimeHasValue'
           path: ['charlie', 'bravo_charlie']
-          lifetime: lifetime
-          resolution:
-            factory: lifetime.factories.charlie
-            name: 'charlie'
-        }
-        {
-          event: 'customResolverWasCalled'
-          path: ['charlie', 'bravo_charlie']
-          lifetime: lifetime
-          resolver: noopResolver
-          resolution:
-            factory: lifetime.factories.charlie
-            name: 'charlie'
-        }
-        # charlie has a factory (get -> bravo_charlie -> charlie)
-        {
-          event: 'factoryWasResolved'
-          path: ['charlie', 'bravo_charlie']
-          resolution:
-            factory: lifetime.factories.charlie
-            name: 'charlie'
-            lifetime: lifetime
-        }
-        # end of sync part of bravo_charlie
-
-        # get alpha_charlie (get -> alpha_charlie)
-        {
-          event: 'defaultResolverWasCalled'
-          path: ['alpha_charlie']
-          lifetime: lifetime
-          resolution:
-            factory: lifetime.factories.alpha_charlie
-            name: 'alpha_charlie'
-        }
-        {
-          event: 'customResolverWasCalled'
-          path: ['alpha_charlie']
-          lifetime: lifetime
-          resolver: noopResolver
-          resolution:
-            factory: lifetime.factories.alpha_charlie
-            name: 'alpha_charlie'
-        }
-        # alpha_charlie has a factory (get -> alpha_charlie)
-        {
-          event: 'factoryWasResolved'
-          path: ['alpha_charlie']
-          resolution:
-            factory: lifetime.factories.alpha_charlie
-            name: 'alpha_charlie'
-            lifetime: lifetime
-        }
-        # alpha_charlie factory needs alpha (get -> alpha_charlie -> alpha)
-        {
-          event: 'defaultResolverWasCalled',
-          path: ['alpha', 'alpha_charlie']
-          lifetime: lifetime
-          resolution:
-            value: lifetime.values.alpha
-            name: 'alpha'
-        }
-        {
-          event: 'customResolverWasCalled',
-          path: ['alpha', 'alpha_charlie']
-          lifetime: lifetime
-          resolver: noopResolver
-          resolution:
-            value: lifetime.values.alpha
-            name: 'alpha'
-        }
-        # alpha has a value (get -> alpha_charlie -> alpha)
-        {
-          event: 'valueWasResolved',
-          path: ['alpha', 'alpha_charlie']
-          resolution:
-            value: lifetime.values.alpha
-            name: 'alpha'
-            lifetime: lifetime
-        }
-        # alpha_charlie needs charlie (get -> alpha_charlie -> charlie)
-        {
-          event: 'defaultResolverWasCalled'
-          path: ['charlie', 'alpha_charlie']
-          lifetime: lifetime
-          resolution:
-            factory: lifetime.factories.charlie
-            name: 'charlie'
-        }
-        {
-          event: 'customResolverWasCalled'
-          path: ['charlie', 'alpha_charlie']
-          lifetime: lifetime
-          resolver: noopResolver
-          resolution:
-            factory: lifetime.factories.charlie
-            name: 'charlie'
-        }
-        # charlie has a factory (get -> alpha_charlie -> charlie)
-        {
-          event: 'factoryWasResolved'
-          path: ['charlie', 'alpha_charlie']
-          resolution:
-            factory: lifetime.factories.charlie
-            name: 'charlie'
-            lifetime: lifetime
-        }
-        # charlies factory was already called (get -> alpha_charlie -> bravo)
-        {
-          event: 'valueIsAlreadyAwaitingResolution'
-          path: ['charlie', 'alpha_charlie']
-          resolution:
-            factory: lifetime.factories.charlie
-            name: 'charlie'
-            lifetime: lifetime
-          promise: lifetime.promisesAwaitingResolution?.charlie
-        }
-        # end of sync part of alpha_charlie
-
-        # async... on a following tick
-
-        {
-          event: 'valueWasCreated'
-          path: ['bravo', 'alpha_bravo']
-          factory: lifetime.factories.bravo
-          value: 'bravo'
-          lifetime: lifetime
-        }
-        {
-          event: 'valueWasCreated'
-          path: ['charlie', 'bravo_charlie']
-          factory: lifetime.factories.charlie
           value: 'charlie'
-          lifetime: lifetime
+          lifetime: lifetime2
+          lifetimeIndex: 1
         }
+
+################################################################################
+# alpha_charlie
+
         {
-          event: 'valueWasCreated'
+          event: 'sourceReturnedFactory'
           path: ['alpha_charlie']
-          factory: lifetime.factories.alpha_charlie
+          factory: factories.alpha_charlie
+        }
+        {
+          event: 'lifetimeHasValue',
+          path: ['alpha', 'alpha_charlie']
+          value: lifetime1.alpha
+          lifetime: lifetime1
+          lifetimeIndex: 0
+        }
+        {
+          event: 'lifetimeHasValue'
+          path: ['charlie', 'alpha_charlie']
+          value: lifetime2.charlie
+          lifetime: lifetime2
+          lifetimeIndex: 1
+        }
+
+################################################################################
+# charlie_delta
+
+        {
+          event: 'sourceReturnedFactory'
+          path: ['charlie_delta']
+          factory: factories.charlie_delta
+        }
+        {
+          event: 'lifetimeHasValue',
+          path: ['charlie', 'charlie_delta']
+          value: lifetime2.charlie
+          lifetime: lifetime2
+          lifetimeIndex: 1
+        }
+        {
+          event: 'sourceReturnedFactory'
+          path: ['delta', 'charlie_delta']
+          factory: factories.delta
+        }
+
+################################################################################
+# bravo_delta
+
+        {
+          event: 'sourceReturnedFactory'
+          path: ['bravo_delta']
+          factory: factories.bravo_delta
+        }
+        {
+          event: 'lifetimeHasPromise',
+          path: ['bravo', 'bravo_delta']
+          promise: lifetime1.bravo
+          lifetime: lifetime1
+          lifetimeIndex: 0
+        }
+        {
+          event: 'lifetimeHasPromise'
+          path: ['delta', 'bravo_delta']
+          promise: lifetime1.delta
+          lifetime: lifetime1
+          lifetimeIndex: 0
+        }
+
+################################################################################
+# alpha_delta
+
+        {
+          event: 'sourceReturnedFactory'
+          path: ['alpha_delta']
+          factory: factories.alpha_delta
+        }
+        {
+          event: 'lifetimeHasValue',
+          path: ['alpha', 'alpha_delta']
+          value: lifetime1.alpha
+          lifetime: lifetime1
+          lifetimeIndex: 0
+        }
+        {
+          event: 'lifetimeHasPromise'
+          path: ['delta', 'alpha_delta']
+          promise: lifetime1.delta
+          lifetime: lifetime1
+          lifetimeIndex: 0
+        }
+
+################################################################################
+# async... on various following ticks
+
+        # alpha already had a value
+
+        # we asked for bravo next
+        {
+          event: 'factoryReturnedValue'
+          path: ['bravo', 'alpha_bravo']
+          factory: factories.bravo
+          value: 'bravo'
+        }
+        # we asked for bravo_charlie next
+        # but bravo was just injected into bravo_charlie
+
+        # alpha and charlie both had values
+        {
+          event: 'factoryReturnedValue'
+          path: ['alpha_charlie']
+          factory: factories.alpha_charlie
           value: 'alpha_charlie'
-          lifetime: lifetime
         }
+        # bravo_charlie is not ready yet
+        # we asked for delta next
         {
-          event: 'promiseWasCreated'
-          path: ['alpha_bravo']
-          factory: lifetime.factories.alpha_bravo
-          promise: alphaBravoPromise
-          lifetime: lifetime
+          event: 'factoryReturnedPromise'
+          path: ['delta', 'charlie_delta']
+          factory: factories.delta
+          promise: deltaPromise
         }
+
         {
-          event: 'valueWasCreated'
+          event: 'promiseResolved'
+          path: ['delta', 'charlie_delta']
+          factory: factories.delta
+          value: 'delta'
+        }
+
+        # now bravo_charlie is ready
+        {
+          event: 'factoryReturnedValue'
           path: ['bravo_charlie']
-          factory: lifetime.factories.bravo_charlie
+          factory: factories.bravo_charlie
           value: 'bravo_charlie'
-          lifetime: lifetime
         }
 
-        # async... on a following tick
+        {
+          event: 'factoryReturnedPromise'
+          path: ['alpha_bravo']
+          factory: factories.alpha_bravo
+          promise: alphaBravoPromise
+        }
 
         {
-          event: 'promiseWasResolved'
+          event: 'factoryReturnedValue'
+          path: ['bravo_delta']
+          factory: factories.bravo_delta
+          value: 'bravo_delta'
+        }
+        {
+          event: 'factoryReturnedValue'
+          path: ['alpha_delta']
+          factory: factories.alpha_delta
+          value: 'alpha_delta'
+        }
+
+        {
+          event: 'promiseResolved'
           path: ['alpha_bravo']
-          factory: lifetime.factories.alpha_bravo
+          factory: factories.alpha_bravo
           value: 'alpha_bravo'
-          lifetime: lifetime
+        }
+
+        {
+          event: 'factoryReturnedValue'
+          path: ['charlie_delta']
+          factory: factories.charlie_delta
+          value: 'charlie_delta'
         }
       ]
 
     callToDebug = 0
 
-    lifetime.debug = (actualEvent) ->
+    hinoki.debug = (actualEvent) ->
       expectedEvent = expectedEvents()[callToDebug++]
       test.deepEqual expectedEvent, actualEvent
 
-    lifetime.resolvers = noopResolver
+    hinoki source, [lifetime1, lifetime2], (
+      alpha_bravo
+      bravo_charlie
+      alpha_charlie
+      charlie_delta
+      bravo_delta
+      alpha_delta
+    ) ->
+      test.equal alpha_bravo, 'alpha_bravo'
+      test.equal alpha_charlie, 'alpha_charlie'
+      test.equal alpha_delta, 'alpha_delta'
+      test.equal bravo_charlie, 'bravo_charlie'
+      test.equal bravo_delta, 'bravo_delta'
+      test.equal charlie_delta, 'charlie_delta'
 
-    hinoki(lifetime, ['alpha_bravo', 'bravo_charlie', 'alpha_charlie'])
-      .spread (alpha_bravo, bravo_charlie, alpha_charlie) ->
-        test.equal alpha_bravo, 'alpha_bravo'
-        test.equal bravo_charlie, 'bravo_charlie'
-        test.equal alpha_charlie, 'alpha_charlie'
-        test.deepEqual lifetime.values,
-          alpha: 'alpha'
-          bravo: 'bravo'
-          charlie: 'charlie'
-          alpha_charlie: 'alpha_charlie'
-          bravo_charlie: 'bravo_charlie'
-          alpha_bravo: 'alpha_bravo'
-        test.ok not lifetime.promisesAwaitingResolution?
-        test.done()
+      test.deepEqual lifetime1,
+        alpha: 'alpha'
+        bravo: 'bravo'
+        delta: 'delta'
+        alpha_bravo: 'alpha_bravo'
+        alpha_delta: 'alpha_delta'
+        bravo_delta: 'bravo_delta'
+      test.deepEqual lifetime2,
+        charlie: 'charlie'
+        alpha_charlie: 'alpha_charlie'
+        bravo_charlie: 'bravo_charlie'
+        charlie_delta: 'charlie_delta'
+
+      test.done()

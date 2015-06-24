@@ -1,149 +1,164 @@
 Promise = require 'bluebird'
+helfer = require 'helfer'
 
 hinoki = require '../src/hinoki'
 
 module.exports =
 
   'get value': (test) ->
+    source = ->
+      test.ok false
     lifetime =
-      values:
-        x: 1
+      x: 1
 
-    hinoki(lifetime, 'x').then (x) ->
+    hinoki(source, lifetime, 'x').then (x) ->
       test.equal x, 1
-      test.equal lifetime.values.x, 1
       test.done()
 
   'get null value': (test) ->
+    source = ->
+      test.ok false
     lifetime =
-      values:
-        x: null
+      x: null
 
-    hinoki(lifetime, 'x').then (x) ->
-      test.ok hinoki.isNull x
+    hinoki(source, lifetime, 'x').then (x) ->
+      test.ok helfer.isNull x
       test.done()
 
-  'sync get from factory': (test) ->
-    lifetime =
-      factories:
-        x: -> 1
+  'sync get from factory without dependencies': (test) ->
+    source = hinoki.source
+      x: -> 1
+    lifetime = {}
 
-    hinoki(lifetime, 'x').then (x) ->
+    hinoki(source, lifetime, 'x').then (x) ->
       test.equal x, 1
-      test.equal lifetime.values.x, 1
+      test.equal lifetime.x, 1
       test.done()
 
-  'sync get null from factory': (test) ->
-    lifetime =
-      factories:
-        x: -> null
+  'sync get null from factory without dependencies': (test) ->
+    source = hinoki.source
+      x: -> null
+    lifetime = {}
 
-    hinoki(lifetime, 'x').then (x) ->
-      test.ok hinoki.isNull x
-      test.ok hinoki.isNull lifetime.values.x
+    hinoki(source, lifetime, 'x').then (x) ->
+      test.ok helfer.isNull x
+      test.ok helfer.isNull lifetime.x
       test.done()
 
-  'async get from factory': (test) ->
-    lifetime =
-      factories:
-        x: -> Promise.resolve 1
+  'async get from factory without dependencies': (test) ->
+    source = hinoki.source
+      x: -> Promise.resolve 1
+    lifetime = {}
 
-    hinoki(lifetime, 'x').then (x) ->
+    hinoki(source, lifetime, 'x').then (x) ->
       test.equal x, 1
-      test.equal lifetime.values.x, 1
+      test.equal lifetime.x, 1
       test.done()
 
-  'async get null from factory': (test) ->
-    lifetime =
-      factories:
-        x: -> Promise.resolve null
+  'async get null from factory without dependencies': (test) ->
+    source = hinoki.source
+      x: -> Promise.resolve null
+    lifetime = {}
 
-    hinoki(lifetime, 'x').then (x) ->
-      test.ok hinoki.isNull x
-      test.ok hinoki.isNull lifetime.values.x
+    hinoki(source, lifetime, 'x').then (x) ->
+      test.ok helfer.isNull x
+      test.ok helfer.isNull lifetime.x
       test.done()
 
   'sync get with dependencies': (test) ->
-    lifetime =
-      factories:
-        x: (y) -> 1 + y
-        y: -> 1
+    source = hinoki.source
+      x: (y) -> 1 + y
+      y: -> 1
+    lifetime = {}
 
-    hinoki(lifetime, 'x').then (x) ->
+    hinoki(source, lifetime, 'x').then (x) ->
       test.equal x, 2
+      test.deepEqual lifetime,
+        x: 2
+        y: 1
       test.done()
 
   'sync get null with dependencies': (test) ->
-    lifetime =
-      factories:
-        x: (y) -> null
-        y: -> 1
+    source = hinoki.source
+      x: (y) -> null
+      y: -> 1
+    lifetime = {}
 
-    hinoki(lifetime, 'x').then (x) ->
-      test.ok hinoki.isNull x
-      test.ok hinoki.isNull lifetime.values.x
+    hinoki(source, lifetime, 'x').then (x) ->
+      test.ok helfer.isNull x
+      test.ok helfer.isNull lifetime.x
       test.done()
 
   'injectable is injected correctly': (test) ->
-    lifetime =
-      factories:
-        a: -> 0
-        b: -> 1
-        c: (a, b) -> a + b
-        d: (b, c) -> b + c
-        e: (c, d) -> c + d
-        f: (d, e) -> d + e
-        g: (e, f) -> e + f
-        h: (f, g) -> f + g
+    source = hinoki.source
+      a: -> 0
+      b: -> 1
+      c: (a, b) -> a + b
+      d: (b, c) -> b + c
+      e: (c, d) -> c + d
+      f: (d, e) -> d + e
+      g: (e, f) -> e + f
+      h: (f, g) -> f + g
+    lifetime = {}
 
-    hinoki(lifetime, (a, b, c, d, e, f, g, h) ->
+    hinoki(source, lifetime, (a, b, c, d, e, f, g, h) ->
       [a, b, c, d, e, f, g, h]
     ).then (fibonacci) ->
       test.deepEqual fibonacci, [0, 1, 1, 2, 3, 5, 8, 13]
       test.done()
 
-  'lifetimes are tried in order. values are created in lifetime that resolved factory': (test) ->
-    l1 =
-      factories:
-        a: (b) ->
-          b + 1
+  'a value is cached in the last lifetime that contains values it directly or indirectly depends on': (test) ->
+    req = {}
+    res = {}
+    params = {}
+    next = ->
+    currentUser = {}
+    env = {}
+    databaseConnection = {}
+    isUserAllowedToAccessResource = ->
+    selectUser = ->
+    databaseUrl = 'kjsldkfjd'
 
-    l2 =
-      factories:
-        b: (c) ->
-          c + 1
+    source = hinoki.source
+      currentUser: (req, selectUser) -> currentUser
+      isCurrentUserAllowedToAccessResource: (params, currentUser) -> true
+      env: -> env
+      databaseUrl: (env) -> databaseUrl
+      databaseConnection: (databaseUrl) -> databaseConnection
+      isUserAllowedToAccessResource: (databaseConnection) -> isUserAllowedToAccessResource
+      selectUser: (databaseConnection) -> selectUser
 
-    l3 =
-      factories:
-        c: (d) ->
-          d + 1
-        d: ->
-          1
+    applicationLifetime = {}
 
-    hinoki([l1, l2, l3], ['a', 'd']).spread (a, d) ->
-      test.equal a, 4
-      test.equal d, 1
+    requestLifetime =
+      req: req
+      res: res
 
-      test.equal l1.values.a, 4
-      test.equal l2.values.b, 3
-      test.equal l3.values.c, 2
-      test.equal l3.values.d, 1
+    middlewareLifetime =
+      params: params
+      next: next
 
-      test.done()
+    lifetimes = [
+      applicationLifetime
+      requestLifetime
+      middlewareLifetime
+    ]
 
-  'lifetimes can not depend on previous lifetimes': (test) ->
-    l1 =
-      factories:
-        a: ->
-          1
+    hinoki source, lifetimes, (isCurrentUserAllowedToAccessResource) ->
+      test.deepEqual applicationLifetime,
+        env: env
+        databaseUrl: databaseUrl
+        databaseConnection: databaseConnection
+        selectUser: selectUser
+      test.deepEqual requestLifetime,
+        req: req
+        res: res
+        currentUser: currentUser
+      test.deepEqual middlewareLifetime,
+        params: params
+        next: next
+        isCurrentUserAllowedToAccessResource: true
 
-    l2 =
-      factories:
-        b: (a) ->
-          a + 1
-
-    hinoki([l1, l2], 'b').catch hinoki.UnresolvableError, (error) ->
-      test.deepEqual error.path, ['a', 'b']
       test.done()
 
   'a factory is called no more than once': (test) ->
@@ -153,22 +168,22 @@ module.exports =
       c: 0
       d: 0
 
-    lifetime =
-      factories:
-        a: (b, c) ->
-          callsTo.a++
-          Promise.delay(b + c, 40)
-        b: (d) ->
-          callsTo.b++
-          Promise.delay(d + 1, 20)
-        c: (d) ->
-          callsTo.c++
-          Promise.delay(d + 2, 30)
-        d: ->
-          callsTo.d++
-          Promise.delay(10, 10)
+    source = hinoki.source
+      a: (b, c) ->
+        callsTo.a++
+        Promise.delay(b + c, 40)
+      b: (d) ->
+        callsTo.b++
+        Promise.delay(d + 1, 20)
+      c: (d) ->
+        callsTo.c++
+        Promise.delay(d + 2, 30)
+      d: ->
+        callsTo.d++
+        Promise.delay(10, 10)
+    lifetime = {}
 
-    hinoki(lifetime, 'a').then (a) ->
+    hinoki(source, lifetime, 'a').then (a) ->
       test.equal callsTo.a, 1
       test.equal callsTo.b, 1
       test.equal callsTo.c, 1
@@ -178,217 +193,231 @@ module.exports =
 
   'promises awaiting resolution are cached and reused': (test) ->
     test.expect 8
-    lifetime =
-      factories:
-        a: ->
-          # here a new object is created
-          Promise.delay {}, 10
+    object = {}
+    source = hinoki.source
+      a: ->
+        # here a new object is created
+        Promise.delay object, 10
+    lifetime = {}
 
-    p1 = hinoki(lifetime, 'a')
-    test.ok lifetime.promisesAwaitingResolution.a?
+    p1 = hinoki(source, lifetime, 'a')
+    test.ok lifetime.a?
     # the first promise has one step more which handles caching
     # and cleanup of promise caching
-    test.notEqual p1, lifetime.promisesAwaitingResolution.a
-    p2 = hinoki(lifetime, 'a')
-    test.equal p2, lifetime.promisesAwaitingResolution.a
-    p3 = hinoki(lifetime, 'a')
-    test.equal p3, lifetime.promisesAwaitingResolution.a
+    test.notEqual p1, lifetime.a
+    # ask again
+    p2 = hinoki(source, lifetime, 'a')
+    test.equal p2, lifetime.a
+    p3 = hinoki(source, lifetime, 'a')
+    test.equal p3, lifetime.a
 
     Promise.all([p1, p2, p3]).then ([a1, a2, a3]) ->
       # three pointers to the same object!
-      test.equal 'object', typeof a1
+      test.equal a1, object
       test.equal a1, a2
       test.equal a2, a3
-      test.ok not lifetime.promisesAwaitingResolution?.a?
+      test.equal lifetime.a, object
       test.done()
 
   'all dependent promises are created without interleaving': (test) ->
-    test.expect 18
-    lifetime =
-      factories:
-        a: ->
-          test.ok lifetime.promisesAwaitingResolution.a?
-          test.ok lifetime.promisesAwaitingResolution.b?
-          test.ok lifetime.promisesAwaitingResolution.c?
-          Promise.delay {}, 10
-        b: (a) ->
-          test.ok lifetime.promisesAwaitingResolution.b?
-          test.ok lifetime.promisesAwaitingResolution.c?
-          Promise.delay {a: a}, 10
-        c: (b) ->
-          test.ok lifetime.promisesAwaitingResolution.c?
-          Promise.delay {b: b}, 10
+    test.expect 20
+    a = {}
+    source = hinoki.source
+      a: ->
+        test.ok lifetime.a?
+        test.ok lifetime.b?
+        test.ok lifetime.c?
+        Promise.delay a, 10
+      b: (a) ->
+        test.ok lifetime.b?
+        test.ok lifetime.c?
+        Promise.delay {a: a}, 10
+      c: (b) ->
+        test.ok lifetime.c?
+        Promise.delay {b: b}, 10
+    lifetime = {}
 
-    promiseCWithCleanup = hinoki(lifetime, 'c')
+    promiseCWithCleanup = hinoki(source, lifetime, 'c')
 
-    promiseA = lifetime.promisesAwaitingResolution.a
-    promiseB = lifetime.promisesAwaitingResolution.b
-    promiseC = lifetime.promisesAwaitingResolution.c
+    promiseA = lifetime.a
+    promiseB = lifetime.b
+    promiseC = lifetime.c
 
     test.ok promiseA?
     test.ok promiseB?
     test.ok promiseC?
 
-    test.notEqual promiseCWithCleanup, hinoki(lifetime, 'c')
+    test.notEqual promiseCWithCleanup, hinoki(source, lifetime, 'c')
 
     # these are already awaiting resolution
     # getting them again returns the cached promises
-    test.equal promiseA, hinoki(lifetime, 'a')
-    test.equal promiseB, hinoki(lifetime, 'b')
-    test.equal promiseC, hinoki(lifetime, 'c')
+    test.equal promiseA, hinoki(source, lifetime, 'a')
+    test.equal promiseB, hinoki(source, lifetime, 'b')
+    test.equal promiseC, hinoki(source, lifetime, 'c')
 
     Promise.all([promiseCWithCleanup, promiseA, promiseB, promiseC])
       .then ([valueCWithCleanup, valueA, valueB, valueC]) ->
-        test.equal 'object', typeof valueA
+        test.equal valueA, a
         test.equal valueB.a, valueA
         test.equal valueC.b, valueB
         # both promises resolve to the identical value
         test.equal valueCWithCleanup, valueC
-        test.ok not lifetime.promisesAwaitingResolution?
+        test.equal lifetime.a, valueA
+        test.equal lifetime.b, valueB
+        test.equal lifetime.c, valueC
         test.done()
 
-  'promises awaiting resolution are not cached and reused with nocache': (test) ->
-    test.expect 7
-    lifetime =
-      factories:
-        a: ->
-          # here a new object is created
-          Promise.delay {}, 10
+  'promise in promise': (test) ->
+    value = {}
+    promise = Promise.resolve value
+    promisePromise = Promise.resolve promise
 
-    lifetime.factories.a.$nocache = true
-
-    p1 = hinoki(lifetime, 'a')
-    test.ok not lifetime.promisesAwaitingResolution?.a?
-    # the first promise has one step more which handles caching
-    # and cleanup of promise caching
-    p2 = hinoki(lifetime, 'a')
-    test.ok not lifetime.promisesAwaitingResolution?.a?
-    p3 = hinoki(lifetime, 'a')
-    test.ok not lifetime.promisesAwaitingResolution?.a?
-
-    Promise.all([p1, p2, p3]).then ([a1, a2, a3]) ->
-      # three different objects!
-      test.equal 'object', typeof a1
-      test.notEqual a1, a2
-      test.notEqual a2, a3
-      test.ok not lifetime.promisesAwaitingResolution?.a?
-      test.done()
-
-  'resolvers wrap around default resolver': (test) ->
-    a = {}
-    b = {}
-
-    lifetime =
-      factories:
-        a: -> a
-        b: -> b
-
-    lifetime.resolvers = [
-      (name, lifetime, inner) ->
-        test.equal name, 'a'
-        test.equal lifetime, lifetime
-        inner 'b'
-    ]
-
-    hinoki(lifetime, 'a').then (value) ->
-      test.equal b, value
-      test.equal lifetime.values.b, value
-      test.done()
-
-  'resolvers wrap around inner resolvers': (test) ->
+    source = hinoki.source
+      a: -> promisePromise
     lifetime = {}
 
-    value = {}
-
-    lifetime.resolvers = [
-      (name, l, inner) ->
-        test.equal name, 'a'
-        test.equal l, lifetime
-        inner 'b'
-      (name, l, inner) ->
-        test.equal name, 'b'
-        test.equal l, lifetime
-        {
-          factory: -> value
-          name: 'c'
-        }
-    ]
-
-    hinoki(lifetime, 'a').then (a) ->
+    hinoki source, lifetime, (a) ->
       test.equal a, value
-      test.equal lifetime.values.c, value
       test.done()
 
-  'a resolver can disable caching': (test) ->
+  'lifetime can be omitted': (test) ->
+    source = hinoki.source
+      a: -> 1
+      b: (a) -> a + 1
+      c: (b) -> b + 1
+    hinoki source, (c) ->
+      test.equal c, 3
+      test.done()
+
+  'flat factory objects': (test) ->
+    source = hinoki.source
+      alpha:
+        bravo: (bravo) -> bravo
+        charlie: (charlie) -> charlie
+        delta: (delta) -> delta
+      bravo: -> 'bravo'
+      charlie: -> 'charlie'
+      delta: -> 'delta'
+
     lifetime = {}
 
-    value = {}
-
-    lifetime.resolvers = [
-      (name, l, inner) ->
-        test.equal l, lifetime
-        test.equal name, 'a'
-        {
-          nocache: true
-          name: name
-          factory: ->
-            value
-        }
-    ]
-
-    hinoki(lifetime, 'a').then (a) ->
-      test.equal a, value
-      test.ok not lifetime.values?
+    hinoki source, lifetime, (alpha) ->
+      test.deepEqual alpha,
+        bravo: 'bravo'
+        charlie: 'charlie'
+        delta: 'delta'
       test.done()
 
-  'a factory with $nocache property is not cached': (test) ->
-    c =
-      factories:
-        x: -> 1
+  'flat factory arrays': (test) ->
+    source = hinoki.source
+      alpha: [
+        (bravo) -> bravo
+        (charlie) -> charlie
+        (delta) -> delta
+      ]
+      bravo: -> 'bravo'
+      charlie: -> 'charlie'
+      delta: -> 'delta'
 
-    c.factories.x.$nocache = true
+    lifetime = {}
 
-    hinoki(c, 'x').then (x) ->
-      test.equal x, 1
-      test.ok not c.values?
+    hinoki source, lifetime, (alpha) ->
+      test.deepEqual alpha, [
+        'bravo'
+        'charlie'
+        'delta'
+      ]
       test.done()
 
-  'mocking a factory for any require': (test) ->
-    test.expect 5
-    resolver = (name, lifetime, inner) ->
-      if name is 'bravo'
-        {
-          name: 'bravo'
-          factory: (charlie) ->
-            charlie.split('').reverse().join('')
-          nocache: true
-        }
-      else
-        inner name
-    lifetime =
-      factories:
-        alpha: -> 'alpha'
-        bravo: -> 'bravo'
-        charlie: -> 'charlie'
-        alpha_bravo: (alpha, bravo) ->
-          alpha + '_' + bravo
-        bravo_charlie: (bravo, charlie) ->
-          bravo + '_' + charlie
-        alpha_charlie: (alpha, charlie) ->
-          alpha + '_' + charlie
-      resolvers: [resolver]
+  'nested factory objects and factory arrays': (test) ->
+    source = hinoki.source
+      alpha:
+        bravo:
+          charlie:
+            delta: (delta) -> delta
+            echo:
+              foxtrot: (bravo) -> bravo
+              golf: [
+                (delta, bravo) -> delta + '_' + bravo
+                [
+                  (charlie) -> charlie
+                  -> 'foxtrot'
+                ]
+              ]
+      bravo: -> 'bravo'
+      charlie: -> 'charlie'
+      delta: -> 'delta'
 
-    hinoki(lifetime, ['alpha_bravo', 'bravo_charlie', 'alpha_charlie'])
-      .spread (alpha_bravo, bravo_charlie, alpha_charlie) ->
-        test.equal alpha_bravo, 'alpha_eilrahc'
-        test.equal bravo_charlie, 'eilrahc_charlie'
-        test.equal alpha_charlie, 'alpha_charlie'
-        # note that bravo is not cached
-        test.deepEqual lifetime.values,
-          alpha: 'alpha'
-          charlie: 'charlie'
-          alpha_charlie: 'alpha_charlie'
-          bravo_charlie: 'eilrahc_charlie'
-          alpha_bravo: 'alpha_eilrahc'
-        test.ok not lifetime.promisesAwaitingResolution?
+    lifetime = {}
+
+    hinoki source, lifetime, (alpha) ->
+      test.deepEqual alpha,
+        bravo:
+          charlie:
+            delta: 'delta'
+            echo:
+              foxtrot: 'bravo'
+              golf: [
+                'delta_bravo'
+                [
+                  'charlie'
+                  'foxtrot'
+                ]
+              ]
+      test.done()
+
+  'decorateSourceToAlsoLookupWithPrefix':
+
+    'original found': (test) ->
+      value = {}
+      source = hinoki.source
+        a: -> value
+
+      source = hinoki.decorateSourceToAlsoLookupWithPrefix source, 'my_'
+      lifetime = {}
+
+      hinoki source, lifetime, (a) ->
+        test.equal a, value
+        test.equal lifetime.a, value
+        test.ok not lifetime.my_a?
+        test.done()
+
+    'already prefixed': (test) ->
+      value = {}
+      source = hinoki.source
+        my_a: -> value
+
+      source = hinoki.decorateSourceToAlsoLookupWithPrefix source, 'my_'
+      lifetime = {}
+
+      hinoki source, lifetime, (my_a) ->
+        test.equal my_a, value
+        test.equal lifetime.my_a, value
+        test.ok not lifetime.a?
+        test.done()
+
+    'prefixed found': (test) ->
+      value = {}
+      source = hinoki.source
+        my_a: -> value
+
+      source = hinoki.decorateSourceToAlsoLookupWithPrefix source, 'my_'
+      lifetime = {}
+
+      hinoki source, lifetime, (a) ->
+        test.equal a, value
+        test.equal lifetime.my_a, value
+        test.equal lifetime.a, value
+        test.done()
+
+    'not found': (test) ->
+      source = hinoki.source {}
+
+      source = hinoki.decorateSourceToAlsoLookupWithPrefix source, 'my_'
+      lifetime = {}
+
+      hinoki(source, lifetime, 'a').catch hinoki.NotFoundError, (error) ->
+        test.equal error.message, "neither value nor factory found for `my_a` in path `my_a <- a`"
+        test.deepEqual error.path, ['my_a', 'a']
+        test.deepEqual lifetime, {}
         test.done()

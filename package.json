@@ -1,7 +1,7 @@
 {
   "name": "hinoki",
-  "version": "0.3.0-beta.17",
-  "description": "magical inversion of control for Node.js and browsers",
+  "version": "1.0.0-rc.1",
+  "description": "effective yet simple dependency injection and more for Node.js and browsers",
   "keywords": [
     "inversion",
     "control",
@@ -9,7 +9,8 @@
     "injection",
     "ioc",
     "container",
-    "lifetime"
+    "lifetime",
+    "factory"
   ],
   "homepage": "http://github.com/snd/hinoki",
   "author": {
@@ -30,20 +31,22 @@
     "url": "git://github.com/snd/hinoki/LICENSE"
   },
   "engines": {
-    "node": ">=0.10.0"
+    "node": ">=0.12.0"
   },
   "dependencies": {
-    "bluebird": "2.9.24"
+    "bluebird": "2.9.30",
+    "lodash": "3.9.3",
+    "helfer": "0.1.0"
   },
   "devDependencies": {
-    "coffee-script": "1.9.1",
+    "coffee-script": "1.9.3",
     "nodeunit": "0.9.1"
   },
   "scripts": {
-    "compile": "node_modules/coffee-script/bin/coffee --bare --compile --output lib src",
+    "compile": "coffee --bare --compile --output lib src",
     "prepublish": "npm run compile",
     "pretest": "npm run compile",
-    "test": "node_modules/nodeunit/bin/nodeunit test/*.coffee"
+    "test": "nodeunit test/*.coffee test/*.js"
   },
   "main": "lib/hinoki"
 }
