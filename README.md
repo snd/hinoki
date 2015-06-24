@@ -363,9 +363,8 @@ like a map we can use hinoki as a building block in the solution
 to a whole variety of problems.
 
 reading the rest of this readme takes 10 minutes.
-it will make you thoroughly "understand" hinoki enabling
-you to extrapolate it to your own problems.
-
+it will make you thoroughly "understand" hinoki.
+hopefully that enables you to extrapolate to solve your own problems.
 
 <!--
 most of the things you'll learn can be combined in ... ways.
@@ -396,7 +395,8 @@ hinoki manages a mapping from **keys** to **values**.
 think of the **values** as the parts of your system.  
 think of the **keys** as the names of those parts.
 
-like a map we can ask for a **value** that is associated with a given **key**:
+like a [map](https://en.wikipedia.org/wiki/Associative_array)
+we can ask for a **value** that is associated with a given **key**:
 
 ``` javascript
 var lifetime = {
@@ -417,7 +417,7 @@ here it does nothing.
 the second argument is a **lifetime**.
 a **lifetime** is a plain-old-javascript-object that maps
 **keys** to **values**.
-[we'll learn more about lifetimes soon.](#lifetimes)
+[we'll learn more about lifetimes soon.](#lifetimes-in-depth)
 
 the third argument is the **key** we want to get the **value** of.
 
@@ -425,7 +425,7 @@ if we ask for a **key** and a **value**
 is present for that **key** in the **lifetime** then `hinoki` will
 return a promise that resolves exactly to that **value** !
 
-`hinoki` will always return a promise !
+`hinoki` always returns a promise !
 
 that code not very useful. we could have used `lifetime.three` directly.
 [we'll get to the useful stuff in a bit !](#sources-and-factories)
@@ -475,12 +475,14 @@ hinoki(function() {}, lifetimes, function(two, one, three) {
 ```
 
 hinoki has just parsed the **keys** from the function *parameters*
-and called it with the right **values** as *arguments*.
+and called the function with the right **values** as *arguments*.
 
 in this case hinoki returns a promise that resolves to the
 **value** (or promise) returned by the function.
 
 that's an improvement but still not really what hinoki is about.
+
+let's get to that now.
 
 ### sources and factories
 
@@ -502,21 +504,36 @@ Unhandled rejection NotFoundError: neither value nor factory found for `four` in
 ```
 
 <!--
+document error handling here
+and reference longer error handling documentation
+-->
+
+<!--
 
 fragments is a library that uses hinoki under the hood to make
 webdevelopment 
 -->
 
-hinoki calls the user-provided **source** function with the **key**
+hinoki calls the **source** function with the **key**
 if there is no **value** for the **key** in any of the **lifetimes** !
 
-the **source** does not return a **value** directly.
-the **source** may return a **factory** or `null`.
+the **source** is not supposed not return a **value** directly.
+instead the **source** is supposed to return a **factory** or `null`.
 
 a **factory** is simply a function that returns a **value**.
 
+**sources** make **factories**.  
+**factories** make **values**.
+
+<!-- this needs work -->
+
 the *parameters* of a **factory** function are the **keys**
 the **value** returned by the **factory** depends on.
+
+different from a [map](https://en.wikipedia.org/wiki/Associative_array)
+these two levels of indirection allow us to
+have **values** depend on other **values**
+and provide  (similar to ruby's method missing).
 
 let's see an example:
 
@@ -586,7 +603,7 @@ the **factory** for `'four'` doesn't return a promise.  hinoki doesn't have to w
 hinoki will set `lifetime.five = 5`.  
 hinoki resolves the promise it has returned with `5`.
 
-that's was the breakdown.  
+that was the breakdown.  
 you should now have a pretty good idea what hinoki does.  
 keep in mind that this scales to any number of keys, values, factories,
 lifetimes and dependencies !
@@ -634,10 +651,6 @@ hinoki(factories, lifetime, 'five').then(function(value) {
 
 ---
 
-
-this means that you can just drop your factories as exports
-pull them all in and wire them up.
-
 sources compose.
 you can mix sources.
 
@@ -654,24 +667,23 @@ if the first argument is an array, object or string hinoki
 will wrap it in a source function.
 you can wrap manually by calling `hinoki.source(array | object | string | function)`
 
-this allows values to depend on other values.
-
-if the **source** returns a **factory** then `hinoki`
-
+<!--
 this is the second level of indirection.
+-->
 
 sources can generate factories for keys on the fly.
 method missing.
 check out [umgebung]() which parses environment variables
 
-what if we want to add `five` 
-
-
-
-often though 
+---
 
 sources can also be strings.
 in that case hinoki interprets them as filenames to require
+
+
+this means that you can just drop your factories as exports
+pull them all in and wire them up.
+
 
 you could have all your factories as exports in a number
 of 
