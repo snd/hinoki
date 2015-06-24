@@ -612,7 +612,8 @@ what if we have multiple **lifetimes**? [the answer is very useful and worth its
 now hinoki can call the **factory** for `'five'` with arguments `1` and `4`.  
 the **factory** for `'five'` doesn't return a promise. hinoki doesn't have to wait.  
 hinoki will set `lifetime.five = 5`.  
-hinoki resolves the promise, it has returned before, with `5`.
+remember that promise hinoki has returned immediately ?
+now that we have the **value** for **key** `'five'` hinoki resolves it with `5`.
 
 that's it for the breakdown.  
 you should now have a pretty good idea what hinoki does.  
@@ -672,9 +673,25 @@ much more readable and maintainable than all those if-clauses we had before.
 
 #### strings
 
+if a string is passed to `hinoki.source` it is interpreted as a filepath.
+
+if the filepath points to a `.js` or `.coffee`
+file `hinoki.source` will `require` it
+and return a **source** function that looks up **keys**
+in the `module.exports` returned by the require.
+
+if the filepath points to a folder `hinoki.source` will
+require all `.js` and `.coffee` files in that folder recursively.
+other files are ignored.
+all `module.exports` returned by the requires are merged into one object.
+a **source** function is returned that looks up **keys**
+in that object.
+
+it is very easy to load **factories** from files that simply export
+**factories** this way !
+
 sources can also be strings.
 in that case hinoki interprets them as filenames to require
-
 
 this means that you can just drop your factories as exports
 pull them all in and wire them up.
@@ -701,7 +718,15 @@ this is the second level of indirection.
 
 #### arrays
 
-sources compose.
+sources compose:  
+if an array is passed to `hinoki.source` it is interpreted as an
+array of potential **sources**.
+
+this section needs work
+
+<!--
+
+an array could contain 
 you can mix sources.
 
 check out the appliation example for
@@ -715,8 +740,7 @@ this allows you to mix and match sources.
 
 
 what if you want to use multiple sources?
-
-sources compose
+-->
 
 #### generator functions
 
