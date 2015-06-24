@@ -362,17 +362,12 @@ like a map hinoki is fairly abstract.
 like a map we can use hinoki as a building block in the solution
 to a whole variety of problems.
 
-the rest of this readme.
+reading the rest of this readme takes 10 minutes.
+it will make you thoroughly "understand" hinoki enabling
+you to extrapolate it to your own problems.
 
-rather than showing tons of examples we'll go through the core concepts
-step by step.
-
-reading takes only x minutes.
 
 <!--
-rather than showing you con
-we'll go through ...
-
 most of the things you'll learn can be combined in ... ways.
 extrapolate. use common sense.
 if you have the feeling that something should work, but doesn't,
@@ -399,7 +394,7 @@ like a [map](https://en.wikipedia.org/wiki/Associative_array)
 hinoki manages a mapping from **keys** to **values**.
 
 think of the **values** as the parts of your system.  
-think of the **keys** as the names of the parts.
+think of the **keys** as the names of those parts.
 
 like a map we can ask for a **value** that is associated with a given **key**:
 
@@ -479,9 +474,8 @@ hinoki(function() {}, lifetimes, function(two, one, three) {
 })
 ```
 
-hinoki has just parsed the **keys** to look up from the *parameters*
-of the function and called it with the right **values** as *arguments*.
-remember this concept as it will be important soon.
+hinoki has just parsed the **keys** from the function *parameters*
+and called it with the right **values** as *arguments*.
 
 in this case hinoki returns a promise that resolves to the
 **value** (or promise) returned by the function.
@@ -517,7 +511,7 @@ hinoki calls the user-provided **source** function with the **key**
 if there is no **value** for the **key** in any of the **lifetimes** !
 
 the **source** does not return a **value** directly.
-a **source** may return a **factory** or `null`.
+the **source** may return a **factory** or `null`.
 
 a **factory** is simply a function that returns a **value**.
 
@@ -546,20 +540,24 @@ var source = function(key) {
   }
 };
 
-hinoki(source, lifetime, 'four').then(function(value) {
+hinoki(source, lifetime, 'five').then(function(value) {
   assert(value === 5);
   assert(lifetime.five === 5);
+  assert(lifetime.four === 4);
 });
 ```
 
-there's a lot going on. let's break it down:
+there's a lot going on here. let's break it down.
+you'll understand most of `hinoki` afterwards:
 
 we ask for the **value** for the **key** `'five'`.  
+hinoki immediately returns a promise it resolve in the future.  
 there is no **key** `five` in the **lifetime**.  
 hinoki calls our `source` function with the argument `'five'`.  
 `source` returns a **factory** function for `'five'`.  
 the **factory** for `'five'` has parameters `'one'` and `'four'`.  
-hinoki calls itself to retrieve `'one'` and `'four'`.  
+hinoki calls itself to retrieve the **values** for **keys**
+`'one'` and `'four'` such that it can call the **factory** with those **values**.  
 `'one'` is easy. it's already in the **lifetime**.  
 there is no **key** `'four'` in the **lifetime**.  
 hinoki calls our `source` function with the argument `'four'`.  
@@ -570,92 +568,87 @@ fortunately values for both `'one'` and `'three'` are already in the lifetime.
 hinoki can now call the **factory** for `'four'` with `1` and `3`.
 the **factory** for `'four'` returns a promise.  
 
-when a **factory** returns a promise hinoki must and will wait
-for 
+when a **factory** returns a promise hinoki must naturally
+wait for the promise to be resolved before calling any
+**factories** that depend on the **value** returned by it !
 
 at some point the promise for `'four'` resolves to `4`.  
-hinoki can now continue with everything that depends on key `'four'`.  
+hinoki can now continue making everything that depends on the value for `'four'`.
 
 first hinoki will set `lifetime.four = 4`.
-then 
 
-**values** returned from **factories** are cached in the **lifetime** !
+**values** returned from **factories** are stored in the **lifetime** !  
+what if we have multiple lifetimes?  
+[the answer is very useful and worth its own section.](#lifetimes)
 
-what if we have multiple lifetimes?
-[the answer is worth its own section.](#lifetimes)
+then hinoki call the **factory** for `'five'` with `1` and `4`.  
+the **factory** for `'four'` doesn't return a promise.  hinoki doesn't have to wait.  
+hinoki will set `lifetime.five = 5`.  
+hinoki resolves the promise it has returned with `5`.
 
-you should now have a pretty good idea what
-
-read on for the 
-integrate it into your project.
-
-
-### lifetimes
-
-manage values that live for 
-duration of a request or an event.
+that's was the breakdown.  
+you should now have a pretty good idea what hinoki does.  
+keep in mind that this scales to any number of keys, values, factories,
+lifetimes and dependencies !
 
 <!--
-
-### narratives
-
-
-NARRATIVE
-
-repetition
-
-lifetimes and values
-sources and factories
-
-multiple lifetimes
-
-request example
-
-add headings later
-
-end with sources
-
-link things like
-
-> in a bit
-
-> later
-
-> soon
-
+**sources** make **factories**.  
+**factories** make **values**.  
+**lifetimes** store **values**.
 -->
 
----
+having to add an if-clause for every factory is not very convenient.  
+fortunately hinoki provides some other ways.  
+[just read on.](#sources-in-depth)
 
----
-
----
+### sources in depth
 
 hinoki accepts a variety of things as sources.
 
-the most common will be objects.
+the most common are objects:
 
+a source can also be an object mapping keys to the factories for those keys:
+
+``` javascript
+var lifetime = {
+  one: 1,
+  two: 2,
+  three: 3,
+};
+
+var factories = {
+  five: function(on, three) {
+    return one + four;
+  },
+  four: function(one, three) {
+    return Promise.resolve(one + three);
+  },
+};
+
+hinoki(factories, lifetime, 'five').then(function(value) {
+  assert(value === 5);
+  assert(lifetime.five === 5);
+  assert(lifetime.four === 4);
+});
+```
+
+---
+
+
+this means that you can just drop your factories as exports
+pull them all in and wire them up.
+
+sources compose.
+you can mix sources.
+
+<!--
 this is the first useful level of indirection:
 sources are for responding to values that are not present in lifetimes.
 sources don't return a value directly.
 they return a factory
 factories return values.
 this is the second useful level of indirection.
-
-the **source** must return `null` (`undefined` is fine too)
-or a **factory**.
-
-
-a **factory** is simply a function:
-a function that as has the **keys** of its **dependencies** as *parameters*,
-expects/takes the **values** of its **dependencies** as *arguments*
-and returns a **value**.
-
-sources make factories.
-
-factories make values.
-
-let's see what happens when the **source** returns a **factory**:
+-->
 
 if the first argument is an array, object or string hinoki
 will wrap it in a source function.
@@ -667,17 +660,12 @@ if the **source** returns a **factory** then `hinoki`
 
 this is the second level of indirection.
 
-### sources in detail
-
 sources can generate factories for keys on the fly.
 method missing.
 check out [umgebung]() which parses environment variables
 
 what if we want to add `five` 
 
-its not very convenient to extend our source function every time
-
-a source can also be an object mapping keys to the factories for those keys:
 
 
 often though 
@@ -705,17 +693,34 @@ what if you want to use multiple sources?
 
 sources compose
 
-### factories in detail
 
----
+there's a lot you can do with sources.
+
+method missing.
+autogenerate.
+check out umgebung
+decorate to do tracing (checkout telemetry),
+memoization, freezing, ...
+
+### lifetimes in depth
+
+this section needs work
+
+<!--
+manage values that live for 
+duration of a request or an event.
+
+this enables per-request- and per-event-dependency-injection.
+-->
+
+
+### factories in depth
+
+this section needs work
+
+<!--
 
 as the first
-
-hinoki caches **values** in lifetime.
-
-so now if we ask again
-
-and this is where
 
 we could have multiple factories that return
 promises for results of interdependent queries.
@@ -755,56 +760,18 @@ a **factory** for the key `A` would take the **values** of the
 
 here's a very simple example to illustrate that:
 
-``` javascript
-var Promise = require('bluebird');
-var hinoki = require('hinoki');
-
-hinoki(
-  {
-    one: function() { return 1; },
-    two: function(one) { return one + one; },
-    three: function(one, two) { return Promise.resolve(one + two); },
-  },
-  'three'
-).spread(function(value) {
-  assert(value === 3);
-});
-```
-
 hinoki exports a single function which can be called
 with [two or three arguments](#ways-to-call-hinoki).
-
-here we call it with two arguments.
-
-the first argument is a **source**:
-
-the second argument is a **key**.
-hinoki returns a [promise](https://github.com/petkaantonov/bluebird)
-that is resolved with the **value** for the **key**.
-
-[click here to see exactly whats going on in this example.]()
-
-this example is intentionally very simple.
-[there's a whole lot more you can do with hinoki.]()
-
-this enables per-request- and per-event-dependency-injection.
 
 if you still think i'd be happy 
 
 
 
 
-there's a lot you can do with sources.
-
-method missing.
-autogenerate.
-check out umgebung
-decorate to do tracing (checkout telemetry),
-memoization, freezing, ...
-
 keyspace.
 set of keys.
 
+-->
 
 <!--
 ## all the ways to call hinoki
@@ -825,16 +792,6 @@ the last argument is either a **key**, an array of **keys** or a **factory**.
 
 hinoki will wrap the first argument in a source function unless
 it already is a source function.
-
-
-
-if no middle argument is given hinoki will throw away the lifetime.
-
-## explain by example
-
-but sources don't return values.
-instead they return factories.
-factories return values.
 
 this way values can depend on other values by key.
 a factory for a key creates the value for that key when called with the dependencies of that key.
@@ -1032,11 +989,6 @@ dependencies and to simplify error handling.
 <small>
 and if something goes wrong the promise will be rejected with an [error](#on-errors).
 </small>
-
-hinoki has only generated
-
-if we ask again for `meanOfSquares` again it is not computed
-again instead
 
 ### on promises
 
@@ -1331,5 +1283,36 @@ lookups of 1 cached value
 
 it should be fast enough
 -->
+
+<!--
+
+### narratives
+
+
+NARRATIVE
+
+repetition
+
+lifetimes and values
+sources and factories
+
+multiple lifetimes
+
+request example
+
+add headings later
+
+end with sources
+
+link things like
+
+> in a bit
+
+> later
+
+> soon
+
+-->
+
 
 ## [license: MIT](LICENSE)
