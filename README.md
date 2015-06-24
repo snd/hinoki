@@ -414,9 +414,10 @@ the first argument is the **source** function.
 [more on that in a bit.](#sources-and-factories)
 here it does nothing.
 
-the second argument is a **lifetime**.
+the second argument is a **lifetime**.  
 a **lifetime** is a plain-old-javascript-object that maps
-**keys** to **values**.
+**keys** to **values**.  
+**lifetimes** store values**.  
 [we'll learn more about lifetimes soon.](#lifetimes-in-depth)
 
 the third argument is the **key** we want to get the **value** of.
@@ -524,6 +525,8 @@ a **factory** is simply a function that returns a **value**.
 
 **sources** make **factories**.  
 **factories** make **values**.
+
+**factories** declare the dependencies
 
 the *parameter names* of a **factory** function are
 interpreted as **keys**. hinoki will get **values** for those **keys**
@@ -667,6 +670,12 @@ in that case hinoki interprets them as filenames to require
 this means that you can just drop your factories as exports
 pull them all in and wire them up.
 
+you could have all your factories as exports in a number
+of 
+
+your factories could then depend on other factories exported
+by any other file in that directory.
+
 
 <!--
 this is the first useful level of indirection:
@@ -677,28 +686,14 @@ factories return values.
 this is the second useful level of indirection.
 -->
 
-if the first argument is an array, object or string hinoki
-will wrap it in a source function.
-you can wrap manually by calling `hinoki.source(array | object | string | function)`
-
 <!--
 this is the second level of indirection.
 -->
-
-sources can generate factories for keys on the fly.
-method missing.
-check out [umgebung]() which parses environment variables
 
 #### arrays
 
 sources compose.
 you can mix sources.
-
-you could have all your factories as exports in a number
-of 
-
-your factories could then depend on other factories exported
-by any other file in that directory.
 
 check out the appliation example for
 
@@ -726,6 +721,10 @@ there's a lot you can do with sources.
 method missing.
 autogenerate.
 check out [umgebung](http://github.com/snd/umgebung).
+
+sources can generate factories for keys on the fly.
+method missing.
+check out [umgebung]() which parses environment variables
 -->
 
 #### decorator functions
