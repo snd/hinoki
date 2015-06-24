@@ -45,15 +45,15 @@ often asynchronously.
 often in complex ways.
 
 dependency injection is a simple idea:  
-parts of the system declare which other parts they need.  
-the dependency injection tool ensures that they get them.
-the wiring gets done automatically.
-boilerplate doing manual wiring disappears.
-nothing is hardwired.
-parts using dependency injection are trivial to test in isolation.
+parts of the system declare which other parts they need and
+the dependency injection tool makes sure they get them.
+the wiring happens automatically.
+manual wiring boilerplate disappears.
+since nothing is hardwired, everything is mockable
+and every part is easy to test in isolation.
 
 many dependency injection tools are needlessly complex
-making the whole idea seem complex.
+they make the whole idea of dependency injection seem complex.
 hinoki is an extremely simple and functional approach to dependency injection.
 
 <!--
@@ -77,18 +77,18 @@ for now there's just the guided tour
 
 -->
 
-we use it in the large to structure entire web applications.  
+we use it in the large to structure entire web applications.
 
 we use it in the small to tame complex asynchronous I/O flows
-*(those where you do some async I/O that depends on three other 
-async results and is needed by two other async operations...)*
+*(you know... those where you do some async I/O that depends on three other 
+async results and is needed by two other...)*
 
 hinoki is inspired by prismatic's fantastic [graph](https://github.com/Prismatic/plumbing#graph-the-functional-swiss-army-knife)
 
 *hinoki takes its name from the hinoki cypress,
 a tree that only grows in japan and is the preferred wood for building palaces,
 temples and shrines.  
-may hinoki become the building material for your digital palaces too !*
+we hope hinoki becomes the building material for your digital palaces too !*
 
 <!--
 with these words the introduction ends
@@ -362,11 +362,13 @@ like a map hinoki is fairly abstract.
 like a [map](https://en.wikipedia.org/wiki/Associative_array)
 we can use hinoki as a building block in solving a whole variety of problems.
 
-reading the rest of this readme takes about 10 minutes.
-it will make you thoroughly "understand" hinoki.
-hopefully enabling you to extrapolate that knowledge to solve your own problems.
+reading and understanding the rest of this readme should take less than 10 minutes.  
+its goal is to make you thoroughly understand hinoki's interface and core concepts.  
+hopefully that enables you to extrapolate to solve your own problems.  
 
 <!--
+if it doesn't please make an issue
+
 most of the things you'll learn can be combined in ... ways.
 extrapolate. use common sense.
 if you have the feeling that something should work, but doesn't,
@@ -393,7 +395,7 @@ like a [map](https://en.wikipedia.org/wiki/Associative_array)
 hinoki manages a mapping from **keys** to **values**.
 
 think of the **values** as the parts of your system.  
-think of the **keys** as the names of those parts.
+think of the **keys** as the names for those parts.
 
 like a [map](https://en.wikipedia.org/wiki/Associative_array)
 we can ask for a **value** that is associated with a given **key**:
@@ -417,7 +419,7 @@ here it does nothing.
 the second argument is a **lifetime**.  
 a **lifetime** is a plain-old-javascript-object that maps
 **keys** to **values**.  
-**lifetimes** store values**.  
+**lifetimes** store **values**.  
 [we'll learn more about lifetimes soon.](#lifetimes-in-depth)
 
 the third argument is the **key** we want to get the **value** of.
@@ -428,7 +430,7 @@ return a promise that resolves exactly to that **value** !
 
 `hinoki` always returns a promise !
 
-that code not very useful. we could have used `lifetime.three` directly.
+that code not very useful. we could have used `lifetime.three` directly.  
 [we'll get to the useful stuff in a bit !](#sources-and-factories)
 
 ---
@@ -454,6 +456,8 @@ hinoki(function() {}, lifetimes, ['three', 'one', 'two'])
 
 the **value** is always returned from the first **lifetime** having the **key** !
 
+multiple **lifetimes** make exiting things possible. [more on that later.](#lifetimes-in-depth)
+
 ---
 
 we can even pass in a function as the third argument:
@@ -476,14 +480,14 @@ hinoki(function() {}, lifetimes, function(two, one, three) {
 ```
 
 hinoki has just parsed the **keys** from the function *parameter names*
-and called the function with the right **values** as *arguments*.
+and called the function with the **values** (associated with those **keys**) as *arguments*.
 
-in this case hinoki returns a promise that resolves to the
+in this case `hinoki` returns a promise that resolves to the
 **value** (or promise) returned by the function.
 
 that's an improvement but still not really what hinoki is about.
 
-let's get to that now.
+let's get to that now !
 
 ### sources and factories
 
@@ -569,7 +573,7 @@ hinoki(source, lifetime, 'five').then(function(value) {
 ```
 
 there's a lot going on here. let's break it down.
-you'll understand most of `hinoki` afterwards:
+you'll understand most of hinoki afterwards:
 
 we ask for the **value** for the **key** `'five'`.  
 hinoki immediately returns a promise it will resolve in the future.  
@@ -606,7 +610,7 @@ the **factory** for `'five'` doesn't return a promise. hinoki doesn't have to wa
 hinoki will set `lifetime.five = 5`.  
 hinoki resolves the promise it has returned with `5`.
 
-that was the breakdown.  
+that's it for the breakdown.  
 you should now have a pretty good idea what hinoki does.  
 keep in mind that this scales to any number of keys, values, factories,
 lifetimes and dependencies !
