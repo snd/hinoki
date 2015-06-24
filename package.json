@@ -1,7 +1,7 @@
 {
   "name": "hinoki",
-  "version": "0.3.0-beta.17",
-  "description": "magical inversion of control for Node.js and browsers",
+  "version": "1.0.0-rc.1",
+  "description": "effective yet simple dependency injection and more for Node.js and browsers",
   "keywords": [
     "inversion",
     "control",
@@ -9,7 +9,8 @@
     "injection",
     "ioc",
     "container",
-    "lifetime"
+    "lifetime",
+    "factory"
   ],
   "homepage": "http://github.com/snd/hinoki",
   "author": {
@@ -33,7 +34,7 @@
     "node": ">=0.12.0"
   },
   "dependencies": {
-    "bluebird": "2.9.27",
+    "bluebird": "2.9.30",
     "lodash": "3.9.3",
     "helfer": "0.1.0"
   },
