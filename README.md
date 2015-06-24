@@ -52,7 +52,7 @@ manual wiring boilerplate disappears.
 since nothing is hardwired, everything is mockable
 and every part is easy to test in isolation.
 
-many dependency injection tools are needlessly complex
+many dependency injection tools are needlessly complex.
 they make the whole idea of dependency injection seem complex.
 hinoki is an extremely simple and functional approach to dependency injection.
 
@@ -364,7 +364,7 @@ we can use hinoki as a building block in solving a whole variety of problems.
 
 reading and understanding the rest of this readme should take less than 10 minutes.  
 its goal is to make you thoroughly understand hinoki's interface and core concepts.  
-hopefully that enables you to extrapolate to solve your own problems.  
+hopefully enabling you to extrapolate to solve your own problems.  
 
 <!--
 if it doesn't please make an issue
@@ -420,7 +420,7 @@ the second argument is a **lifetime**.
 a **lifetime** is a plain-old-javascript-object that maps
 **keys** to **values**.  
 **lifetimes** store **values**.  
-[we'll learn more about lifetimes soon.](#lifetimes-in-depth)
+[we'll learn more about lifetimes later.](#lifetimes-in-depth)
 
 the third argument is the **key** we want to get the **value** of.
 
@@ -522,16 +522,20 @@ webdevelopment
 hinoki calls the **source** function with the **key**
 if there is no **value** for the **key** in any of the **lifetimes** !
 
+think of **source** as a fallback on missing **key** **value** mappings.
+
 the **source** is not supposed return a **value** directly.
 instead the **source** is supposed to return a **factory** or `null`.
+
+returning `null` (`undefined` is fine too) signals hinoki
+that the **source** can't help making a **value** for that **key**.
 
 a **factory** is simply a function that returns a **value**.
 
 **sources** make **factories**.  
 **factories** make **values**.
 
-**factories** declare the dependencies
-
+**factories** declare **dependencies** through their *parameter names*:  
 the *parameter names* of a **factory** function are
 interpreted as **keys**. hinoki will get **values** for those **keys**
 and call the **factory** with them as *arguments*.
@@ -575,30 +579,30 @@ hinoki(source, lifetime, 'five').then(function(value) {
 there's a lot going on here. let's break it down.
 you'll understand most of hinoki afterwards:
 
-we ask for the **value** for the **key** `'five'`.  
-hinoki immediately returns a promise it will resolve in the future.  
-there is no **key** `'five'` in the **lifetime**.  
+we want the **value** for the **key** `'five'`.  
+hinoki immediately returns a promise. it will resolve that promise with the **value** later.  
+there is no **key** `'five'` in the **lifetime** so
 hinoki calls our `source` function with the argument `'five'`.  
-`source` returns a **factory** function for `'five'`.  
-the **factory** for `'five'` has parameters `'one'` and `'four'`.  
-hinoki calls itself to retrieve the **values** for **keys**
-`'one'` and `'four'` such that it can call the **factory** with those **values**.  
+`source` returns the **factory** function for `'five'`.  
+the **factory** for `'five'` has *parameter names* `'one'` and `'four'`.  
+hinoki calls itself to get the **values** for `'one'` and `'four'`
+such that it can call the **factory** with those **values**.  
 `'one'` is easy. it's already in the **lifetime**.  
-there is no **key** `'four'` in the **lifetime**.  
+but there is no **key** `'four'` in the **lifetime** therefore
 hinoki calls our `source` function again with the argument `'four'`.  
-`source` returns a **factory** function for `'four'`.  
+`source` returns the **factory** function for `'four'`.  
 the **factory** for `'four'` has parameters `'one'` and `'three'`.  
-hinoki calls itself to retrieve `'one'` and `'three'`.  
+hinoki calls itself to get the **values** for `'one'` and `'three'`.  
 fortunately values for both `'one'` and `'three'` are already in the lifetime.  
 hinoki can now call the **factory** for `'four'` with arguments `1` and `3`.  
 the **factory** for `'four'` returns a promise.  
 
 when a **factory** returns a promise hinoki must naturally
 wait for the promise to be resolved before calling any
-**factories** that depend on that **value** !
+other **factories** that depend on that **value** !
 
 at some point the promise for `'four'` resolves to `4`.  
-hinoki can now continue making everything that depends on the **value** for `'four'`.
+hinoki can now continue making everything that depends on the **value** for `'four'`:
 
 first hinoki will set `lifetime.four = 4`.
 
@@ -608,7 +612,7 @@ what if we have multiple **lifetimes**? [the answer is very useful and worth its
 now hinoki can call the **factory** for `'five'` with arguments `1` and `4`.  
 the **factory** for `'five'` doesn't return a promise. hinoki doesn't have to wait.  
 hinoki will set `lifetime.five = 5`.  
-hinoki resolves the promise it has returned with `5`.
+hinoki resolves the promise, it has returned before, with `5`.
 
 that's it for the breakdown.  
 you should now have a pretty good idea what hinoki does.  
@@ -623,7 +627,7 @@ lifetimes and dependencies !
 
 having to add an if-clause in the **source** for every **factory**
 is not very convenient.  
-fortunately there's much more to sources.
+fortunately there's much more to sources. read on !
 
 ### sources in depth
 
@@ -637,8 +641,9 @@ when `hinoki.source` is called with a function argument its simply returned.
 
 #### objects
 
-an object mapping **keys** to the **factories** for those **keys** is
-valid input to `hinoki.source`:
+if an object mapping **keys** to the **factories** for those **keys**
+is passed to `hinoki.source` it is wrapped in a **source** function
+that simply looks up the **key** in the object:
 
 ``` javascript
 var lifetime = {
