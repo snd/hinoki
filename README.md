@@ -1,9 +1,9 @@
 # hinoki
 
-*this is release candidate 1 for version 1.0.0.
+*this is a release candidate for version 1.0.0.
 implementation and tests are complete.
 the documentation in this readme is not yet finished !
-the newest version 1.0.0-rc.1 introduces massive breaking changes.
+the newest version introduces massive breaking changes.
 if you used an earlier version of hinoki please read this new readme carefully.
 future changes will be documented in the [changelog](#changelog).
 future versions will use [semver](http://semver.org/).*
@@ -44,28 +44,22 @@ parts that depend on each other.
 often asynchronously.
 often in complex ways.
 
+dependency injection can simplify such systems.
+
 dependency injection is a simple idea:  
-parts of the system declare which other parts they need and
-the dependency injection tool makes sure they get them.
+parts of the system declare the other parts they need.
+dependency injection ensures that parts get the other parts they need.
 the wiring happens automatically.
 manual wiring boilerplate disappears.
-since nothing is hardwired, everything is mockable
-and every part is easy to test in isolation.
+nothing is hardwired. everything is mockable.
+every part is easy to test in isolation.
 
-many dependency injection tools are needlessly complex.
-they make the whole idea of dependency injection seem complex.
 hinoki is an extremely simple and functional approach to dependency injection.
 
 <!--
 hinoki boils dependency injection down to the essentials:
 no configuration, no XML, no OOP, no boilerplate.
 -->
-
-hinoki is an abstract and flexible tool.
-when applied to the right problems it can reduce
-incidental complexity and boilerplate,
-make code more testable, easier to understand,
-simpler, less complex and more elegant.
 
 <!--
 later add here
@@ -77,11 +71,41 @@ for now there's just the guided tour
 
 -->
 
+hinoki is a bit like a [map](https://en.wikipedia.org/wiki/Associative_array)
+with the addition that **values** can depend on each other.  
+the dependency graph (which **values** depend on each other) is controllable programmatically.  
+like a [map](https://en.wikipedia.org/wiki/Associative_array)
+hinoki manages a mapping from **keys** to **values**.  
+we can ask for a **key** and get a **value**.  
+unlike a map:  
+if we ask for a **key** that has no **value**, then
+a user-provided **source** function is called.  
+that **source** function doesn't return a **value** directly.  
+instead it returns a **factory**,
+which is simply a function that returns a **value**.  
+hinoki looks at the **factory's** parameter names,
+interprets them as **keys**,
+looks up their **values**,
+calls the factory with the **values** which returns a **value**.
+
+like a [map](https://en.wikipedia.org/wiki/Associative_array)
+we can use hinoki as a building block in solving a whole variety of problems.
+
 we use it in the large to structure entire web applications.
 
 we use it in the small to tame complex asynchronous I/O flows
 *(you know... those where you do some async I/O that depends on three other 
 async results and is needed by two other...)*
+
+hinoki is an abstract and flexible tool.
+when applied to the right problems it can reduce
+incidental complexity and boilerplate,
+make code more testable, easier to understand,
+simpler, less complex and more elegant.
+
+reading and understanding the rest of this readme should take less than 10 minutes.  
+its goal is to make you thoroughly understand hinoki's interface and core concepts.  
+hopefully enabling you to extrapolate to solve your own problems.  
 
 [hinoki is inspired by prismatic's fantastic graph.](https://github.com/Prismatic/plumbing#graph-the-functional-swiss-army-knife)
 
@@ -344,25 +368,15 @@ bower install hinoki
 [lib/hinoki.js](lib/hinoki.js) supports [AMD](http://requirejs.org/docs/whyamd.html).
 if [AMD](http://requirejs.org/docs/whyamd.html) is not available it sets the global variable `hinoki`.
 
-## understand it
+## keys and values
 
 <!--
 this is a short text that describes what will follow
 -->
 
-hinoki is a bit like a [map](https://en.wikipedia.org/wiki/Associative_array)
-with two very useful levels of indirection.
-
 <!--
 like a map hinoki is fairly abstract.
 -->
-
-like a [map](https://en.wikipedia.org/wiki/Associative_array)
-we can use hinoki as a building block in solving a whole variety of problems.
-
-reading and understanding the rest of this readme should take less than 10 minutes.  
-its goal is to make you thoroughly understand hinoki's interface and core concepts.  
-hopefully enabling you to extrapolate to solve your own problems.  
 
 <!--
 if it doesn't please make an issue
@@ -386,8 +400,6 @@ mark important sentences ("always") with an exclamation mark
 
 make them bold
 -->
-
-### keys and values
 
 like a [map](https://en.wikipedia.org/wiki/Associative_array)
 hinoki manages a mapping from **keys** to **values**.
@@ -487,7 +499,7 @@ that's an improvement but still not really what hinoki is about.
 
 let's get to that now !
 
-### sources and factories
+## sources and factories
 
 what if we ask for a value that is not present in the **lifetime(s)** ?
 ``` javascript
@@ -628,7 +640,7 @@ having to add an if-clause in the **source** for every **factory**
 is not very convenient.  
 fortunately there's much more to sources. read on !
 
-### sources in depth
+## sources in depth
 
 the first argument passed to `hinoki` is always interpreted as the **source**
 and passed to `hinoki.source` internally.
@@ -638,7 +650,7 @@ and passed to `hinoki.source` internally.
 
 when `hinoki.source` is called with a function argument its simply returned.
 
-#### objects
+### objects
 
 if an object mapping **keys** to the **factories** for those **keys**
 is passed to `hinoki.source` it is wrapped in a **source** function
@@ -669,7 +681,7 @@ hinoki(factories, lifetime, 'five').then(function(value) {
 
 much more readable and maintainable than all those if-clauses we had before.
 
-#### strings
+### strings
 
 if a string is passed to `hinoki.source` it is interpreted as a filepath.
 
@@ -714,7 +726,7 @@ this is the second useful level of indirection.
 this is the second level of indirection.
 -->
 
-#### arrays
+### arrays
 
 sources compose:  
 if an array is passed to `hinoki.source` it is interpreted as an
@@ -740,7 +752,7 @@ this allows you to mix and match sources.
 what if you want to use multiple sources?
 -->
 
-#### generator functions
+### generator functions
 
 this section needs work
 
@@ -758,7 +770,7 @@ method missing.
 check out [umgebung]() which parses environment variables
 -->
 
-#### decorator functions
+### decorator functions
 
 this section needs work
 
@@ -767,7 +779,7 @@ decorate to do tracing (checkout telemetry),
 memoization, freezing, ...
 -->
 
-### lifetimes in depth
+## lifetimes in depth
 
 this section needs work
 
@@ -801,7 +813,7 @@ this enables per-request- and per-event-dependency-injection.
 -->
 
 
-### factories in depth
+## factories in depth
 
 this section needs work
 
