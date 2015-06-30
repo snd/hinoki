@@ -337,8 +337,6 @@ npm install hinoki
 var hinoki = require('hinoki');
 ```
 
-or
-
 ```
 bower install hinoki
 ```
@@ -456,7 +454,7 @@ hinoki(function() {}, lifetimes, ['three', 'one', 'two'])
 
 the **value** is always returned from the first **lifetime** having the **key** !
 
-multiple **lifetimes** open exiting possibilities. [more on that later.](#lifetimes-in-depth)
+there's some really useful stuff you can do with multiple **lifetimes**. [more on that later.](#lifetimes-in-depth)
 
 ---
 
@@ -772,6 +770,28 @@ memoization, freezing, ...
 ### lifetimes in depth
 
 this section needs work
+
+**lifetimes** store **values**.
+
+why multiple lifetimes ?
+
+because values 
+
+there's only one application
+
+but there are many requests
+
+there are many events
+
+many lifetimes
+
+but you still want 
+
+let's see an example:
+
+request, response
+
+fragments is with this idea at its core.
 
 <!--
 manage values that live for 
