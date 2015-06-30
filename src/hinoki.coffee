@@ -428,14 +428,14 @@
         if extension is '.coffee'
           require('coffee-script/register')
 
-        extension = require(filepath)
+        exports = require(filepath)
 
-        Object.keys(extension).map (key) ->
-          unless 'function' is typeof extension[key]
-            throw new Error('export is not a function: ' + key + ' in :' + filepath)
+        Object.keys(exports).map (key) ->
+          unless hinoki.isFactory exports[key]
+            throw new Error('export is not a factory: ' + key + ' in :' + filepath)
           if object[key]?
             throw new Error('duplicate export: ' + key + ' in: ' + filepath + '. first was in: ' + object[key].__file)
-          object[key] = extension[key]
+          object[key] = exports[key]
           # add filename as metadata
           object[key].__file = filepath
 
