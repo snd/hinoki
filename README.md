@@ -436,9 +436,9 @@ the third argument is the **key** we want to get the **value** of.
 
 if we ask for a **key** and a **value**
 is present for that **key** in the **lifetime** then `hinoki` will
-return a promise that resolves exactly to that **value** !
+return a [promise](https://github.com/petkaantonov/bluebird) that resolves exactly to that **value** !
 
-`hinoki` always returns a promise !
+`hinoki` always returns a [promise](https://github.com/petkaantonov/bluebird) !
 
 that code not very useful. we could have used `lifetime.three` directly.  
 [we'll get to the useful stuff in a bit !](#sources-and-factories)
@@ -466,7 +466,7 @@ hinoki(function() {}, lifetimes, ['three', 'one', 'two'])
 
 the **value** is always returned from the first **lifetime** having the **key** !
 
-there's some really useful stuff you can do with multiple **lifetimes**. [more on that later.](#lifetimes-in-depth)
+multiple **lifetimes** are really useful. [more on that later.](#lifetimes-in-depth)
 
 ---
 
@@ -492,7 +492,7 @@ hinoki(function() {}, lifetimes, function(two, one, three) {
 hinoki has just parsed the **keys** from the function *parameter names*
 and called the function with the **values** (associated with those **keys**) as *arguments*.
 
-in this case `hinoki` returns a promise that resolves to the
+in this case `hinoki` returns a [promise](https://github.com/petkaantonov/bluebird) that resolves to the
 **value** (or promise) returned by the function.
 
 that's an improvement but still not really what hinoki is about.
@@ -590,7 +590,7 @@ there's a lot going on here. let's break it down.
 you'll understand most of hinoki afterwards:
 
 we want the **value** for the **key** `'five'`.  
-hinoki immediately returns a promise. it will resolve that promise with the **value** later.  
+hinoki immediately returns a [promise](https://github.com/petkaantonov/bluebird). it will resolve that [promise](https://github.com/petkaantonov/bluebird) with the **value** later.  
 there is no **key** `'five'` in the **lifetime** so
 hinoki calls our `source` function with the argument `'five'`.  
 `source` returns the **factory** function for `'five'`.  
