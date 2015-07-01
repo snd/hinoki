@@ -283,7 +283,10 @@
       result = {}
       while ++i < length
         key = keys[i]
-        unless key is '__inject'
+        # ignore special properties:
+        # special properties are those starting with `__`
+        # like: `__inject`, `__file`, ...
+        unless 0 is key.indexOf '__'
           result[key] = iterator(factoryObject[key], key)
       return Promise.props result
 
