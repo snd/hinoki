@@ -2,7 +2,8 @@
 
 *this is a release candidate for version 1.0.0.
 implementation and tests are complete.
-the documentation in this readme is not yet finished !
+the documentation in this readme is not yet finished.
+it's already useful though.
 the newest version introduces massive breaking changes.
 if you used an earlier version of hinoki please read this new readme carefully.
 future changes will be documented in the [changelog](#changelog).
@@ -38,23 +39,57 @@ designed to manage complexity in applications and (asynchronous) computation.
 > Thanks a lot for this!  
 > [andrey](https://github.com/snd/hinoki/issues/3)
 
-web applications are systems.
-systems with many parts.
-parts that depend on each other.
-often asynchronously.
+<!--
+cut right to the point:
+why is this useful for me
+
+main use case
+
+you can also use it
+-->
+
+(web) applications are systems.
+systems with many parts: functions, helpers, actions, objects, data, configuration.
+parts depend on each other.
+often asynchronously in the case of Node.js.
 often in complex ways.
+in Node.js they often depend on each other asynchronously.
+often they depend on each other in complex ways.
+
+such complex systems consisting of many interdependent parts can be simplified
+by using dependency injection.
 
 dependency injection can simplify such systems.
 
 dependency injection is a simple idea:  
-parts of the system declare the other parts they need.
-dependency injection ensures that parts get the other parts they need.
+each part declares its dependencies (the other parts it needs).
+there is a piece of code for constructing each part.
+called a factory
+parts of the system say which other parts they need.
+then dependency injection makes sure they get them.
+
+just by the name of their function parameter.
+the injector then hands those dependencies to the parts that need them.
+
+the injector !!!
+
+clojure based dependency injection.
 the wiring happens automatically.
 manual wiring boilerplate disappears.
 nothing is hardwired. everything is mockable.
 every part is easy to test in isolation.
 
 hinoki is an extremely simple and functional approach to dependency injection.
+it supports usage patterns not possible with other dependency injection systems.
+
+generalizes the concepts behind dependency injection.
+
+you can use it for traditional dependency injection.
+you can also do more and exiting things
+
+
+
+read on [stick around] for the scenic tour.
 
 <!--
 hinoki boils dependency injection down to the essentials:
@@ -73,6 +108,8 @@ for now there's just the guided tour
 
 hinoki is a bit like a [map](https://en.wikipedia.org/wiki/Associative_array)
 with the addition that **values** can depend on each other.  
+
+this
 the dependency graph (which **values** depend on each other) is controllable programmatically.  
 like a [map](https://en.wikipedia.org/wiki/Associative_array)
 hinoki manages a mapping from **keys** to **values**.  
@@ -86,7 +123,23 @@ which is simply a function that returns a **value**.
 hinoki looks at the **factory's** parameter names,
 interprets them as **keys**,
 looks up their **values**,
-calls the factory with the **values** which returns a **value**.
+calls the factory with the **values** which returns a **value**.  
+sources dynamically extend the keyspace managed by hinoki.
+
+you can make a value depend on other values simply by
+
+``` javascript
+var factories = {
+  six: function(one, two, three) {
+    return one + two + three;
+  }
+}
+```
+
+
+
+
+
 
 like a [map](https://en.wikipedia.org/wiki/Associative_array)
 we can use hinoki as a building block in solving a whole variety of problems.
@@ -411,20 +464,27 @@ like a [map](https://en.wikipedia.org/wiki/Associative_array)
 we can ask for a **value** that is associated with a given **key**:
 
 ``` javascript
+var source = function() {};
+
 var lifetime = {
   one: 1,
   two: 2,
   three: 3,
 };
 
-hinoki(function() {}, lifetime, 'three').then(function(value) {
+var key = 'three';
+
+hinoki(source, lifetime, key).then(function(value) {
   assert(value === 3);
 });
 ```
 
-the first argument is the **source** function.
+the first argument is the **source**.
 [more on that in a bit.](#sources-and-factories)
 here it does nothing.
+it's not optional
+don't worry about it for now.
+we'll come to that in a bit.
 
 the second argument is a **lifetime**.  
 a **lifetime** is a plain-old-javascript-object that maps
@@ -529,8 +589,8 @@ fragments is a library that uses hinoki under the hood to make
 webdevelopment 
 -->
 
-hinoki calls the **source** function with the **key**
-if there is no **value** for the **key** in any of the **lifetimes** !
+if there is no **value** for the **key** in any of the **lifetimes**
+hinoki calls the **source** function with the **key** !
 
 think of **source** as a fallback on missing **key** **value** mappings.
 
@@ -540,7 +600,7 @@ instead the **source** is supposed to return a **factory** or `null`.
 a **factory** is simply a function that returns a **value**.
 
 returning `null` (`undefined` is fine too) signals hinoki
-that the **source** can't help making a **value** for that **key**.
+that the **source** can't return a factory that can make a **value** for that **key**.
 
 **sources** make **factories**.  
 **factories** make **values**.
