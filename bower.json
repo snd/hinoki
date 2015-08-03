@@ -1,0 +1,37 @@
+{
+  "name": "hinoki",
+  "homepage": "http://github.com/snd/hinoki",
+  "authors": [
+    "Maximilian Krüger <kruemaxi@googlemail.com>"
+  ],
+  "description": "effective yet simple dependency injection and more for Node.js and browsers",
+  "keywords": [
+    "inversion",
+    "control",
+    "dependency",
+    "injection",
+    "ioc",
+    "container",
+    "lifetime",
+    "factory"
+  ],
+  "main": "lib/hinoki.js",
+  "moduleType": [
+    "amd",
+    "globals",
+    "node"
+  ],
+  "dependencies": {
+    "bluebird": "2.9.30",
+    "lodash": "3.9.3",
+    "helfer": "0.1.0"
+  },
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
