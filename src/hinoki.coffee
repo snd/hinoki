@@ -60,6 +60,8 @@
       cacheTarget
     ).promise
 
+  hinoki.isNodejs = fsModule?.statSync? and fsModule?.readdirSync?
+
   # monomorphic
   hinoki.PromiseAndCacheTarget = (promise, cacheTarget) ->
     this.promise = promise
@@ -410,7 +412,7 @@
   # of all `*.js` and `*.coffee` files in `filepath`.
   # if `filepath` is a directory recurse into every file and subdirectory.
 
-  if fs? and pathModule?
+  if hinoki.isNodejs
     # TODO better name
     hinoki.requireSource = (filepath) ->
       unless 'string' is typeof filepath
@@ -419,7 +421,7 @@
 
     # TODO call this something like fromExports
     hinoki.baseRequireSource = (filepath, object) ->
-      stat = fs.statSync(filepath)
+      stat = fsModule.statSync(filepath)
       if stat.isFile()
         extension = pathModule.extname(filepath)
 
@@ -443,7 +445,7 @@
           object[key].__file = filepath
 
       else if stat.isDirectory()
-        filenames = fs.readdirSync(filepath)
+        filenames = fsModule.readdirSync(filepath)
         filenames.forEach (filename) ->
           hinoki.baseRequireSource pathModule.join(filepath, filename), object
 
@@ -473,6 +475,8 @@
       return source
 
     if 'string' is typeof arg
+      unless hinoki.isNodejs
+        throw new Error 'string sources only work on Node.js because they need the filesystem module to be present'
       return hinoki.source hinoki.requireSource arg
 
     if 'object' is typeof arg
