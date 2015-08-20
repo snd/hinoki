@@ -31,8 +31,9 @@ test 'CircularDependencyError', (t) ->
     hinoki(source, lifetime, 'a').catch hinoki.CircularDependencyError, (error) ->
       t.equal error.name, 'CircularDependencyError'
       t.equal error.message, "circular dependency `a <- a`"
-      t.equal 'string', typeof error.stack
-      t.ok error.stack.split('\n').length > 8
+      if Error.captureStackTrace?
+        t.equal 'string', typeof error.stack
+        t.ok error.stack.split('\n').length > 8
 
       t.deepEqual error.path, ['a', 'a']
       t.deepEqual lifetime, {}
@@ -48,8 +49,9 @@ test 'CircularDependencyError', (t) ->
     hinoki(source, lifetime, 'a').catch hinoki.CircularDependencyError, (error) ->
       t.equal error.name, 'CircularDependencyError'
       t.equal error.message, "circular dependency `a <- b <- a`"
-      t.equal 'string', typeof error.stack
-      t.ok error.stack.split('\n').length > 8
+      if Error.captureStackTrace?
+        t.equal 'string', typeof error.stack
+        t.ok error.stack.split('\n').length > 8
 
       t.deepEqual error.path, ['a', 'b', 'a']
       t.deepEqual lifetime, {}
@@ -67,8 +69,9 @@ test 'ErrorInFactory', (t) ->
   hinoki(source, lifetime, 'a').catch hinoki.ErrorInFactory, (error) ->
     t.equal error.name, 'ErrorInFactory'
     t.equal error.message, "error in factory for `a`. original error `Error: fail`"
-    t.equal 'string', typeof error.stack
-    t.ok error.stack.split('\n').length > 8
+    if Error.captureStackTrace?
+      t.equal 'string', typeof error.stack
+      t.ok error.stack.split('\n').length > 8
 
     t.deepEqual error.path, ['a']
     t.equal error.factory, a
@@ -86,8 +89,9 @@ test 'FactoryReturnedUndefinedError', (t) ->
   hinoki(source, lifetime, 'a').catch hinoki.FactoryReturnedUndefinedError, (error) ->
     t.equal error.name, 'FactoryReturnedUndefinedError'
     t.equal error.message, "factory for `a` returned undefined"
-    t.equal 'string', typeof error.stack
-    t.ok error.stack.split('\n').length > 8
+    if Error.captureStackTrace?
+      t.equal 'string', typeof error.stack
+      t.ok error.stack.split('\n').length > 8
 
     t.deepEqual error.path, ['a']
     t.equal error.factory, a
@@ -106,8 +110,9 @@ test 'PromiseRejectedError and that errored promises are removed', (t) ->
   hinoki(source, lifetime, 'a').catch hinoki.PromiseRejectedError, (error) ->
     t.equal error.name, 'PromiseRejectedError'
     t.equal error.message, "promise returned from factory for `a` was rejected. original error `Error: fail`"
-    t.equal 'string', typeof error.stack
-    t.ok error.stack.split('\n').length > 8
+    if Error.captureStackTrace?
+      t.equal 'string', typeof error.stack
+      t.ok error.stack.split('\n').length > 8
 
     t.deepEqual error.path, ['a']
     t.equal error.error, rejection
@@ -126,8 +131,9 @@ test 'BadFactoryError', (t) ->
     hinoki(source, lifetime, 'a').catch hinoki.BadFactoryError, (error) ->
       t.equal error.name, 'BadFactoryError'
       t.equal error.message, "factory for `a` has to be a function, object of factories or array of factories but is `number`"
-      t.equal 'string', typeof error.stack
-      t.ok error.stack.split('\n').length > 8
+      if Error.captureStackTrace?
+        t.equal 'string', typeof error.stack
+        t.ok error.stack.split('\n').length > 8
 
       t.deepEqual error.path, ['a']
       t.equal error.factory, 1
@@ -150,8 +156,9 @@ test 'BadFactoryError', (t) ->
     hinoki(source, lifetime, 'b').catch hinoki.BadFactoryError, (error) ->
       t.equal error.name, 'BadFactoryError'
       t.equal error.message, "factory for `a[b][c][2]` has to be a function, object of factories or array of factories but is `string`"
-      t.equal 'string', typeof error.stack
-      t.ok error.stack.split('\n').length > 8
+      if Error.captureStackTrace?
+        t.equal 'string', typeof error.stack
+        t.ok error.stack.split('\n').length > 8
 
       t.deepEqual error.path, ['a[b][c][2]', 'b']
       t.equal error.factory, 'fail'
@@ -175,8 +182,9 @@ test 'BadFactoryError', (t) ->
     hinoki(source, lifetime, 'b').catch hinoki.BadFactoryError, (error) ->
       t.equal error.name, 'BadFactoryError'
       t.equal error.message, "factory for `a[2][c][d]` has to be a function, object of factories or array of factories but is `string`"
-      t.equal 'string', typeof error.stack
-      t.ok error.stack.split('\n').length > 8
+      if Error.captureStackTrace?
+        t.equal 'string', typeof error.stack
+        t.ok error.stack.split('\n').length > 8
 
       t.deepEqual error.path, ['a[2][c][d]', 'b']
       t.equal error.factory, 'fail'
