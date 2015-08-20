@@ -70,39 +70,6 @@ test 'source', (t) ->
     t.deepEqual source.keys(), ['example']
     t.end()
 
-  t.test 'path to .js file', (t) ->
-    source = hinoki.source "#{__dirname}/a/a.js"
-    t.equal source('a')(), 'i am factory a'
-    t.equal(source('missing'), undefined)
-    t.deepEqual source.keys(), ['a']
-    t.end()
-
-  t.test 'path to .coffee file', (t) ->
-    source = hinoki.source "#{__dirname}/a/b/b.coffee"
-    t.equal source('b')(), 'i am factory b'
-    t.equal(source('missing'), undefined)
-    t.deepEqual source.keys(), ['b']
-    t.end()
-
-  t.test 'path to folder', (t) ->
-    source = hinoki.source "#{__dirname}/a/c"
-    t.equal source('c')(), 'i am factory c'
-    t.equal(source('a'), undefined)
-    t.equal(source('b'), undefined)
-    t.equal(source('missing'), undefined)
-    t.deepEqual source.keys(), ['c']
-    t.end()
-
-  t.test 'path to nested folder', (t) ->
-    source = hinoki.source "#{__dirname}/a"
-    t.equal source('a')(), 'i am factory a'
-    t.equal source('b')(), 'i am factory b'
-    t.equal source('c')(), 'i am factory c'
-    t.equal source('d')(), 'i am factory d'
-    t.equal(source('missing'), undefined)
-    t.deepEqual source.keys(), ['a', 'b', 'd', 'c']
-    t.end()
-
   t.test 'array', (t) ->
     e = ->
     f = ->
@@ -114,21 +81,77 @@ test 'source', (t) ->
       {
         f: f
       }
-      "#{__dirname}/a"
       hinoki.source (key) ->
         if key is 'g'
           return g
     ]
-    t.equal source('a')(), 'i am factory a'
-    t.equal source('b')(), 'i am factory b'
-    t.equal source('c')(), 'i am factory c'
-    t.equal source('d')(), 'i am factory d'
     t.equal(source('e'), e)
     t.equal(source('f'), f)
     t.equal(source('g'), g)
     t.equal(source('missing'), null)
-    t.deepEqual source.keys(), ['f', 'a', 'b', 'd', 'c']
+    t.deepEqual source.keys(), ['f']
     t.end()
+
+  if hinoki.isNodejs
+    t.test 'path to .js file', (t) ->
+      source = hinoki.source "#{__dirname}/a/a.js"
+      t.equal source('a')(), 'i am factory a'
+      t.equal(source('missing'), undefined)
+      t.deepEqual source.keys(), ['a']
+      t.end()
+
+    t.test 'path to .coffee file', (t) ->
+      source = hinoki.source "#{__dirname}/a/b/b.coffee"
+      t.equal source('b')(), 'i am factory b'
+      t.equal(source('missing'), undefined)
+      t.deepEqual source.keys(), ['b']
+      t.end()
+
+    t.test 'path to folder', (t) ->
+      source = hinoki.source "#{__dirname}/a/c"
+      t.equal source('c')(), 'i am factory c'
+      t.equal(source('a'), undefined)
+      t.equal(source('b'), undefined)
+      t.equal(source('missing'), undefined)
+      t.deepEqual source.keys(), ['c']
+      t.end()
+
+    t.test 'path to nested folder', (t) ->
+      source = hinoki.source "#{__dirname}/a"
+      t.equal source('a')(), 'i am factory a'
+      t.equal source('b')(), 'i am factory b'
+      t.equal source('c')(), 'i am factory c'
+      t.equal source('d')(), 'i am factory d'
+      t.equal(source('missing'), undefined)
+      t.deepEqual source.keys(), ['a', 'b', 'd', 'c']
+      t.end()
+
+    t.test 'array with path to nested folder', (t) ->
+      e = ->
+      f = ->
+      g = ->
+      source = hinoki.source [
+        (key) ->
+          if key is 'e'
+            return e
+        {
+          f: f
+        }
+        "#{__dirname}/a"
+        hinoki.source (key) ->
+          if key is 'g'
+            return g
+      ]
+      t.equal source('a')(), 'i am factory a'
+      t.equal source('b')(), 'i am factory b'
+      t.equal source('c')(), 'i am factory c'
+      t.equal source('d')(), 'i am factory d'
+      t.equal(source('e'), e)
+      t.equal(source('f'), f)
+      t.equal(source('g'), g)
+      t.equal(source('missing'), null)
+      t.deepEqual source.keys(), ['f', 'a', 'b', 'd', 'c']
+      t.end()
 
 test 'getKeysToInject', (t) ->
 
