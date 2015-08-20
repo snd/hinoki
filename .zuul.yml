@@ -18,4 +18,4 @@ browserify:
   - transform: coffeeify
 browser_retries: 0
 # 3 minutes
-browser_output_timeout: 180
+browser_output_timeout: 120000
