@@ -3,5 +3,21 @@ node_js:
   - "0.12"
   - "iojs-2"
   - "iojs-3"
-script: npm test
+script: if [ $ZUUL = 'true' ]; then npm run test-zuul; else npm test; fi
 sudo: false
+env:
+  global:
+    # SAUCE_USERNAME
+    - secure: "KX0YmzZI9iTwl66ZvHqGryoDzQSCYtWeBS00ZQs+0hkEhCLH4Wq30RAMrC0LRu5Coav1Rx/aN0UL09E7dy7H9u5r7uKIUey+ggdS+BEVZQnxyEXQtlM+ZhTtiTgrLGE/jcqDX3Q2yE3NeZmBKYEKZ7otOyu5tRroPiuMwWfLclU="
+    # SAUCE_ACCESS_KEY
+    - secure: "Lp6shUd/QLmQ+vbb/0frKsLTgYNCX8ydn/HyJZ+iv5Vus/syoCH5bezz0rImgmRQ9XgyD2/EaZfSHdfw3GzhmGHMDEufZrQieQ04UJE61LM/3qgdaTevYDowhf9xSh7kk9+WziLM/LlghfLTnqVF+nbSwkxQKxqNs1HrCAacin8="
+  matrix:
+    - ZUUL=true
+    - ZUUL=false
+matrix:
+  # dont run zuul tests for iojs
+  exclude:
+    - node_js: "iojs-2"
+      env: ZUUL=true
+    - node_js: "iojs-3"
+      env: ZUUL=true
