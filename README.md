@@ -24,6 +24,7 @@ create curiosity that will result in scrolling down.
 
 [![NPM Package](https://img.shields.io/npm/v/hinoki.svg?style=flat)](https://www.npmjs.org/package/hinoki)
 [![Build Status](https://travis-ci.org/snd/hinoki.svg?branch=master)](https://travis-ci.org/snd/hinoki/branches)
+[![coverage-98%](http://img.shields.io/badge/coverage-98%-brightgreen.svg?style=flat)](https://rawgit.com/snd/hinoki/master/coverage/lcov-report/lib/hinoki.js.html)
 [![Dependencies](https://david-dm.org/snd/hinoki.svg)](https://david-dm.org/snd/hinoki)
 
 
