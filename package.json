@@ -40,13 +40,15 @@
   },
   "devDependencies": {
     "coffee-script": "1.9.3",
-    "nodeunit": "0.9.1"
+    "tape": "4.2.0",
+    "coffeetape": "1.0.1",
+    "istanbul": "0.3.18"
   },
   "scripts": {
     "compile": "coffee --bare --compile --output lib src",
     "prepublish": "npm run compile",
     "pretest": "npm run compile",
-    "test": "nodeunit test/*.coffee test/*.js"
+    "test": "istanbul cover -x test coffeetape test/*.coffee test/*.js"
   },
   "main": "lib/hinoki"
 }

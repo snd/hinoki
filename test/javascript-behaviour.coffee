@@ -1,57 +1,56 @@
+test = require 'tape'
 Promise = require 'bluebird'
 helfer = require 'helfer'
 
-hinoki = require '../src/hinoki'
+hinoki = require '../lib/hinoki'
 
-module.exports =
+test 'return null or undefined', (t) ->
+  f = ->
+  t.ok not helfer.isNull f()
+  t.ok helfer.isUndefined f()
 
-  'return null or undefined': (test) ->
-    f = ->
-    test.ok not helfer.isNull f()
-    test.ok helfer.isUndefined f()
+  g = -> return
+  t.ok not helfer.isNull g()
+  t.ok helfer.isUndefined g()
 
-    g = -> return
-    test.ok not helfer.isNull g()
-    test.ok helfer.isUndefined g()
+  h = -> return undefined
+  t.ok not helfer.isNull h()
+  t.ok helfer.isUndefined h()
 
-    h = -> return undefined
-    test.ok not helfer.isNull h()
-    test.ok helfer.isUndefined h()
+  h = -> return null
+  t.ok helfer.isNull h()
+  t.ok not helfer.isUndefined h()
 
-    h = -> return null
-    test.ok helfer.isNull h()
-    test.ok not helfer.isUndefined h()
+  t.end()
 
-    test.done()
+test 'properties null or undefined', (t) ->
+  a = {}
+  t.ok not helfer.isNull a.t
+  t.ok helfer.isUndefined a.t
+  t.ok not helfer.isNull a['t']
+  t.ok helfer.isUndefined a['t']
 
-  'properties null or undefined': (test) ->
-    a = {}
-    test.ok not helfer.isNull a.test
-    test.ok helfer.isUndefined a.test
-    test.ok not helfer.isNull a['test']
-    test.ok helfer.isUndefined a['test']
+  b =
+    t: undefined
+  t.ok not helfer.isNull b.t
+  t.ok helfer.isUndefined b.t
 
-    b =
-      test: undefined
-    test.ok not helfer.isNull b.test
-    test.ok helfer.isUndefined b.test
+  c =
+    t: null
+  t.ok helfer.isNull c.t
+  t.ok not helfer.isUndefined c.t
 
-    c =
-      test: null
-    test.ok helfer.isNull c.test
-    test.ok not helfer.isUndefined c.test
+  d =
+    t: null
+  delete d.t
+  t.ok not helfer.isNull d.t
+  t.ok helfer.isUndefined d.t
 
-    d =
-      test: null
-    delete d.test
-    test.ok not helfer.isNull d.test
-    test.ok helfer.isUndefined d.test
+  t.end()
 
-    test.done()
+test 'promise null or undefined', (t) ->
+  Promise.resolve().then (v) ->
+    t.ok not helfer.isNull v
+    t.ok helfer.isUndefined v
 
-  'promise null or undefined': (test) ->
-    Promise.resolve().then (v) ->
-      test.ok not helfer.isNull v
-      test.ok helfer.isUndefined v
-
-      test.done()
+    t.end()

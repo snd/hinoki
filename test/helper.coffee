@@ -1,163 +1,163 @@
-hinoki = require '../src/hinoki'
+test = require 'tape'
 _ = require 'lodash'
 
-module.exports =
+hinoki = require '../lib/hinoki'
 
-  'tryCatch':
+test 'tryCatch', (t) ->
 
-    'no error': (test) ->
-      fun = (a, b) ->
-        test.equal a, 1
-        test.equal b, 2
-        return a + b
-      result = hinoki.tryCatch fun, [1, 2]
-      test.ok not _.isError result
-      test.equal result, 3
-      test.done()
+  t.test 'no error', (t) ->
+    fun = (a, b) ->
+      t.equal a, 1
+      t.equal b, 2
+      return a + b
+    result = hinoki.tryCatch fun, [1, 2]
+    t.ok not _.isError result
+    t.equal result, 3
+    t.end()
 
-    'return error': (test) ->
-      error = new Error 'test'
-      fun = (a, b) ->
-        test.equal a, 1
-        test.equal b, 2
-        return error
-      result = hinoki.tryCatch fun, [1, 2]
-      test.ok _.isError result
-      test.equal error, result
-      test.done()
+  t.test 'return error', (t) ->
+    error = new Error 't'
+    fun = (a, b) ->
+      t.equal a, 1
+      t.equal b, 2
+      return error
+    result = hinoki.tryCatch fun, [1, 2]
+    t.ok _.isError result
+    t.equal error, result
+    t.end()
 
-    'throw error': (test) ->
-      error = new Error 'test'
-      fun = (a, b) ->
-        test.equal a, 1
-        test.equal b, 2
-        throw error
-      result = hinoki.tryCatch fun, [1, 2]
-      test.ok _.isError result
-      test.equal error, result
-      test.done()
+  t.test 'throw error', (t) ->
+    error = new Error 't'
+    fun = (a, b) ->
+      t.equal a, 1
+      t.equal b, 2
+      throw error
+    result = hinoki.tryCatch fun, [1, 2]
+    t.ok _.isError result
+    t.equal error, result
+    t.end()
 
-    'throw something': (test) ->
-      error = 'test'
-      fun = (a, b) ->
-        test.equal a, 1
-        test.equal b, 2
-        throw error
-      result = hinoki.tryCatch fun, [1, 2]
-      test.ok not _.isError error
-      test.ok _.isError result
-      test.equal result.message, 'test'
-      test.notEqual error, result
-      test.done()
+  t.test 'throw something', (t) ->
+    error = 't'
+    fun = (a, b) ->
+      t.equal a, 1
+      t.equal b, 2
+      throw error
+    result = hinoki.tryCatch fun, [1, 2]
+    t.ok not _.isError error
+    t.ok _.isError result
+    t.equal result.message, 't'
+    t.notEqual error, result
+    t.end()
 
-  'source':
+test 'source', (t) ->
 
-    'function': (test) ->
-      test.expect 2
-      result = ->
-      source = hinoki.source (key) ->
-        test.equal key, 'example'
-        return result
-      test.equal(source('example'), result)
-      test.done()
+  t.test 'function', (t) ->
+    t.plan 2
+    result = ->
+    source = hinoki.source (key) ->
+      t.equal key, 'example'
+      return result
+    t.equal(source('example'), result)
+    t.end()
 
-    'object': (test) ->
-      result = ->
-      source = hinoki.source
-        example: result
-      test.equal(source('example'), result)
-      test.equal(source('missing'), null)
-      test.deepEqual source.keys(), ['example']
-      test.done()
+  t.test 'object', (t) ->
+    result = ->
+    source = hinoki.source
+      example: result
+    t.equal(source('example'), result)
+    t.equal(source('missing'), undefined)
+    t.deepEqual source.keys(), ['example']
+    t.end()
 
-    'path to .js file': (test) ->
-      source = hinoki.source "#{__dirname}/a/a.js"
-      test.equal source('a')(), 'i am factory a'
-      test.equal(source('missing'), null)
-      test.deepEqual source.keys(), ['a']
-      test.done()
+  t.test 'path to .js file', (t) ->
+    source = hinoki.source "#{__dirname}/a/a.js"
+    t.equal source('a')(), 'i am factory a'
+    t.equal(source('missing'), undefined)
+    t.deepEqual source.keys(), ['a']
+    t.end()
 
-    'path to .coffee file': (test) ->
-      source = hinoki.source "#{__dirname}/a/b/b.coffee"
-      test.equal source('b')(), 'i am factory b'
-      test.equal(source('missing'), null)
-      test.deepEqual source.keys(), ['b']
-      test.done()
+  t.test 'path to .coffee file', (t) ->
+    source = hinoki.source "#{__dirname}/a/b/b.coffee"
+    t.equal source('b')(), 'i am factory b'
+    t.equal(source('missing'), undefined)
+    t.deepEqual source.keys(), ['b']
+    t.end()
 
-    'path to folder': (test) ->
-      source = hinoki.source "#{__dirname}/a/c"
-      test.equal source('c')(), 'i am factory c'
-      test.equal(source('a'), null)
-      test.equal(source('b'), null)
-      test.equal(source('missing'), null)
-      test.deepEqual source.keys(), ['c']
-      test.done()
+  t.test 'path to folder', (t) ->
+    source = hinoki.source "#{__dirname}/a/c"
+    t.equal source('c')(), 'i am factory c'
+    t.equal(source('a'), undefined)
+    t.equal(source('b'), undefined)
+    t.equal(source('missing'), undefined)
+    t.deepEqual source.keys(), ['c']
+    t.end()
 
-    'path to nested folder': (test) ->
-      source = hinoki.source "#{__dirname}/a"
-      test.equal source('a')(), 'i am factory a'
-      test.equal source('b')(), 'i am factory b'
-      test.equal source('c')(), 'i am factory c'
-      test.equal source('d')(), 'i am factory d'
-      test.equal(source('missing'), null)
-      test.deepEqual source.keys(), ['a', 'b', 'd', 'c']
-      test.done()
+  t.test 'path to nested folder', (t) ->
+    source = hinoki.source "#{__dirname}/a"
+    t.equal source('a')(), 'i am factory a'
+    t.equal source('b')(), 'i am factory b'
+    t.equal source('c')(), 'i am factory c'
+    t.equal source('d')(), 'i am factory d'
+    t.equal(source('missing'), undefined)
+    t.deepEqual source.keys(), ['a', 'b', 'd', 'c']
+    t.end()
 
-    'array': (test) ->
-      e = ->
-      f = ->
-      g = ->
-      source = hinoki.source [
-        (key) ->
-          if key is 'e'
-            return e
-        {
-          f: f
-        }
-        "#{__dirname}/a"
-        hinoki.source (key) ->
-          if key is 'g'
-            return g
-      ]
-      test.equal source('a')(), 'i am factory a'
-      test.equal source('b')(), 'i am factory b'
-      test.equal source('c')(), 'i am factory c'
-      test.equal source('d')(), 'i am factory d'
-      test.equal(source('e'), e)
-      test.equal(source('f'), f)
-      test.equal(source('g'), g)
-      test.equal(source('missing'), null)
-      test.deepEqual source.keys(), ['f', 'a', 'b', 'd', 'c']
-      test.done()
+  t.test 'array', (t) ->
+    e = ->
+    f = ->
+    g = ->
+    source = hinoki.source [
+      (key) ->
+        if key is 'e'
+          return e
+      {
+        f: f
+      }
+      "#{__dirname}/a"
+      hinoki.source (key) ->
+        if key is 'g'
+          return g
+    ]
+    t.equal source('a')(), 'i am factory a'
+    t.equal source('b')(), 'i am factory b'
+    t.equal source('c')(), 'i am factory c'
+    t.equal source('d')(), 'i am factory d'
+    t.equal(source('e'), e)
+    t.equal(source('f'), f)
+    t.equal(source('g'), g)
+    t.equal(source('missing'), null)
+    t.deepEqual source.keys(), ['f', 'a', 'b', 'd', 'c']
+    t.end()
 
-  'getKeysToInject':
+test 'getKeysToInject', (t) ->
 
-    '__inject': (test) ->
-      factory = {}
-      factory.__inject = ['a', 'b', 'c']
-      test.deepEqual hinoki.getKeysToInject(factory), ['a', 'b', 'c']
-      test.done()
+  t.test '__inject', (t) ->
+    factory = {}
+    factory.__inject = ['a', 'b', 'c']
+    t.deepEqual hinoki.getKeysToInject(factory), ['a', 'b', 'c']
+    t.end()
 
-    'function': (test) ->
-      factory = (d, e, f) ->
-      test.deepEqual hinoki.getKeysToInject(factory), ['d', 'e', 'f']
-      test.done()
+  t.test 'function', (t) ->
+    factory = (d, e, f) ->
+    t.deepEqual hinoki.getKeysToInject(factory), ['d', 'e', 'f']
+    t.end()
 
-    'object': (test) ->
-      factory =
-        a: ->
-        b: (a, b) ->
-        c: (a, c, d) ->
-      factory.a.__inject = ['a', 'b', 'c']
-      test.deepEqual hinoki.getKeysToInject(factory), ['a', 'b', 'c', 'd']
-      test.done()
+  t.test 'object', (t) ->
+    factory =
+      a: ->
+      b: (a, b) ->
+      c: (a, c, d) ->
+    factory.a.__inject = ['a', 'b', 'c']
+    t.deepEqual hinoki.getKeysToInject(factory), ['a', 'b', 'c', 'd']
+    t.end()
 
-    'array': (test) ->
-      factory = [
-        ->
-        (a, b) ->
-        (c, d) ->
-      ]
-      factory[0].__inject = ['a', 'b', 'c']
-      test.deepEqual hinoki.getKeysToInject(factory), ['a', 'b', 'c', 'd']
-      test.done()
+  t.test 'array', (t) ->
+    factory = [
+      ->
+      (a, b) ->
+      (c, d) ->
+    ]
+    factory[0].__inject = ['a', 'b', 'c']
+    t.deepEqual hinoki.getKeysToInject(factory), ['a', 'b', 'c', 'd']
+    t.end()
