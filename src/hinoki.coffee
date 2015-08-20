@@ -1,7 +1,7 @@
 ((root, factory) ->
   # amd
   if ('function' is typeof define) and define.amd?
-    define(['bluebird', 'helfer', 'lodash'], factory)
+    define(['bluebird', 'lodash', 'helfer'], factory)
   # nodejs
   else if exports?
     module.exports = factory(
@@ -13,8 +13,8 @@
     )
   # other
   else
-    root.hinoki = factory(root.Promise, root.helfer, root.lodash)
-)(this, (Promise, _, helfer, fs, pathModule) ->
+    root.hinoki = factory(root.Promise, root.lodash, root.helfer)
+)(this, (Promise, _, helfer, fsModule, pathModule) ->
 
 ################################################################################
 # get
