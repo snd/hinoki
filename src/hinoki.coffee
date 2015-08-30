@@ -13,7 +13,7 @@
     )
   # other
   else
-    root.hinoki = factory(root.Promise, root.lodash, root.helfer)
+    root.hinoki = factory(root.Promise, root._, root.helfer)
 )(this, (Promise, _, helfer, fsModule, pathModule) ->
 
 ################################################################################
