@@ -13,6 +13,12 @@
     )
   # other
   else
+    unless root.Promise?
+      throw new Error 'missing global variable `Promise`'
+    unless root._?
+      throw new Error 'missing global variable `_`'
+    unless root.helfer?
+      throw new Error 'missing global variable `helfer`'
     root.hinoki = factory(root.Promise, root._, root.helfer)
 )(this, (Promise, _, helfer, fsModule, pathModule) ->
 
