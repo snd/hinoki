@@ -22,8 +22,8 @@
     "node"
   ],
   "dependencies": {
-    "bluebird": "2.9.30",
-    "lodash": "3.9.3",
+    "bluebird": "2.9.34",
+    "lodash": "3.10.1",
     "helfer": "0.1.0"
   },
   "license": "MIT",
