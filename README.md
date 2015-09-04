@@ -682,7 +682,7 @@ first hinoki sets `lifetime.four = 4`.
 what if we have multiple **lifetimes**? [the answer is very useful and worth its own section.](#lifetimes)
 
 now hinoki can call the **factory** for `'five'` with arguments `1` and `4`.  
-ince he **factory** for `'five'` doesn't return a promise hinoki doesn't have to wait.  
+ince the **factory** for `'five'` doesn't return a promise hinoki doesn't have to wait.  
 hinoki sets `lifetime.five = 5`.  
 remember that promise hinoki has returned immediately ?
 now that we have the **value** for **key** `'five'` hinoki resolves it with `5`.
