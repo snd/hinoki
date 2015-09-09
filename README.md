@@ -470,7 +470,7 @@ var hinoki = require('hinoki');
 bower install hinoki
 ```
 
-[lib/hinoki.js](lib/hinoki.js) supports [AMD](http://requirejs.org/docs/whyamd.html).
+[lib/hinoki.js](lib/hinoki.js) supports [AMD](http://requirejs.org/docs/whyamd.html).  
 sets the global variable `hinoki` when
 neither CommonJS nor
 [AMD](http://requirejs.org/docs/whyamd.html) are available.
