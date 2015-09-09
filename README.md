@@ -471,7 +471,9 @@ bower install hinoki
 ```
 
 [lib/hinoki.js](lib/hinoki.js) supports [AMD](http://requirejs.org/docs/whyamd.html).
-if [AMD](http://requirejs.org/docs/whyamd.html) is not available it sets the global variable `hinoki`.
+sets the global variable `hinoki` when
+neither CommonJS nor
+[AMD](http://requirejs.org/docs/whyamd.html) are available.
 
 ## keys and values
 
