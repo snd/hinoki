@@ -56,8 +56,8 @@ intuitive
 > [andrey](https://github.com/snd/hinoki/issues/3)
 
 - [huge test suite](test)
-  passing [![Build Status](https://travis-ci.org/snd/url-pattern.svg?branch=master)](https://travis-ci.org/snd/url-pattern/branches)
-  with [![codecov.io](http://codecov.io/github/snd/url-pattern/coverage.svg?branch=master)](http://codecov.io/github/snd/url-pattern?branch=master)
+  passing [![Build Status](https://travis-ci.org/snd/hinoki.svg?branch=master)](https://travis-ci.org/snd/url-pattern/branches)
+  with [![codecov.io](http://codecov.io/github/snd/hinoki/coverage.svg?branch=master)](http://codecov.io/github/snd/url-pattern?branch=master)
   code coverage
 - continously tested in Node.js (0.12, **4.0**), io.js (2, 3) and all relevant browsers:
   [![Sauce Test Status](https://saucelabs.com/browser-matrix/hinoki.svg)](https://saucelabs.com/u/hinoki)
@@ -76,14 +76,14 @@ main use case
 you can also use it
 -->
 
-*hinoki takes its name from the hinoki cypress,
-a tree that only grows in japan and is the preferred wood for building palaces,
-temples and shrines.  
-we hope hinoki becomes the building material for your digital palaces too !*
+> hinoki takes its name from the hinoki cypress,
+> a tree that only grows in japan and is the preferred wood for building palaces,
+> temples and shrines.  
+> we hope hinoki becomes the building material for your digital palaces too !
 
 
 (web) applications are systems.
-systems with many components: functions, helpers, actions, objects, data, configuration, etc.
+systems with many components: functions, helpers, actions, objects, data, configuration, etc.  
 components that depend on each other,
 often asynchronously in the case of Node.js,
 often in complex ways.
@@ -100,23 +100,25 @@ by using dependency injection.
 dependency injection can simplify such systems greatly !
 
 **dependency injection is simple:**
-a component declares the names of its dependencies: the other components it needs.
-dependency injection then hands each component its dependencies.
+a component declares the names of the other components it needs.
+dependency injection then hands each component these declared dependencies.
 regardless of how complex the dependency graph is.
 
 one of hinoki's main concepts is the **factory**:  
 a **factory** is simply a function which returns a component.
-the parameters of a factory are the names of the other components that component depends on.
-when passed to hinoki the factory gets called with the right components (dependencies)
-as function parameters.
+the parameters of a **factory** are the names of that component's dependencies.
+
+given a bunch of factories hinoki figures out the dependency tree and ensures
+that each **factory** gets called with the right components (dependencies)
+as arguments.
 
 **there's much more to hinoki but that is the most important point.**
 
-you no longer need to write any boilerplate to wire up and connect the parts of your
+you no longer need to write any boilerplate to wire up and connect the components of your
 application.
 
 nothing is hardwired. everything is mockable.
-every part is easy to test in isolation.
+every component is easy to test in isolation.
 
 manual wiring boilerplate disappears.
 
