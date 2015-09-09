@@ -3,6 +3,7 @@ node_js:
   - "0.12"
   - "iojs-2"
   - "iojs-3"
+  - "4.0"
 script: ./run-travis-tests.sh
 sudo: false
 env:
@@ -30,4 +31,7 @@ matrix:
       env: ZUUL=false COVERAGE=true
     # don't test 0.12 without code coverage
     - node_js: "0.12"
+      env: ZUUL=false COVERAGE=false
+    # don't test 4.0 without code coverage
+    - node_js: "4.0"
       env: ZUUL=false COVERAGE=false
