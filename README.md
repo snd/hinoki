@@ -165,12 +165,15 @@ for now there's just the guided tour
 
 -->
 
+<!--
 hinoki is a bit like a [map](https://en.wikipedia.org/wiki/Associative_array)
 with the addition that **values** can depend on each other.  
+-->
 
 <!--
 the dependency graph (which **values** depend on each other) is controllable programmatically.  
 -->
+<!--
 like a [map](https://en.wikipedia.org/wiki/Associative_array)
 hinoki manages a mapping from **keys** to **values**.  
 we can ask for a **key** and get a **value**.  
@@ -214,6 +217,7 @@ simpler, less complex and more elegant.
 reading and understanding the rest of this readme should take less than 10 minutes.  
 its goal is to make you thoroughly understand hinoki's interface and core concepts.  
 hopefully enabling you to extrapolate to solve your own problems.  
+-->
 
 <!--
 with these words the introduction ends
