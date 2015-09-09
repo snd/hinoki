@@ -4,7 +4,7 @@
   "authors": [
     "Maximilian Krüger <kruemaxi@googlemail.com>"
   ],
-  "description": "effective yet simple dependency injection and more for Node.js and browsers",
+  "description": "simple, flexible, intuitive dependency injection and more",
   "keywords": [
     "inversion",
     "control",
