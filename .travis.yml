@@ -18,20 +18,20 @@ env:
     - NPM_COMMAND=test-in-browsers
 matrix:
   exclude:
-    # don't run zuul tests for iojs and node 4.0
+    # don't test in browsers more than once
     - node_js: "iojs-2"
       env: NPM_COMMAND=test-in-browsers
     - node_js: "iojs-3"
       env: NPM_COMMAND=test-in-browsers
     - node_js: "4.0"
       env: NPM_COMMAND=test-in-browsers
-    # don't collect code coverage for iojs and node 4.0
+    # don't collect code coverage more than once
     - node_js: "iojs-2"
       env: NPM_COMMAND=test-with-coverage
     - node_js: "iojs-3"
       env: NPM_COMMAND=test-with-coverage
     - node_js: "4.0"
       env: NPM_COMMAND=test-with-coverage
-    # don't test 0.12 without code coverage (code coverage includes normal test)
+    # don't test 0.12 more than once
     - node_js: "0.12"
       env: NPM_COMMAND=test
