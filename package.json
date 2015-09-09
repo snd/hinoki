@@ -44,7 +44,7 @@
     "tape": "4.2.0",
     "coffeetape": "1.0.1",
     "istanbul": "0.3.19",
-    "zuul": "3.3.1",
+    "zuul": "3.4.0",
     "coffeeify": "1.1.0"
   },
   "scripts": {
