@@ -1,6 +1,6 @@
 # hinoki
 
-*this is a release candidate for version 1.0.0.
+*this is a release candidate for version 1.0
 implementation and tests are complete.
 the documentation in this readme is not yet finished.
 it's already useful though.
@@ -33,12 +33,39 @@ hinoki is a powerful yet simple asynchronous dependency injection system
 designed to manage complexity in applications and (asynchronous) computation.
 -->
 
-**effective yet simple dependency injection and more for Node.js and browsers**
+<!--
+flexible, adaptable, bendable
+
+capable, efficient, powerful, able
+
+elegant
+
+fun, delightful, joyous
+amazing
+
+least astonishing
+
+intuitive
+-->
+
+**simple, flexible, intuitive dependency injection and more for Node.js and browsers**
 
 > Hinoki seems to be the least surprising IoC container available for Node.  
 > I definitely do like its ascetic worldview.  
 > Thanks a lot for this!  
 > [andrey](https://github.com/snd/hinoki/issues/3)
+
+- [huge test suite](test)
+  passing [![Build Status](https://travis-ci.org/snd/url-pattern.svg?branch=master)](https://travis-ci.org/snd/url-pattern/branches)
+  with [![codecov.io](http://codecov.io/github/snd/url-pattern/coverage.svg?branch=master)](http://codecov.io/github/snd/url-pattern?branch=master)
+  code coverage
+- continously tested in Node.js (0.12, **4.0**), io.js (2, 3) and all relevant browsers:
+  [![Sauce Test Status](https://saucelabs.com/browser-matrix/hinoki.svg)](https://saucelabs.com/u/hinoki)
+- supports CommonJS, [AMD](http://requirejs.org/docs/whyamd.html) and browser globals
+- npm package: `npm install hinoki`
+- bower package: `bower install hinoki`
+- [inspired by prismatic's fantastic graph.](https://github.com/Prismatic/plumbing#graph-the-functional-swiss-army-knife)
+
 
 <!--
 cut right to the point:
@@ -49,49 +76,77 @@ main use case
 you can also use it
 -->
 
+*hinoki takes its name from the hinoki cypress,
+a tree that only grows in japan and is the preferred wood for building palaces,
+temples and shrines.  
+we hope hinoki becomes the building material for your digital palaces too !*
+
+
 (web) applications are systems.
-systems with many parts: functions, helpers, actions, objects, data, configuration.
-parts depend on each other.
-often asynchronously in the case of Node.js.
+systems with many components: functions, helpers, actions, objects, data, configuration, etc.
+components that depend on each other,
+often asynchronously in the case of Node.js,
 often in complex ways.
+<!--
 in Node.js they often depend on each other asynchronously.
 often they depend on each other in complex ways.
+-->
 
+<!--
 such complex systems consisting of many interdependent parts can be simplified
 by using dependency injection.
+-->
 
-dependency injection can simplify such systems.
+dependency injection can simplify such systems greatly !
 
-dependency injection is a simple idea:  
-each part declares its dependencies (the other parts it needs).
-there is a piece of code for constructing each part.
-called a factory
-parts of the system say which other parts they need.
-then dependency injection makes sure they get them.
+**dependency injection is simple:**
+a component declares the names of its dependencies: the other components it needs.
+dependency injection then hands each component its dependencies.
+regardless of how complex the dependency graph is.
+
+one of hinoki's main concepts is the **factory**:  
+a **factory** is simply a function which returns a component.
+the parameters of a factory are the names of the other components that component depends on.
+when passed to hinoki the factory gets called with the right components (dependencies)
+as function parameters.
+
+**there's much more to hinoki but that is the most important point.**
+
+you no longer need to write any boilerplate to wire up and connect the parts of your
+application.
+
+nothing is hardwired. everything is mockable.
+every part is easy to test in isolation.
+
+manual wiring boilerplate disappears.
+
+hinoki is an extremely simple and functional approach to dependency injection.
+it supports usage patterns not possible with other dependency injection systems.
+<!--
+hinoki is an injector.
+
+**
+
+an **injector** en
 
 just by the name of their function parameter.
-the injector then hands those dependencies to the parts that need them.
 
 the injector !!!
 
 clojure based dependency injection.
-the wiring happens automatically.
-manual wiring boilerplate disappears.
-nothing is hardwired. everything is mockable.
-every part is easy to test in isolation.
+-->
 
-hinoki is an extremely simple and functional approach to dependency injection.
-it supports usage patterns not possible with other dependency injection systems.
-
+<!--
 generalizes the concepts behind dependency injection.
 
 you can use it for traditional dependency injection.
 you can also do more and exiting things
+-->
 
-[![Sauce Test Status](https://saucelabs.com/browser-matrix/hinoki.svg)](https://saucelabs.com/u/hinoki)
-
+<!--
 
 read on [stick around] for the scenic tour.
+-->
 
 <!--
 hinoki boils dependency injection down to the essentials:
@@ -111,8 +166,9 @@ for now there's just the guided tour
 hinoki is a bit like a [map](https://en.wikipedia.org/wiki/Associative_array)
 with the addition that **values** can depend on each other.  
 
-this
+<!--
 the dependency graph (which **values** depend on each other) is controllable programmatically.  
+-->
 like a [map](https://en.wikipedia.org/wiki/Associative_array)
 hinoki manages a mapping from **keys** to **values**.  
 we can ask for a **key** and get a **value**.  
@@ -138,11 +194,6 @@ var factories = {
 }
 ```
 
-
-
-
-
-
 like a [map](https://en.wikipedia.org/wiki/Associative_array)
 we can use hinoki as a building block in solving a whole variety of problems.
 
@@ -161,13 +212,6 @@ simpler, less complex and more elegant.
 reading and understanding the rest of this readme should take less than 10 minutes.  
 its goal is to make you thoroughly understand hinoki's interface and core concepts.  
 hopefully enabling you to extrapolate to solve your own problems.  
-
-[hinoki is inspired by prismatic's fantastic graph.](https://github.com/Prismatic/plumbing#graph-the-functional-swiss-army-knife)
-
-*hinoki takes its name from the hinoki cypress,
-a tree that only grows in japan and is the preferred wood for building palaces,
-temples and shrines.  
-we hope hinoki becomes the building material for your digital palaces too !*
 
 <!--
 with these words the introduction ends
