@@ -13,26 +13,25 @@ env:
     # SAUCE_ACCESS_KEY
     - secure: "Lp6shUd/QLmQ+vbb/0frKsLTgYNCX8ydn/HyJZ+iv5Vus/syoCH5bezz0rImgmRQ9XgyD2/EaZfSHdfw3GzhmGHMDEufZrQieQ04UJE61LM/3qgdaTevYDowhf9xSh7kk9+WziLM/LlghfLTnqVF+nbSwkxQKxqNs1HrCAacin8="
   matrix:
-    # don't collect code coverage for zuul
-    - ZUUL=true
-    - ZUUL=false COVERAGE=true
-    - ZUUL=false COVERAGE=false
+    - NPM_COMMAND=test
+    - NPM_COMMAND=test-with-coverage
+    - NPM_COMMAND=test-in-browsers
 matrix:
   exclude:
     # don't run zuul tests for iojs and node 4.0
     - node_js: "iojs-2"
-      env: ZUUL=true
+      env: NPM_COMMAND=test-in-browsers
     - node_js: "iojs-3"
-      env: ZUUL=true
+      env: NPM_COMMAND=test-in-browsers
     - node_js: "4.0"
-      env: ZUUL=true
+      env: NPM_COMMAND=test-in-browsers
     # don't collect code coverage for iojs and node 4.0
     - node_js: "iojs-2"
-      env: ZUUL=false COVERAGE=true
+      env: NPM_COMMAND=test-with-coverage
     - node_js: "iojs-3"
-      env: ZUUL=false COVERAGE=true
+      env: NPM_COMMAND=test-with-coverage
     - node_js: "4.0"
-      env: ZUUL=false COVERAGE=true
-    # don't test 0.12 without code coverage
+      env: NPM_COMMAND=test-with-coverage
+    # don't test 0.12 without code coverage (code coverage includes normal test)
     - node_js: "0.12"
-      env: ZUUL=false COVERAGE=false
+      env: NPM_COMMAND=test
