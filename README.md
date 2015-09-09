@@ -27,6 +27,7 @@ create curiosity that will result in scrolling down.
 [![Sauce Test Status](https://saucelabs.com/buildstatus/hinoki)](https://saucelabs.com/u/hinoki)
 [![codecov.io](http://codecov.io/github/snd/hinoki/coverage.svg?branch=master)](http://codecov.io/github/snd/hinoki?branch=master)
 [![Dependencies](https://david-dm.org/snd/hinoki.svg)](https://david-dm.org/snd/hinoki)
+[![Downloads per Month](https://img.shields.io/npm/dm/hinoki.svg?style=flat)](https://www.npmjs.org/package/hinoki)
 
 <!--
 hinoki is a powerful yet simple asynchronous dependency injection system
