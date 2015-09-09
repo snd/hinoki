@@ -1,6 +1,6 @@
 {
   "name": "hinoki",
-  "version": "1.0.0-rc.5",
+  "version": "1.0.0-rc.6",
   "description": "simple, flexible, intuitive dependency injection and more",
   "keywords": [
     "inversion",
