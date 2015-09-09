@@ -56,8 +56,8 @@ intuitive
 > [andrey](https://github.com/snd/hinoki/issues/3)
 
 - [huge test suite](test)
-  passing [![Build Status](https://travis-ci.org/snd/hinoki.svg?branch=master)](https://travis-ci.org/snd/url-pattern/branches)
-  with [![codecov.io](http://codecov.io/github/snd/hinoki/coverage.svg?branch=master)](http://codecov.io/github/snd/url-pattern?branch=master)
+  passing [![Build Status](https://travis-ci.org/snd/hinoki.svg?branch=master)](https://travis-ci.org/snd/hinoki/branches)
+  with [![codecov.io](http://codecov.io/github/snd/hinoki/coverage.svg?branch=master)](http://codecov.io/github/snd/hinoki?branch=master)
   code coverage
 - continously tested in Node.js (0.12, **4.0**), io.js (2, 3) and all relevant browsers:
   [![Sauce Test Status](https://saucelabs.com/browser-matrix/hinoki.svg)](https://saucelabs.com/u/hinoki)
