@@ -69,7 +69,12 @@ SANE
 - bower package: `bower install hinoki`
 - [inspired by prismatic's fantastic graph.](https://github.com/Prismatic/plumbing#graph-the-functional-swiss-army-knife)
 
-### The Gist
+> hinoki takes its name from the hinoki cypress,
+> a tree that only grows in japan and is the preferred wood for building palaces,
+> temples and shrines.  
+> we hope hinoki becomes the building material for your digital palaces too !
+
+## the gist
 
 <!--
 cut right to the point:
@@ -79,11 +84,6 @@ main use case
 
 you can also use it
 -->
-
-> hinoki takes its name from the hinoki cypress,
-> a tree that only grows in japan and is the preferred wood for building palaces,
-> temples and shrines.  
-> we hope hinoki becomes the building material for your digital palaces too !
 
 
 (web) applications are systems.
