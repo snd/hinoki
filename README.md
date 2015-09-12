@@ -47,9 +47,11 @@ amazing
 least astonishing
 
 intuitive
+
+SANE
 -->
 
-**simple, flexible, intuitive dependency injection and more for Node.js and browsers**
+**sane, simple, dependency injection and more for Node.js and browsers**
 
 > Hinoki seems to be the least surprising IoC container available for Node.  
 > I definitely do like its ascetic worldview.  
@@ -67,6 +69,7 @@ intuitive
 - bower package: `bower install hinoki`
 - [inspired by prismatic's fantastic graph.](https://github.com/Prismatic/plumbing#graph-the-functional-swiss-army-knife)
 
+### The Gist
 
 <!--
 cut right to the point:

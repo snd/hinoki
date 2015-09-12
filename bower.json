@@ -4,7 +4,7 @@
   "authors": [
     "Maximilian Krüger <kruemaxi@googlemail.com>"
   ],
-  "description": "simple, flexible, intuitive dependency injection and more",
+  "description": "sane, simple dependency injection and more",
   "keywords": [
     "inversion",
     "control",
@@ -22,7 +22,7 @@
     "node"
   ],
   "dependencies": {
-    "bluebird": "2.9.34",
+    "bluebird": "2.10.0",
     "lodash": "3.10.1",
     "helfer": "0.1.0"
   },
