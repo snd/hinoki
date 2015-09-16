@@ -1,14 +1,5 @@
 # hinoki
 
-*this is a release candidate for version 1.0
-implementation and tests are complete.
-the documentation in this readme is not yet finished.
-it's already useful though.
-the newest version introduces massive breaking changes.
-if you used an earlier version of hinoki please read this new readme carefully.
-future changes will be documented in the [changelog](#changelog).
-future versions will use [semver](http://semver.org/).*
-
 <!--
 the readme doesnt have to be perfect.
 you can always improve it (later).
@@ -53,11 +44,27 @@ SANE
 
 **sane, simple, dependency injection and more for Node.js and browsers**
 
+hinoki helps you large structure (large) applications, (complex) asynchronous control flows and other
+things in a way that's simple and testable.
+
+think of hinoki as a function like [reduce](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/Reduce)
+its abstract.
+depending on the arguments it can be used to do many things, solve many problems,
+only one of them being dependency injection.
+
+the problems sections
+where hinoki has been useful for us.
+
+[read the gist to get as much information as quickly as possible]
+
 > Hinoki seems to be the least surprising IoC container available for Node.  
 > I definitely do like its ascetic worldview.  
 > Thanks a lot for this!  
 > [andrey](https://github.com/snd/hinoki/issues/3)
 
+- structure applications
+- compute only whats needed
+- [tiny single file with just over 500 lines of simple, readable code](src/hinoki.coffee)
 - [huge test suite](test)
   passing [![Build Status](https://travis-ci.org/snd/hinoki.svg?branch=master)](https://travis-ci.org/snd/hinoki/branches)
   with [![codecov.io](http://codecov.io/github/snd/hinoki/coverage.svg?branch=master)](http://codecov.io/github/snd/hinoki?branch=master)
@@ -68,6 +75,9 @@ SANE
 - npm package: `npm install hinoki`
 - bower package: `bower install hinoki`
 - [inspired by prismatic's fantastic graph.](https://github.com/Prismatic/plumbing#graph-the-functional-swiss-army-knife)
+  - there are some things you can do with both hinoki and graph
+  - there are a lot of things you can only do with either of them
+- async promises
 
 > hinoki takes its name from the hinoki cypress,
 > a tree that only grows in japan and is the preferred wood for building palaces,
@@ -101,30 +111,48 @@ var hinoki = require('hinoki');
 let's call it:
 ```javascript
 hinoki({
-
+  count: function(xs) { return xs.length; },
+  mean: function(xs, count) {
+    reducer = (acc, x) ->
+      acc + x
+    xs.reduce(reducer, 0) / count
+  meanOfSquares: (xs, count) ->
+    reducer = (acc, x) ->
+      acc + x * x
+    xs.reduce(reducer, 0) / count
+  variance: (mean, meanOfSquares) ->
+    meanOfSquares - mean * mean
 }, {
-
-}, 
-[]).spread(function() {
+  xs: [1, 2, 3]
+},
+  ['meanOfSquares', 'variance']
+).spread(function() {
 
 });
 ```
 
-**hinoki always returns a [promise](https://github.com/petkaantonov/bluebird).
-which resolves to the [values](#values) for the [keys](#key) in the last argument.**
+hinoki always returns a [promise](https://github.com/petkaantonov/bluebird)
+that resolves to the [values](#values) for the [keys](#key) in the last argument.
 
 the promise is rejected in case of an [error](#error)
 
-the middle argument is a [lifetime](#lifetime) or an array of [lifetimes](#lifetime).
-it's optional. if no lifetime is provided one is created.
-
 the keys of the objects as well as the strings in the last arguments
 are called [keys](#key) within hinoki:
-a [key](#key) is a string that is the name of a part of your system.
+a [key](#key) is a string that is the name of a value.
+
+hinoki first looks up the values for the provided keys in the lifetimes.
+
+the middle argument is a [lifetime](#lifetime) or an array of [lifetimes](#lifetime).
+it's optional. if no lifetime is provided one is created.
+a lifetime is an object that maps 
+
+for values
 
 the last argument is either a single [key](#key) or an array of [keys](#keys).
 a call to hinoki has always the intention of getting the [values](#value)
 for those keys.
+
+only computed once
 
 
 hinoki first looks up the lifetimes.
@@ -144,6 +172,8 @@ a [factory](#factory) is simply
 
 a source is a function that takes a **key** and returns a **factory**.
 
+## examples / use cases
+
 ## concepts
 
 ### key
@@ -154,7 +184,22 @@ a source is a function that takes a **key** and returns a **factory**.
 
 ### source
 
+sources compose: you can wrap them, combine them
+
+method missing
+
 ### error
+
+
+## solutions
+
+### structuring applications
+
+### asynchronous control flows
+
+### ...
+
+if you've ... let me know.
 
 ```
 ```
