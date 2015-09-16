@@ -74,7 +74,118 @@ SANE
 > temples and shrines.  
 > we hope hinoki becomes the building material for your digital palaces too !
 
+<!--
+there's a lot you can do 
+-->
+
+<!--
+hinoki can help you...
+
+sell hinoki here without showing code.
+
+explain everything in the gist.
+
+the have the definitions that explain things further.
+cross reference from the gist to the definitions
+
+## the terms
+-->
+
 ## the gist
+
+hinoki exports a single function:
+```javascript
+var hinoki = require('hinoki');
+```
+
+let's call it:
+```javascript
+hinoki({
+
+}, {
+
+}, 
+[]).spread(function() {
+
+});
+```
+
+**hinoki always returns a [promise](https://github.com/petkaantonov/bluebird).
+which resolves to the [values](#values) for the [keys](#key) in the last argument.**
+
+the promise is rejected in case of an [error](#error)
+
+the middle argument is a [lifetime](#lifetime) or an array of [lifetimes](#lifetime).
+it's optional. if no lifetime is provided one is created.
+
+the keys of the objects as well as the strings in the last arguments
+are called [keys](#key) within hinoki:
+a [key](#key) is a string that is the name of a part of your system.
+
+the last argument is either a single [key](#key) or an array of [keys](#keys).
+a call to hinoki has always the intention of getting the [values](#value)
+for those keys.
+
+
+hinoki first looks up the lifetimes.
+
+the 
+
+here's whats going on:
+
+the first argument is a source or a thing that can be turned into a source.
+more on that later.
+here it's an object 
+
+that object maps a [key](#key) to the [factory](#factory) that returns
+the [value](#value) for that [key](#key).
+
+a [factory](#factory) is simply 
+
+a source is a function that takes a **key** and returns a **factory**.
+
+## concepts
+
+### key
+
+### value
+
+### factory
+
+### source
+
+### error
+
+```
+```
+
+```
+
+
+
+var memoizedSource = function(key) {
+
+}
+
+// the first argument
+hinoki(
+
+## calling combinations
+
+
+
+
+```
+
+hinoki can help you everytime you have a system composed of parts
+that depend on each other.
+
+keep the words you're describing it with away from DI
+
+inversion of control
+
+## how it can help you ?
+## use cases
 
 <!--
 cut right to the point:
