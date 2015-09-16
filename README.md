@@ -103,14 +103,21 @@ cross reference from the gist to the definitions
 
 ## the gist
 
-hinoki exports a single function:
-```javascript
-var hinoki = require('hinoki');
-```
+focus solely on the computation example here
 
-let's call it:
+mixture of text and comments
+
 ```javascript
-hinoki({
+// hinoki exports a single function:
+var hinoki = require('hinoki');
+
+// an object with each key mapped to the function
+// that returns the value for that key.
+// that function is called a factory.
+// the parameters of the factory are the keys of the values it depends on.
+// a factory expects to be called with those values as arguments.
+// that's exactly what hinoki will do below.
+var source = {
   count: function(xs) { return xs.length; },
   mean: function(xs, count) {
     reducer = (acc, x) ->
@@ -122,14 +129,43 @@ hinoki({
     xs.reduce(reducer, 0) / count
   variance: (mean, meanOfSquares) ->
     meanOfSquares - mean * mean
-}, {
-  xs: [1, 2, 3]
-},
-  ['meanOfSquares', 'variance']
-).spread(function() {
+};
 
+// an object with each key mapped to a value.
+// initialized with the values we already have.
+// values returned from factories will be cached here
+// and reused when needed more than once.
+var lifetime = {
+  xs: [1, 2, 3]
+};
+
+// the keys of the values we are interested in
+var keys = ['xs', 'meanOfSquares', 'variance'];
+
+// hinoki always returns a promise
+var promise = hinoki(source, lifetime, keys);
+
+promise.spread(function(xs, meanOfSquares) {
+  // hinoki simply took xs from the lifetime
+  assert.deepEqual(xs, lifetime.xs);
+  // hinoki computed meanOfSquares by calling its factory with the values
+  // for xs and count.
+  // it saw that `count` isn't already in `lifetime` so it called
+  // the factory for `count`.
+  console.log(meanOfSquares, lifetime.meanOfSquares)
+
+  // the factory for count was called only once even though its
+  // value was required twice
+  console.log(count, lifetime.count)
+
+  // hinoki has not computed `variance` because we never asked for it
+  // hinoki 
 });
 ```
+
+we can compute
+
+the comments above should 
 
 hinoki always returns a [promise](https://github.com/petkaantonov/bluebird)
 that resolves to the [values](#values) for the [keys](#key) in the last argument.
