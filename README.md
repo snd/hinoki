@@ -44,6 +44,83 @@ SANE
 
 **sane, simple, dependency injection and more for Node.js and browsers**
 
+> Hinoki seems to be the least surprising IoC container available for Node.  
+> I definitely do like its ascetic worldview.  
+> Thanks a lot for this!  
+> [andrey](https://github.com/snd/hinoki/issues/3)
+
+a contrieved but small example showing off the main features:
+
+```javascript
+var hinoki = require('hinoki');
+
+var source = function(key) {
+  if (key === 'one') {
+    return function() {
+      return 1;
+    };
+  } else if (key === 'two') {
+    return function(one) {
+      return one + one;
+    };
+  }
+};
+
+var factories = {
+  three: function(one, two) {
+    return one + two;
+  },
+  four: function(two, two) {
+    return two + two;
+  },
+  five: function(one, four) {
+    return one + four;
+  },
+  six: function(three) {
+    return three + three;
+  },
+  seven: function(three, four) {
+    return three + four;
+  }
+};
+
+var lifetimeAlpha = {};
+
+var lifetimeBravo = {
+  four: 4
+};
+
+var promise = hinoki(
+  [source, factories],
+  [lifetimeAlpha, lifetimeBravo],
+  ['three', 'six', 'seven']
+);
+
+promise.then(function(three, six, seven)) {
+  assert.equal(three, 3);
+  assert.equal(six, 6);
+  assert.equal(seven, 7);
+
+  assert.deepEqual(lifetimeAlpha, {
+    one: 1,
+    two: 2,
+    three: 3,
+    six: 6
+  });
+  assert.deepEqual(lifetimeBravo, {
+    four: 4,
+    seven: 7
+  });
+});
+```
+
+see an example.
+
+there's so much more to it.
+learn more about [keys](#key), [sources](#source), [lifetimes](#lifetime),
+[factories](#factory)
+or just read on to learn it all.
+
 hinoki helps you large structure (large) applications, (complex) asynchronous control flows and other
 things in a way that's simple and testable.
 
@@ -56,11 +133,6 @@ the problems sections
 where hinoki has been useful for us.
 
 [read the gist to get as much information as quickly as possible]
-
-> Hinoki seems to be the least surprising IoC container available for Node.  
-> I definitely do like its ascetic worldview.  
-> Thanks a lot for this!  
-> [andrey](https://github.com/snd/hinoki/issues/3)
 
 - structure applications
 - compute only whats needed
@@ -103,22 +175,51 @@ cross reference from the gist to the definitions
 
 ## the gist
 
+you must leave out a lot of details here
+
+go through the map example without going into depth
+
+github api ???
+
+some other api
+
+cross correlating
+
+---
+
+let's look at a simple computation:
+the `variance`, `mean`, `meanOfSquares`, `count`
+
 focus solely on the computation example here
 
 mixture of text and comments
 
+hinoki exports a single function:
 ```javascript
-// hinoki exports a single function:
 var hinoki = require('hinoki');
+```
 
-// an object with each key mapped to the function
-// that returns the value for that key.
-// that function is called a factory.
-// the parameters of the factory are the keys of the values it depends on.
-// a factory expects to be called with those values as arguments.
-// that's exactly what hinoki will do below.
-var source = {
-  count: function(xs) { return xs.length; },
+hinoki works well with promises
+```javascript
+var hinoki = require('hinoki');
+```
+
+factories are simply functions that describe how to get the values
+the parameters of a factory are the 
+
+an object with each key mapped to the function
+that returns the value for that key.
+that function is called a factory.
+the parameters of the factory are the keys of the values it depends on.
+a factory expects to be called with those values as arguments.
+that's exactly what hinoki will do below.
+
+here are the factories for our computation:
+
+var factories = {
+  count: function(xs) { 
+    return Promise.resolve(xs.length);
+  }
   mean: function(xs, count) {
     reducer = (acc, x) ->
       acc + x
@@ -152,6 +253,7 @@ promise.spread(function(xs, meanOfSquares) {
   // for xs and count.
   // it saw that `count` isn't already in `lifetime` so it called
   // the factory for `count`.
+  // to make meanOfSquares we first need to make count
   console.log(meanOfSquares, lifetime.meanOfSquares)
 
   // the factory for count was called only once even though its
@@ -163,7 +265,17 @@ promise.spread(function(xs, meanOfSquares) {
 });
 ```
 
-we can compute
+we can compute variance 
+
+
+or we can compute it with a different series of numbers
+
+now all was recomputed
+
+
+you see that state is localized in lifetimes.
+
+there's more to [lifetimes]
 
 the comments above should 
 
@@ -210,6 +322,19 @@ a source is a function that takes a **key** and returns a **factory**.
 
 ## examples / use cases
 
+we've seen how to use hinoki to structure synchronous, asynchronous and mixed computation
+with the following benefits:
+
+- 
+
+## structuring applications with hinoki
+
+what else can we do with it
+
+explain fragments here by linking to fragments
+
+fragments is the best example
+
 ## concepts
 
 ### key
@@ -218,9 +343,15 @@ a source is a function that takes a **key** and returns a **factory**.
 
 ### factory
 
+a factory returns a value.
+
 ### source
 
+a source is a function which takes a key and returns the factory for that key.
+
 sources compose: you can wrap them, combine them
+
+sources contain factories.
 
 method missing
 
