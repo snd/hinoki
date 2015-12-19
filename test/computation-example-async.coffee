@@ -5,17 +5,17 @@ hinoki = require '../lib/hinoki'
 
 factories =
   count: (xs) ->
-    Promise.delay(xs.length, 100)
+    Promise.delay(100, xs.length)
   mean: (xs, count) ->
     reducer = (acc, x) ->
       acc + x
-    Promise.delay(xs.reduce(reducer, 0) / count, 100)
+    Promise.delay(100, xs.reduce(reducer, 0) / count)
   meanOfSquares: (xs, count) ->
     reducer = (acc, x) ->
       acc + x * x
-    Promise.delay(xs.reduce(reducer, 0) / count, 100)
+    Promise.delay(100, xs.reduce(reducer, 0) / count)
   variance: (mean, meanOfSquares) ->
-    Promise.delay(meanOfSquares - mean * mean, 100)
+    Promise.delay(100, meanOfSquares - mean * mean)
 
 test 'ask for count', (t) ->
   source = hinoki.source factories
