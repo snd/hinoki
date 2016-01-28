@@ -170,13 +170,13 @@ test 'a factory is called no more than once', (t) ->
   source = hinoki.source
     a: (b, c) ->
       callsTo.a++
-      Promise.delay(b + c, 40)
+      Promise.delay(40, b + c)
     b: (d) ->
       callsTo.b++
-      Promise.delay(d + 1, 20)
+      Promise.delay(20, d + 1)
     c: (d) ->
       callsTo.c++
-      Promise.delay(d + 2, 30)
+      Promise.delay(30, d + 2)
     d: ->
       callsTo.d++
       Promise.delay(10, 10)
@@ -196,7 +196,7 @@ test 'promises awaiting resolution are cached and reused', (t) ->
   source = hinoki.source
     a: ->
       # here a new object is created
-      Promise.delay object, 10
+      Promise.delay 10, object
   lifetime = {}
 
   p1 = hinoki(source, lifetime, 'a')
@@ -226,14 +226,14 @@ test 'all dependent promises are created without interleaving', (t) ->
       t.ok lifetime.a?
       t.ok lifetime.b?
       t.ok lifetime.c?
-      Promise.delay a, 10
+      Promise.delay 10, a
     b: (a) ->
       t.ok lifetime.b?
       t.ok lifetime.c?
-      Promise.delay {a: a}, 10
+      Promise.delay 10, {a: a}
     c: (b) ->
       t.ok lifetime.c?
-      Promise.delay {b: b}, 10
+      Promise.delay 10, {b: b}
   lifetime = {}
 
   promiseCWithCleanup = hinoki(source, lifetime, 'c')
