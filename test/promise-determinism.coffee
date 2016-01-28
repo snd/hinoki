@@ -5,8 +5,8 @@ hinoki = require '../lib/hinoki'
 
 module.exports =
 
-test 'hinokis way of working and calls to debug are deterministic', (t) ->
-  t.plan 36
+test 'bluebird and hinoki work in such a way that the order of dependency resolution is deterministic', (t) ->
+  t.plan 28 * 2 + 9
 
   alphaBravoPromise = Promise.resolve('alpha_bravo')
   deltaPromise = Promise.resolve('delta')
@@ -35,11 +35,11 @@ test 'hinokis way of working and calls to debug are deterministic', (t) ->
   lifetime2 =
     charlie: 'charlie'
 
-  planedEvents = ->
-    [
-
 ################################################################################
-# sync
+# sync (things that happen synchronously during the call to hinoki)
+
+  expectedSyncEvents = ->
+    [
 
 ################################################################################
 # alpha_bravo
@@ -70,6 +70,8 @@ test 'hinokis way of working and calls to debug are deterministic', (t) ->
         path: ['bravo_charlie']
         factory: factories.bravo_charlie
       }
+      # lifetime has promise for the result of the call to the
+      # factory of bravo
       {
         event: 'lifetimeHasPromise'
         path: ['bravo', 'bravo_charlie']
@@ -174,10 +176,13 @@ test 'hinokis way of working and calls to debug are deterministic', (t) ->
         lifetime: lifetime1
         lifetimeIndex: 0
       }
+    ]
 
 ################################################################################
-# async... on various following ticks
+# async (things that happen asynchronously on various following ticks)
 
+  expectedAsyncEvents = ->
+    [
       # alpha already had a value
 
       # we asked for bravo next
@@ -190,14 +195,16 @@ test 'hinokis way of working and calls to debug are deterministic', (t) ->
       # we asked for bravo_charlie next
       # but bravo was just injected into bravo_charlie
 
-      # alpha and charlie both had values
+      # alpha and charlie both already had values so the factory
+      # could be called immeditately and returned a value which
+      # we can handle immediately
       {
         event: 'factoryReturnedValue'
         path: ['alpha_charlie']
         factory: factories.alpha_charlie
         value: 'alpha_charlie'
       }
-      # bravo_charlie is not ready yet
+
       # we asked for delta next
       {
         event: 'factoryReturnedPromise'
@@ -206,19 +213,23 @@ test 'hinokis way of working and calls to debug are deterministic', (t) ->
         promise: deltaPromise
       }
 
-      {
-        event: 'promiseResolved'
-        path: ['delta', 'charlie_delta']
-        factory: factories.delta
-        value: 'delta'
-      }
+      # we asked for alpha_delta next but delta is not ready yet
+      # alpha_delta is not ready yet
 
-      # now bravo_charlie is ready
+      # we asked for bravo charlie next
       {
         event: 'factoryReturnedValue'
         path: ['bravo_charlie']
         factory: factories.bravo_charlie
         value: 'bravo_charlie'
+      }
+
+      # delta is ready
+      {
+        event: 'promiseResolved'
+        path: ['delta', 'charlie_delta']
+        factory: factories.delta
+        value: 'delta'
       }
 
       {
@@ -258,9 +269,24 @@ test 'hinokis way of working and calls to debug are deterministic', (t) ->
 
   callToDebug = 0
 
+  # order in which we ask for things:
+  # alpha
+  # bravo
+  # charlie
+  # delta
+
   hinoki.debug = (actualEvent) ->
-    planedEvent = planedEvents()[callToDebug++]
-    t.deepEqual planedEvent, actualEvent
+    index = callToDebug++
+    if index < expectedSyncEvents().length
+      t.equal true, isSync
+      expectedEvent = expectedSyncEvents()[index]
+    else
+      t.equal false, isSync
+      expectedEvent = expectedAsyncEvents()[index - expectedSyncEvents().length]
+
+    t.deepEqual expectedEvent, actualEvent
+
+  isSync = true
 
   hinoki source, [lifetime1, lifetime2], (
     alpha_bravo
@@ -270,6 +296,8 @@ test 'hinokis way of working and calls to debug are deterministic', (t) ->
     bravo_delta
     alpha_delta
   ) ->
+    t.equal isSync, false
+
     t.equal alpha_bravo, 'alpha_bravo'
     t.equal alpha_charlie, 'alpha_charlie'
     t.equal alpha_delta, 'alpha_delta'
@@ -293,3 +321,5 @@ test 'hinokis way of working and calls to debug are deterministic', (t) ->
     delete hinoki.debug
 
     t.end()
+
+  isSync = false
